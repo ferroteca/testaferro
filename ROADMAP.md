@@ -31,10 +31,14 @@ details.
 
 Agreed shape:
 
-- **`testaferro.config(machine, platform=..., **options)`**
+- **`testaferro.config(machine, platform=None, **options)`**
   declares one test machine: it constructs an instance of the
   platform's default runner (or the `runner=` override) from the
-  options, validated against that runner's config type. Calls
+  options, validated against that runner's config type. `platform=`
+  remains available but is not mandatory: a runner config that
+  declares its platform supplies it; otherwise the explicit
+  argument, then the runner's default, supplies it. An explicit
+  platform that conflicts with the runner config is an error. Calls
   accumulate:
 
       testaferro.config("freedos", platform="dos")
@@ -47,6 +51,16 @@ Agreed shape:
   remains as a compatibility shorthand declaring the default DOS
   machine. The local text config file (Configuration below) is the
   declarative twin of `config()`: one section per machine.
+- **Machine templates.** A test machine may be declared from a
+  runner-native machine template — for relict, its existing
+  `MachineConfig` (including one loaded from a versioned machine
+  document). The template is reusable configuration, not shared run
+  state: it is duplicated/materialized into every fresh runner home,
+  including copies of mutable media, so concurrent and sequential
+  invocations remain isolated. Read-only media may be shared. The
+  template's platform participates in the `platform=` resolution
+  above. `boot_image=` is the compatibility shorthand for a generated
+  one-drive template and cannot be combined with an explicit template.
 - **Boot images.** Every test machine has exactly one boot image;
   only the media type varies — floppy, hard disk, CD (USB: open
   question) — defaulted by the platform (dos: floppy; win9x: hard
@@ -173,11 +187,11 @@ When revived:
 - **Local text config file** — the declarative twin of
   `testaferro.config()` (Platforms and test machines above): an
   optional per-project file with one section per test machine
-  (platform, boot image or install media), validated by the same
-  config-type chain as `config()` calls, so test code names only
-  the suite executable and testaferro resolves machines from
-  config; plus runner-specific local config owned by the runner
-  package itself.
+  (optional platform, boot image, machine template, or install media),
+  all validated by the same config-type chain as `config()` calls,
+  so test code names only the suite executable and testaferro resolves
+  machines from config; plus runner-specific local config owned by the
+  runner package itself.
 
 ## Lifecycle
 
