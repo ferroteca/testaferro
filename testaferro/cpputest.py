@@ -1,0 +1,128 @@
+# SPDX-FileCopyrightText: 2026 Paul Galbraith
+# SPDX-License-Identifier: BSD-3-Clause
+"""CppUTest framework adapter.
+
+Knows CppUTest and nothing else: the argv that makes a suite
+executable enumerate or run tests, and the grammar of the resulting
+output. How and where the executable runs — the guest-OS aspect — is
+deliberately not this module's business; the
+two aspects compose in a SuiteBackend (testaferro.suite) or directly
+at the call site:
+
+    log = run_guest_program(exe, args=cpputest.VERBOSE_ARGS)
+    results = cpputest.parse(log)
+
+Output grammars follow CppUTest v4.0's own source (TestOutput.cpp,
+TestRegistry.cpp): eclipse-style failure locations (the default),
+'-ln' space-separated 'Group.Name' enumeration.
+"""
+
+from __future__ import annotations
+
+import re
+
+from .backend import TestId, TestOutcome
+
+# Suite argv for each backend operation. VERBOSE_ARGS produces the
+# run output parse()/parse_run() understand; LIST_ARGS produces the
+# enumeration parse_list() understands.
+VERBOSE_ARGS = "-v"
+LIST_ARGS = "-ln"
+
+# CppUTest verbose (-v) output. Test ids are 'Group.Name', matching
+# the executable's own -ln enumeration format.
+_RAN = re.compile(r"^(?:IGNORE_)?TEST\((\w+), (\w+)\)", re.M)
+# Eclipse-style failure header: '<file>:<line>: error: Failure in
+# TEST(<group>, <name>)'. When the failure is outside the test file,
+# a second '<file>:<line>: error:' location line follows with the
+# actual failure site; the tab-indented message lines come last.
+_FAILED = re.compile(
+    r"^(.*):(\d+): error: Failure in TEST\((\w+), (\w+)\)$", re.M)
+_LOCATION = re.compile(r"^(.*):(\d+): error:$")
+_SUMMARY = re.compile(r"^(?:OK|Errors) \(.*\)", re.M)
+_LIST_ID = re.compile(r"(\w+)\.(\w+)$")
+
+
+def list_argv():
+    """Suite argv that enumerates tests in parse_list()'s format."""
+    return LIST_ARGS
+
+
+def run_all_argv():
+    """Suite argv that runs every test in parse_run()'s format."""
+    return VERBOSE_ARGS
+
+
+def run_one_argv(group, name):
+    """Suite argv that runs exactly one test in parse_run()'s
+    format ('-sg'/'-sn' are CppUTest's strict-match filters)."""
+    return f"{VERBOSE_ARGS} -sg {group} -sn {name}"
+
+
+def parse_list(text):
+    """Parse '-ln' enumeration output: space-separated 'Group.Name'
+    tokens. Returns a list of TestId."""
+    text = text.replace("\r\n", "\n")
+    ids = []
+    for token in text.split():
+        match = _LIST_ID.fullmatch(token)
+        if not match:
+            raise ValueError(
+                f"not a CppUTest -ln test list:\n{text}")
+        ids.append(TestId(*match.groups()))
+    return ids
+
+
+def _failures(text):
+    """Map 'Group.Name' -> (file, line, message) for each failure
+    block in verbose output."""
+    lines = text.splitlines()
+    failures = {}
+    for match in _FAILED.finditer(text):
+        file, line, group, name = match.groups()
+        rest = lines[text.count("\n", 0, match.start()) + 1:]
+        if rest and _LOCATION.match(rest[0]):
+            # Failure outside the test file: the second location
+            # line carries the actual failure site.
+            file, line = _LOCATION.match(rest[0]).groups()
+            rest = rest[1:]
+        message = []
+        for text_line in rest:
+            if not text_line:
+                break
+            message.append(text_line.lstrip("\t"))
+        failures[f"{group}.{name}"] = (file, int(line), "\n".join(message))
+    return failures
+
+
+def parse_run(text):
+    """Parse verbose (-v) run output into a list of TestOutcome, in
+    output order. Raises ValueError when the output carries no
+    CppUTest summary line (the run died before finishing). DOS logs
+    arrive with CRLF line endings; both endings are accepted."""
+    text = text.replace("\r\n", "\n")
+    if not _SUMMARY.search(text):
+        raise ValueError(
+            f"no CppUTest summary line in suite output:\n{text}")
+    failures = _failures(text)
+    outcomes = []
+    for group, name in _RAN.findall(text):
+        file, line, message = failures.get(f"{group}.{name}", ("", 0, ""))
+        outcomes.append(TestOutcome(
+            group=group, name=name,
+            passed=f"{group}.{name}" not in failures,
+            file=file, line=line, message=message))
+    return outcomes
+
+
+def parse(text):
+    """Normalize CppUTest verbose output: return a dict with "ran" and
+    "failed" (sets of 'Group.Name' ids) and "summary" (the OK/Errors
+    line)."""
+    outcomes = parse_run(text)
+    return {
+        "ran": {f"{o.group}.{o.name}" for o in outcomes},
+        "failed": {f"{o.group}.{o.name}" for o in outcomes
+                   if not o.passed},
+        "summary": _SUMMARY.search(text).group(0),
+    }

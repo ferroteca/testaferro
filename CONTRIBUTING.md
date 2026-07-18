@@ -1,0 +1,95 @@
+# Contributing to testaferro
+
+Thank you for helping improve testaferro. Bug reports, documentation
+fixes, tests, and code changes are welcome when they preserve the
+project's pluggable-aspect design and BSD licensing.
+
+## Before you start
+
+For a substantial change, open an issue before investing significant
+work. This gives us a chance to agree on the problem, scope, and
+approach. Small, focused fixes may go directly to a pull request.
+
+Keep changes narrowly scoped and avoid unrelated cleanup. New behavior
+should include focused tests, especially for the output grammars and
+the facade's batching behavior.
+
+## Development setup
+
+testaferro supports Python 3.9 and newer. Create and use a
+project-local virtual environment:
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e .
+```
+
+This installs the two runtime dependencies, pytest and quemados.
+Until quemados is published to PyPI, install it first from its own
+checkout (`python -m pip install -e path\to\quemados`) and then run
+the `pip install -e .` above.
+
+The unit suite also runs under a plain stdlib Python: tests that need
+pytest or quemados skip when those are absent. Run the full suite from
+an environment that has both installed before submitting.
+
+Runtime code is standard-library-only outside two seams — pytest is
+imported lazily in `testaferro/facade.py` and quemados only in
+`testaferro/qemu.py`. Please discuss a new dependency before adding
+one.
+
+## Make and verify a change
+
+- Match the existing style and keep lines near 79 columns.
+- Add or update stdlib `unittest` coverage under `tests/` for changed
+  behavior.
+- Update README.md when public behavior changes.
+- Add SPDX headers to new files as described below.
+
+Run the required checks:
+
+```powershell
+python -m compileall -q testaferro tests
+python -m unittest discover -s tests -v
+```
+
+Changes to an output grammar (e.g. `testaferro.cpputest`)
+additionally warrant a real end-to-end run from a consuming project —
+a suite executing in an actual guest through the facade — since the
+unit fixtures are source-derived, not captured.
+
+## Submit a pull request
+
+Describe the problem, the chosen solution, and how you verified it.
+Keep each pull request reviewable as one coherent change, and respond
+to review by updating the same branch.
+
+Maintainer guidance and internal engineering constraints live in
+[AGENTS.md](AGENTS.md). Contributors should read it before changing
+the backend seam, an output grammar, packaging, or licensing behavior.
+
+## Contribution licensing
+
+testaferro is licensed under the [BSD 3-Clause License](LICENSE). By
+submitting a contribution, you agree to license that contribution
+under the same BSD-3-Clause terms. You retain copyright in your
+contribution.
+
+Only submit work that you have the right to contribute on those
+terms. This means, as applicable, obtaining permission from an
+employer or other rights holder and identifying third-party material
+and its license. Contributions that would prevent testaferro from
+being used or distributed under its existing BSD-3-Clause license
+cannot be accepted.
+
+Use accurate SPDX copyright information in each new file:
+
+```text
+SPDX-FileCopyrightText: YEAR COPYRIGHT HOLDER
+SPDX-License-Identifier: BSD-3-Clause
+```
+
+Use the appropriate comment syntax for the file type. Files that
+cannot or should not carry comments must be added to `REUSE.toml`
+with their actual copyright holder.
