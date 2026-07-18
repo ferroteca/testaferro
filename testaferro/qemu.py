@@ -4,10 +4,11 @@
 selects it.
 
 `suite_backend()` inspects the referenced suite executable: a DOS
-program yields a QemuSuiteBackend; a provably non-DOS binary (a Win32
-PE such as the suite's host build, an NE/LX/LE) is rejected before
-any guest work. The framework adapter defaults to
-testaferro.cpputest.
+program yields a QemuSuiteBackend; a provably non-DOS binary — a
+Windows PE such as the suite's host build, a Linux/BSD ELF, a macOS
+Mach-O (including universal), an NE/LX/LE, on any architecture — is
+rejected before any guest work, with the format and architecture
+named. The framework adapter defaults to testaferro.cpputest.
 
 QemuSuiteBackend manages the quemados runner entirely on the caller's
 behalf. Each facade session runs in a fresh, disposable quemados home
@@ -33,33 +34,82 @@ import quemados
 from . import cpputest
 from .suite import SuiteBackend
 
-# Newer-format signatures found at e_lfanew when an MZ file's
-# relocation table starts at 0x40 or later (plain DOS layout puts it
-# below 0x40). DOS cannot run any of these.
-_NEW_EXE_FORMATS = (
-    (b"PE\0\0", "a Win32 (PE)"),
-    (b"NE", "a 16-bit Windows or OS/2 (NE)"),
-    (b"LX", "an OS/2 (LX)"),
-    (b"LE", "a linear (LE)"),
-)
+# architecture names per format, keyed by each format's machine field
+_ELF_MACHINES = {0x03: "x86", 0x28: "ARM", 0x3E: "x86-64",
+                 0xB7: "ARM64", 0xF3: "RISC-V"}
+_PE_MACHINES = {0x014C: "x86", 0x01C0: "ARM", 0x01C4: "ARM",
+                0x8664: "x64", 0xAA64: "ARM64"}
+_MACHO_CPUTYPES = {7: "x86", 0x01000007: "x86-64",
+                   12: "ARM", 0x0100000C: "ARM64"}
+
+
+def _elf_format(header):
+    """Kind string for an ELF image (Linux and the BSDs; most carry
+    the generic System V OS/ABI byte, so no OS is claimed)."""
+    arch = None
+    if len(header) >= 0x14:
+        order = "little" if header[5] == 1 else "big"
+        arch = _ELF_MACHINES.get(
+            int.from_bytes(header[0x12:0x14], order))
+    return (f"an ELF {arch} (Linux/BSD)" if arch
+            else "an ELF (Linux/BSD)")
+
+
+def _macho_format(header):
+    """Kind string for a Mach-O image, or None when the magic is
+    really something else's."""
+    magic = header[:4]
+    if magic in (b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf"):
+        # a universal binary's big-endian arch count is tiny; a Java
+        # class file shares the magic but puts its version there
+        if (len(header) >= 8
+                and int.from_bytes(header[4:8], "big") < 0x40):
+            return "a macOS universal (Mach-O)"
+        return None
+    order = "big" if magic[:2] == b"\xfe\xed" else "little"
+    arch = (_MACHO_CPUTYPES.get(int.from_bytes(header[4:8], order))
+            if len(header) >= 8 else None)
+    return (f"a macOS {arch} (Mach-O)" if arch
+            else "a macOS (Mach-O)")
+
+
+def _mz_extension_format(found):
+    """Kind string for the newer-format header an extended MZ file
+    points at through e_lfanew. DOS cannot run any of these."""
+    if found.startswith(b"PE\0\0"):
+        arch = (_PE_MACHINES.get(int.from_bytes(found[4:6], "little"))
+                if len(found) >= 6 else None)
+        return (f"a Windows {arch} (PE)" if arch
+                else "a Windows (PE)")
+    for signature, kind in ((b"NE", "a 16-bit Windows or OS/2 (NE)"),
+                            (b"LX", "an OS/2 (LX)"),
+                            (b"LE", "a linear (LE)")):
+        if found.startswith(signature):
+            return kind
+    return None
 
 
 def _non_dos_format(exe_path):
-    """The provable non-DOS format of an executable ('a Win32 (PE)',
-    ...), or None when the file could be a DOS program — plain MZ
-    layout, or no MZ header at all."""
+    """The provable non-DOS format of an executable ('a Windows x64
+    (PE)', 'an ELF x86-64 (Linux/BSD)', ...), or None when the file
+    could be a DOS program — plain MZ layout, or no recognizable
+    magic at all (a .com image is raw code with no header, so it can
+    never be ruled out here)."""
     with open(exe_path, "rb") as f:
         header = f.read(0x40)
+        if header[:4] == b"\x7fELF":
+            return _elf_format(header)
+        if header[:4] in (b"\xfe\xed\xfa\xce", b"\xfe\xed\xfa\xcf",
+                          b"\xce\xfa\xed\xfe", b"\xcf\xfa\xed\xfe",
+                          b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf"):
+            return _macho_format(header)
         if len(header) < 0x40 or header[:2] != b"MZ":
             return None
         if int.from_bytes(header[0x18:0x1A], "little") < 0x40:
             return None
         f.seek(int.from_bytes(header[0x3C:0x40], "little"))
-        found = f.read(4)
-    for signature, kind in _NEW_EXE_FORMATS:
-        if found.startswith(signature):
-            return kind
-    return None
+        found = f.read(8)
+    return _mz_extension_format(found)
 
 
 def suite_backend(exe_path, framework=cpputest, enumerator=None,

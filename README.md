@@ -26,7 +26,9 @@ test_guest_case = testaferro.guest_suite(Path(__file__).parent / "TESTS.EXE")
 
 testaferro interrogates the referenced file and selects the matching guest backend: a DOS executable runs inside a
 QEMU guest through the quemados runner (a dependency of testaferro), while a provably non-DOS binary — say, the host
-build of the suite passed by mistake — is rejected with a clear error before any guest boots. The framework adapter
+build of the suite passed by mistake — is rejected with a clear error before any guest boots, naming the format and
+architecture it found (Windows PE, Linux/BSD ELF, macOS Mach-O, 16-bit NE/LX/LE; x86 through ARM64). Headerless
+images (`.com`-style raw code) carry nothing to prove, so they pass through for the guest itself to judge. The framework adapter
 defaults to `testaferro.cpputest`; pass `framework=` to use a different one.
 
 The runner's working state is testaferro's business, not the consumer's: each run happens in a fresh, disposable work

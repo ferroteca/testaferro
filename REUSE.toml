@@ -9,6 +9,7 @@ path = [
     ".gitignore",
     "README.md",
     "AGENTS.md",
+    "CHANGELOG.md",
     "CONTRIBUTING.md",
 ]
 precedence = "aggregate"

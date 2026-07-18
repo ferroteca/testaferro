@@ -53,10 +53,17 @@ class SuiteBackendDispatchTests(unittest.TestCase):
         path.write_bytes(content)
         return path
 
-    def test_rejects_win32_pe_executable(self):
+    def test_rejects_windows_pe_executable(self):
         exe = self._exe(_new_format_exe_bytes(b"PE\0\0"))
 
-        with self.assertRaisesRegex(ValueError, r"Win32 \(PE\)"):
+        with self.assertRaisesRegex(ValueError, r"Windows \(PE\)"):
+            qemu.suite_backend(exe)
+
+    def test_rejects_windows_pe_with_architecture(self):
+        machine = (0x8664).to_bytes(2, "little")
+        exe = self._exe(_new_format_exe_bytes(b"PE\0\0" + machine))
+
+        with self.assertRaisesRegex(ValueError, r"Windows x64 \(PE\)"):
             qemu.suite_backend(exe)
 
     def test_rejects_win16_ne_executable(self):
@@ -64,6 +71,56 @@ class SuiteBackendDispatchTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, r"\(NE\)"):
             qemu.suite_backend(exe)
+
+    def test_rejects_linux_bsd_elf_executable(self):
+        header = bytearray(0x40)
+        header[0:4] = b"\x7fELF"
+        header[4] = 2                                   # 64-bit
+        header[5] = 1                                   # little-endian
+        header[0x12:0x14] = (0x3E).to_bytes(2, "little")  # x86-64
+        exe = self._exe(bytes(header))
+
+        with self.assertRaisesRegex(ValueError,
+                                    r"ELF x86-64 \(Linux/BSD\)"):
+            qemu.suite_backend(exe)
+
+    def test_rejects_elf_arm64_executable(self):
+        header = bytearray(0x40)
+        header[0:4] = b"\x7fELF"
+        header[4] = 2
+        header[5] = 1
+        header[0x12:0x14] = (0xB7).to_bytes(2, "little")  # aarch64
+        exe = self._exe(bytes(header))
+
+        with self.assertRaisesRegex(ValueError, r"ELF ARM64"):
+            qemu.suite_backend(exe)
+
+    def test_rejects_macos_macho_executable(self):
+        # little-endian 64-bit Mach-O, cputype arm64
+        header = (b"\xcf\xfa\xed\xfe"
+                  + (0x0100000C).to_bytes(4, "little"))
+        exe = self._exe(header + bytes(0x40 - len(header)))
+
+        with self.assertRaisesRegex(ValueError,
+                                    r"macOS ARM64 \(Mach-O\)"):
+            qemu.suite_backend(exe)
+
+    def test_rejects_macos_universal_binary(self):
+        # fat header: big-endian magic + tiny arch count (a Java
+        # class file shares the magic but never a small count there)
+        header = b"\xca\xfe\xba\xbe" + (2).to_bytes(4, "big")
+        exe = self._exe(header + bytes(0x40 - len(header)))
+
+        with self.assertRaisesRegex(ValueError,
+                                    r"macOS universal \(Mach-O\)"):
+            qemu.suite_backend(exe)
+
+    def test_accepts_headerless_image_like_a_com_program(self):
+        # .com-style raw 8086 code has no magic at all — nothing to
+        # prove, so it must pass through for the guest to judge
+        exe = self._exe(b"\xb4\x09\xba\x00\x01\xcd\x21\xc3")
+
+        self.assertIsNotNone(qemu.suite_backend(exe))
 
     def test_missing_executable_raises_at_dispatch(self):
         with self.assertRaises(FileNotFoundError):

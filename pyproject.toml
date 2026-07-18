@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "testaferro"
-version = "0.0.1"
+version = "0.1.0.dev0"
 description = "pytest facade for DOS-based CppUTest unit testing, run via QEMU"
 readme = "README.md"
 authors = [{ name = "Paul Galbraith", email = "paul@galbraiths.ca" }]

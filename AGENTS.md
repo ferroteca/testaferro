@@ -20,7 +20,9 @@ Package layout (each module states its contract in its docstring):
   generic runner × framework composition.
 - [testaferro/qemu.py](testaferro/qemu.py) — the QEMU/DOS backend:
   `suite_backend()` interrogates the referenced executable (plain MZ
-  accepted; provable PE/NE/LX/LE rejected) and returns a
+  and headerless/.com images accepted; provable PE, NE/LX/LE, ELF,
+  and Mach-O rejected with format and architecture named) and
+  returns a
   `QemuSuiteBackend` — `SuiteBackend` with
   `quemados.run_guest_program` prebound and `framework` defaulting
   to the CppUTest adapter. Each facade session runs in a fresh,
