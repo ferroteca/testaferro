@@ -23,13 +23,13 @@ classifiers = [
     "Topic :: Software Development :: Testing",
 ]
 # pytest is the facade's host surface (testaferro.facade). QemuSuiteBackend
-# requires quemados, which is included as a dependency.
-dependencies = ["pytest", "quemados"]
+# requires relict, which is included as a dependency.
+dependencies = ["pytest", "relict"]
 
 [tool.setuptools]
 packages = ["testaferro"]
 
-# until quemados is published to PyPI, resolve it from the sibling
+# until relict is published to PyPI, resolve it from the sibling
 # checkout when developing with uv
 [tool.uv.sources]
-quemados = { path = "../quemados", editable = true }
+relict = { path = "../relict", editable = true }

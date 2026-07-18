@@ -40,7 +40,7 @@ class ClassifyTests(unittest.TestCase):
     def test_plain_mz_is_a_dos_program(self):
         fmt = self._classify(plain_dos_exe_bytes())
 
-        self.assertEqual(fmt.guest, "dos")
+        self.assertEqual(fmt.platform, "dos")
         self.assertIn("MZ", fmt.kind)
 
     def test_headerless_image_like_a_com_program_is_dos(self):
@@ -48,7 +48,7 @@ class ClassifyTests(unittest.TestCase):
         # prove, so it must pass through for the guest to judge
         fmt = self._classify(b"\xb4\x09\xba\x00\x01\xcd\x21\xc3")
 
-        self.assertEqual(fmt.guest, "dos")
+        self.assertEqual(fmt.platform, "dos")
 
     def test_pe_x86_is_unsupported(self):
         machine = (0x014C).to_bytes(2, "little")
@@ -70,7 +70,7 @@ class ClassifyTests(unittest.TestCase):
     def test_win16_ne_is_unsupported(self):
         fmt = self._classify(new_format_exe_bytes(b"NE\0\0"))
 
-        self.assertEqual(fmt.guest, None)
+        self.assertEqual(fmt.platform, None)
         self.assertIn("(NE)", fmt.kind)
 
     def test_linux_bsd_elf_is_unsupported(self):
@@ -115,7 +115,7 @@ class ClassifyTests(unittest.TestCase):
         header = b"\xca\xfe\xba\xbe" + (0x00010000).to_bytes(4, "big")
         fmt = self._classify(header + bytes(0x40 - len(header)))
 
-        self.assertEqual(fmt.guest, "dos")
+        self.assertEqual(fmt.platform, "dos")
 
     def test_missing_file_raises(self):
         with self.assertRaises(FileNotFoundError):

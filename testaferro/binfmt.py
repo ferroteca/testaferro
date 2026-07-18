@@ -85,8 +85,8 @@ def _mz_extension_format(found):
 
 
 def classify(exe_path):
-    """The Format of the referenced executable: which guest OS could
-    run it (`guest`) and its human-readable kind. Raises
+    """The Format of the referenced executable: which platform could
+    run it (`platform`) and its human-readable kind. Raises
     FileNotFoundError for a missing file; attaches no meaning beyond
     the header — a "dos" verdict means "nothing proves otherwise"."""
     with open(exe_path, "rb") as f:

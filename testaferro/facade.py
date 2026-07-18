@@ -161,12 +161,12 @@ def _dispatched_backend(target, guest, options):
     format — import it, and hand it the guest-specific options."""
     if guest is None:
         fmt = binfmt.classify(target)
-        if fmt.guest is None:
+        if fmt.platform is None:
             raise ValueError(
                 f"{os.path.basename(os.fspath(target))} is "
                 f"{fmt.kind} executable; no supported guest OS can "
                 "run it")
-        guest = fmt.guest
+        guest = fmt.platform
     elif guest not in _GUEST_BINDINGS:
         raise ValueError(f"unknown guest {guest!r}; supported: "
                          + ", ".join(sorted(_GUEST_BINDINGS)))

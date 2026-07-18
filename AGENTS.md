@@ -33,11 +33,12 @@ Package layout (each module states its contract in its docstring):
   binding: `suite_backend()` guards with `binfmt.classify()`
   (rejections name the format and architecture) and returns a
   `QemuSuiteBackend` — `SuiteBackend` with
-  `quemados.run_guest_program` prebound and `framework` defaulting
+  `relict.run_guest_program` prebound and `framework` defaulting
   to the CppUTest adapter. Each facade session runs in a fresh,
-  disposable quemados home under `cache_root()`, seeded from
-  `boot_image=` or a once-downloaded cached FreeDOS image; the
-  process-global quemados home is bracketed per guest run.
+  disposable relict home under `cache_root()`, seeded from
+  `boot_image=` or a once-downloaded cached FreeDOS image; every
+  relict call names that home explicitly (`home=`), leaving the
+  process-global relict home untouched.
   `start()`/`stop()` (re-exported as `testaferro.start`/`stop`) open
   an optional session: one lazily-staged image choice shared by all
   suites, whose whole area — image and run homes — is swept by
@@ -84,7 +85,7 @@ and record newly agreed-but-deferred direction there, not here.
 ## Constraints
 
 - Python code: stdlib plus two declared dependencies — pytest (the
-  facade's host surface, imported lazily) and quemados (the QEMU/DOS
+  facade's host surface, imported lazily) and relict (the QEMU/DOS
   runner, imported only in `testaferro/qemu.py`) — so every other
   module stays stdlib-only. Guest-OS runners bind through
   per-runner sibling modules like `testaferro/qemu.py`; any other

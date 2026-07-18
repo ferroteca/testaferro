@@ -1,7 +1,7 @@
 # testaferro
 
 testaferro is a pytest facade for DOS-based CppUTest unit testing: a CppUTest suite built for DOS runs inside a QEMU
-guest via the bundled quemados runner, and its tests surface as pytest tests on the host — running, selecting, and
+guest via the bundled relict runner, and its tests surface as pytest tests on the host — running, selecting, and
 reporting them feels like an ordinary local pytest run.
 
 DOS and CppUTest are what it supports; the design keeps both as pluggable aspects — guest OS and guest unit-test
@@ -26,7 +26,7 @@ test_guest_case = testaferro.guest_suite(Path(__file__).parent / "TESTS.EXE")
 ```
 
 testaferro interrogates the referenced file and selects the matching guest backend: a DOS executable runs inside a
-QEMU guest through the quemados runner (a dependency of testaferro), while a provably non-DOS binary — say, the host
+QEMU guest through the relict runner (a dependency of testaferro), while a provably non-DOS binary — say, the host
 build of the suite passed by mistake — is rejected with a clear error before any guest boots, naming the format and
 architecture it found (Windows PE, Linux/BSD ELF, macOS Mach-O, 16-bit NE/LX/LE; x86 through ARM64). Headerless
 images (`.com`-style raw code) carry nothing to prove, so they pass through for the guest itself to judge. The framework adapter
@@ -87,8 +87,8 @@ host-built twin of its guest suite so the two builds stay honest against each ot
 The lower layers remain usable directly where the facade is more than you need:
 
 ```python
-log = quemados.run_guest_program("TESTS.EXE",
-                                 args=cpputest.VERBOSE_ARGS)
+log = relict.run_guest_program("TESTS.EXE",
+                               args=cpputest.VERBOSE_ARGS)
 results = cpputest.parse(log)  # {"ran", "failed", "summary"}
 ```
 

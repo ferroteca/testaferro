@@ -9,7 +9,7 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 ### Added
 
 - pytest facade for DOS-based CppUTest unit testing: `testaferro.guest_suite(path)` in an ordinary test module surfaces
-  every test in a DOS-built CppUTest suite as its own pytest item, run inside a QEMU guest via the quemados runner.
+  every test in a DOS-built CppUTest suite as its own pytest item, run inside a QEMU guest via the relict runner.
 - Selection-driven execution: running everything batches the whole suite into a single guest run (one execution boot
   per session), while a narrowed selection (`pytest -k ...`, explicit node ids) runs only the selected tests in the
   guest, individually.

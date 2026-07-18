@@ -37,7 +37,7 @@ boot image is specified once and all per-run state is swept together
 
 # eager: the facade's own imports are stdlib-only (pytest is loaded
 # lazily inside it). start/stop delegate lazily instead, because
-# importing testaferro.qemu pulls in quemados.
+# importing testaferro.qemu pulls in relict.
 from .facade import guest_suite  # noqa: F401
 
 

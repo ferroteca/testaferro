@@ -25,17 +25,17 @@ py -m venv .venv
 python -m pip install -e .
 ```
 
-This installs the two runtime dependencies, pytest and quemados.
-Until quemados is published to PyPI, install it first from its own
-checkout (`python -m pip install -e path\to\quemados`) and then run
+This installs the two runtime dependencies, pytest and relict.
+Until relict is published to PyPI, install it first from its own
+checkout (`python -m pip install -e path\to\relict`) and then run
 the `pip install -e .` above.
 
 The unit suite also runs under a plain stdlib Python: tests that need
-pytest or quemados skip when those are absent. Run the full suite from
+pytest or relict skip when those are absent. Run the full suite from
 an environment that has both installed before submitting.
 
 Runtime code is standard-library-only outside two seams — pytest is
-imported lazily in `testaferro/facade.py` and quemados only in
+imported lazily in `testaferro/facade.py` and relict only in
 `testaferro/qemu.py`. Please discuss a new dependency before adding
 one.
 

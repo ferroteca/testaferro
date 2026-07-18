@@ -42,7 +42,7 @@ OUTCOMES = [
 ]
 
 PYTEST_AVAILABLE = importlib.util.find_spec("pytest") is not None
-QUEMADOS_AVAILABLE = importlib.util.find_spec("quemados") is not None
+RELICT_AVAILABLE = importlib.util.find_spec("relict") is not None
 
 
 @unittest.skipUnless(PYTEST_AVAILABLE, "pytest is not installed")
@@ -56,7 +56,7 @@ class SuitePathDispatchTests(unittest.TestCase):
         path.write_bytes(content)
         return path
 
-    @unittest.skipUnless(QUEMADOS_AVAILABLE, "quemados is not installed")
+    @unittest.skipUnless(RELICT_AVAILABLE, "relict is not installed")
     def test_path_target_resolves_backend_from_executable(self):
         from unittest import mock
 
@@ -102,7 +102,7 @@ class SuitePathDispatchTests(unittest.TestCase):
                 ValueError, r"Windows x86 \(PE\).*no supported guest"):
             testaferro.guest_suite(exe)
 
-    @unittest.skipUnless(QUEMADOS_AVAILABLE, "quemados is not installed")
+    @unittest.skipUnless(RELICT_AVAILABLE, "relict is not installed")
     def test_wrong_guest_option_names_the_selected_guest(self):
         import testaferro
 

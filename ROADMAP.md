@@ -9,7 +9,7 @@ for getting there.
 **Top priority:** the runner contract (Runner seams below) — a
 *soft contract*: documented convention plus structural typing, not
 a published package. It is the foundation the rest builds on —
-quemados's interface adoption, the platform/test-machine
+relict's interface adoption, the platform/test-machine
 configuration work, and every future runner all target it.
 
 ## Platforms and test machines
@@ -84,7 +84,7 @@ Agreed shape:
   FreeDOS image) — a platform offers such an implicit machine only
   when it can self-provision without options.
 - **Runners.** Every platform has a default runner class (dos →
-  quemados's; win9x → the runner sketched below). A machine picks
+  relict's; win9x → the runner sketched below). A machine picks
   a different one at declaration (`runner=` in its `config()`
   call, or per suite for a one-off anonymous machine) — any class
   satisfying the runner interface (Runner seams below).
@@ -249,15 +249,19 @@ staging, sessions, and parallelism; the runner owns emulation,
 guest control, completion detection, and all in-guest mechanics
 (including any guest-side listener — see Out of scope).
 
-Migration: decided, not yet scheduled — quemados adopts the
-contract additively, with no new dependency: it exports a runner
-class (config-carrying instances, explicit-`home` operations)
-alongside its existing module surface (which its CLI and direct
-users keep). Until that lands, the DOS binding keeps its private
-`_home`-bracketing shim; once it does, the shim is deleted and the
-binding calls the interface directly. The interface starts minimal
-on purpose; persistent machines (Lifecycle above) may later add
-optional operations for keeping a VM up across runs.
+Migration: partly landed — relict (quemados's successor as the DOS
+runner) ships explicit-`home` operations
+(`run_guest_program(..., home=)`, `download(home=)`) alongside its
+module surface, so the DOS binding's private `_home`-bracketing
+shim is deleted and every call names its run home directly. relict
+also exports a `Runner`/`MachineConfig` surface, but shaped
+differently from the contract above (the home is bound at
+construction and provisioning is internal, rather than
+`Runner(config)` with `.provision(dist_dir)` and
+`.run(..., home)`); reconciling the two shapes remains open. The
+interface starts minimal on purpose; persistent machines
+(Lifecycle above) may later add optional operations for keeping a
+VM up across runs.
 
 ### Internal binding naming
 

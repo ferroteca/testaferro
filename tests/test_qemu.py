@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: BSD-3-Clause
 """Unit tests for the QEMU backend: executable interrogation and the
-testaferro-managed quemados home."""
+testaferro-managed relict home."""
 
 import importlib.util
 import os
@@ -16,9 +16,9 @@ from testaferro import cache, cpputest
 
 from test_binfmt import new_format_exe_bytes, plain_dos_exe_bytes
 
-QUEMADOS_AVAILABLE = importlib.util.find_spec("quemados") is not None
+RELICT_AVAILABLE = importlib.util.find_spec("relict") is not None
 
-if QUEMADOS_AVAILABLE:
+if RELICT_AVAILABLE:
     from testaferro import qemu
     from testaferro.qemu import QemuSuiteBackend
 
@@ -26,7 +26,7 @@ EMPTY_RUN_OUTPUT = (
     "OK (2 tests, 0 ran, 0 checks, 0 ignored, 2 filtered out, 0 ms)\n")
 
 
-@unittest.skipUnless(QUEMADOS_AVAILABLE, "quemados is not installed")
+@unittest.skipUnless(RELICT_AVAILABLE, "relict is not installed")
 class SuiteBackendDispatchTests(unittest.TestCase):
     """The guard on qemu.suite_backend; the per-format naming matrix
     lives with the classifier in test_binfmt."""
@@ -70,7 +70,6 @@ class _QemuFixture(unittest.TestCase):
     """Shared setup: a DOS exe, a custom image, and a private cache."""
 
     def setUp(self):
-        import quemados
         self.tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(self.tempdir.cleanup)
         root = pathlib.Path(self.tempdir.name)
@@ -82,31 +81,30 @@ class _QemuFixture(unittest.TestCase):
             cache, "cache_root", return_value=str(root / "cache"))
         cache_patch.start()
         self.addCleanup(cache_patch.stop)
-        self.quemados_home_before = quemados._home
 
     def _guest_homes_seen(self, backend, calls=1):
-        """Run the backend, returning the quemados home (and boot
-        image bytes) observed during each guest run."""
-        import quemados
+        """Run the backend, returning the relict home (and boot image
+        bytes) named explicitly on each guest run. The fake requires
+        `home` so a run that stops passing it fails loudly."""
         seen = []
 
-        def fake_run(exe_path, args):
-            with open(quemados.boot_image(), "rb") as image:
-                seen.append((quemados.home(), image.read()))
+        def fake_run(exe_path, args, *, home):
+            image_path = os.path.join(home, "drives", "floppy.img")
+            with open(image_path, "rb") as image:
+                seen.append((home, image.read()))
             return EMPTY_RUN_OUTPUT
 
-        with mock.patch("quemados.run_guest_program",
+        with mock.patch("relict.run_guest_program",
                         side_effect=fake_run):
             for _ in range(calls):
                 backend.run_all()
         return seen
 
-@unittest.skipUnless(QUEMADOS_AVAILABLE, "quemados is not installed")
+@unittest.skipUnless(RELICT_AVAILABLE, "relict is not installed")
 class QemuSuiteBackendTests(_QemuFixture):
     """Backend behavior inside a provisioned facade session."""
 
     def test_session_runs_in_fresh_home_with_caller_boot_image(self):
-        import quemados
         backend = qemu.suite_backend(self.exe, boot_image=self.image)
 
         backend.start_session()
@@ -115,7 +113,6 @@ class QemuSuiteBackendTests(_QemuFixture):
             self.assertTrue(home.startswith(
                 os.path.join(cache.cache_root(), "runs")))
             self.assertEqual(image, b"custom dos")
-            self.assertEqual(quemados._home, self.quemados_home_before)
         finally:
             backend.stop_session()
         self.assertFalse(os.path.exists(home))
@@ -133,16 +130,17 @@ class QemuSuiteBackendTests(_QemuFixture):
         self.assertNotEqual(homes[0], homes[1])
 
     def test_default_boot_image_downloads_once_then_caches(self):
-        import quemados
+        import relict
 
-        def fake_download():
-            os.makedirs(quemados.dist_dir(), exist_ok=True)
-            with open(quemados.boot_image(), "wb") as image:
+        def fake_download(*, home):
+            drives = relict.drives_dir(home)
+            os.makedirs(drives, exist_ok=True)
+            with open(os.path.join(drives, "floppy.img"), "wb") as image:
                 image.write(b"freedos")
 
         backend = qemu.suite_backend(self.exe)
         images = []
-        with mock.patch("quemados.download",
+        with mock.patch("relict.download",
                         side_effect=fake_download) as download:
             for _ in range(2):
                 backend.start_session()
@@ -154,8 +152,8 @@ class QemuSuiteBackendTests(_QemuFixture):
         self.assertEqual(images, [b"freedos", b"freedos"])
         download.assert_called_once()
 
-    def test_runs_suite_through_quemados(self):
-        with mock.patch("quemados.run_guest_program",
+    def test_runs_suite_through_relict(self):
+        with mock.patch("relict.run_guest_program",
                         return_value=EMPTY_RUN_OUTPUT) as run:
             backend = qemu.suite_backend(self.exe, boot_image=self.image)
             backend.start_session()
@@ -164,10 +162,11 @@ class QemuSuiteBackendTests(_QemuFixture):
             finally:
                 backend.stop_session()
         run.assert_called_once_with(str(self.exe),
-                                    cpputest.run_all_argv())
+                                    cpputest.run_all_argv(),
+                                    home=mock.ANY)
 
     def test_enumerator_forwards_to_suite_backend(self):
-        with mock.patch("quemados.run_guest_program") as run:
+        with mock.patch("relict.run_guest_program") as run:
             backend = qemu.suite_backend(
                 self.exe,
                 enumerator=lambda: cpputest.parse_list("Vring.Wraps"))
@@ -176,7 +175,7 @@ class QemuSuiteBackendTests(_QemuFixture):
         run.assert_not_called()
 
 
-@unittest.skipUnless(QUEMADOS_AVAILABLE, "quemados is not installed")
+@unittest.skipUnless(RELICT_AVAILABLE, "relict is not installed")
 class SessionLifecycleTests(_QemuFixture):
     """testaferro.start()/stop(): one image choice shared by many
     suites, swept away together."""

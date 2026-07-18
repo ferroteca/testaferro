@@ -8,15 +8,15 @@ QemuSuiteBackend; anything else is rejected before any guest work,
 with the format and architecture named. The framework adapter
 defaults to testaferro.cpputest.
 
-QemuSuiteBackend manages the quemados runner entirely on the caller's
-behalf. Each facade session runs in a fresh, disposable quemados home
+QemuSuiteBackend manages the relict runner entirely on the caller's
+behalf. Each facade session runs in a fresh, disposable relict home
 under testaferro's cache directory (LOCALAPPDATA or XDG_CACHE_HOME),
 seeded with the caller's `boot_image` or with a cached copy of the
-FreeDOS image quemados downloads on first use. The process-global
-quemados home is set only for the duration of each guest run and then
-restored, so co-resident direct quemados users are unaffected.
+FreeDOS image relict downloads on first use. Every relict call names
+that home explicitly (`home=`), so the process-global relict home is
+never touched and co-resident direct relict users are unaffected.
 
-Only this module imports quemados; the generic SuiteBackend remains
+Only this module imports relict; the generic SuiteBackend remains
 the seam for composing any other runner callable.
 """
 
@@ -27,7 +27,7 @@ import os
 import shutil
 import tempfile
 
-import quemados
+import relict
 
 from . import binfmt
 from . import cache
@@ -44,7 +44,7 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
     host build passed by mistake)."""
     exe_path = os.fspath(exe_path)
     fmt = binfmt.classify(exe_path)
-    if fmt.guest != "dos":
+    if fmt.platform != "dos":
         raise ValueError(
             f"{os.path.basename(exe_path)} is {fmt.kind} executable; "
             "only DOS guest suites are supported")
@@ -109,19 +109,16 @@ def _session_image():
 
 def _cached_default_image():
     """testaferro's cached copy of the default boot image, obtained
-    through quemados.download() (FreeDOS) on first use."""
+    through relict.download() (FreeDOS) on first use."""
     cached = os.path.join(cache.cache_root(), "boot.img")
     if not os.path.exists(cached):
         os.makedirs(cache.cache_root(), exist_ok=True)
         with tempfile.TemporaryDirectory(
                 prefix="download-", dir=cache.cache_root()) as home:
-            previous = quemados._home
-            quemados.set_home(home)
-            try:
-                quemados.download()
-                shutil.copy(quemados.boot_image(), cached + ".part")
-            finally:
-                quemados._home = previous
+            relict.download(home=home)
+            shutil.copy(
+                os.path.join(relict.drives_dir(home), "floppy.img"),
+                cached + ".part")
         os.replace(cached + ".part", cached)
     return cached
 
@@ -140,11 +137,11 @@ class QemuSuiteBackend(SuiteBackend):
         runs = os.path.join(area, "runs")
         os.makedirs(runs, exist_ok=True)
         self._home = tempfile.mkdtemp(prefix="run-", dir=runs)
-        dist = os.path.join(self._home, "dist")
-        os.makedirs(dist)
+        drives = os.path.join(self._home, "drives")
+        os.makedirs(drives)
         source = self._boot_image or (
             _session_image() if _session else _cached_default_image())
-        shutil.copy(source, os.path.join(dist, "boot.img"))
+        shutil.copy(source, os.path.join(drives, "floppy.img"))
 
     def stop_session(self):
         if self._home is not None:
@@ -155,11 +152,4 @@ class QemuSuiteBackend(SuiteBackend):
         if self._home is None:
             raise RuntimeError("no active session: guest runs happen "
                                "between start_session and stop_session")
-        # save/restore the raw value (set_home cannot express None);
-        # quemados's own tests bracket _home the same way
-        previous = quemados._home
-        quemados.set_home(self._home)
-        try:
-            return quemados.run_guest_program(exe_path, args)
-        finally:
-            quemados._home = previous
+        return relict.run_guest_program(exe_path, args, home=self._home)
