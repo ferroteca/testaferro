@@ -14,14 +14,13 @@ the suite executable:
     test_guest_case = testaferro.guest_suite(
         Path(__file__).parent / "SUITE.EXE")
 
-The executable is interrogated to select the guest backend (DOS
-programs run in a QEMU guest; anything else is rejected), the
+The executable is interrogated to select its platform (DOS programs
+run in a QEMU guest; anything else is rejected), the
 framework adapter defaults to testaferro.cpputest (`framework=`
 overrides), and the runner's working state lives in
-testaferro-managed disposable directories — the consumer configures
-nothing. Custom runners compose with an adapter through the generic
-testaferro.suite.SuiteBackend (`run=` parameter) and pass to
-guest_suite() in place of the path.
+testaferro-managed disposable directories. Named test machines are
+declared with config(); a prebuilt Backend remains the custom escape
+hatch for callers that need a different execution mechanism.
 
 For many suites (and future parallel runs), open a session so the
 boot image is specified once and all per-run state is swept together
@@ -39,6 +38,18 @@ boot image is specified once and all per-run state is swept together
 # lazily inside it). start/stop delegate lazily instead, because
 # importing testaferro.qemu pulls in relict.
 from .facade import guest_suite  # noqa: F401
+
+
+def config(machine, platform=None, **options):
+    """Declare a named relict test machine.
+
+    ``platform`` is optional when the supplied ``machine_config`` or
+    ``template`` declares it. Without a template, remaining options
+    construct relict.MachineConfig directly. The declaration is reused
+    as a template; each guest session receives a fresh materialization.
+    """
+    from .machines import configure
+    return configure(machine, platform=platform, **options)
 
 
 def start(boot_image=None):

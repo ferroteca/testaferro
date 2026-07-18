@@ -4,9 +4,8 @@ testaferro is a pytest facade for DOS-based CppUTest unit testing: a CppUTest su
 guest via the bundled relict runner, and its tests surface as pytest tests on the host — running, selecting, and
 reporting them feels like an ordinary local pytest run.
 
-DOS and CppUTest are what it supports; the design keeps both as pluggable aspects — guest OS and guest unit-test
-framework — with the intent that other guest OSes and frameworks could potentially be supported in the future (see
-[ROADMAP.md](ROADMAP.md)).
+DOS and CppUTest are what it supports today. Relict owns the guest-machine side; testaferro owns the pytest facade and
+its test-framework adapters. Other platforms and frameworks remain planned work (see [ROADMAP.md](ROADMAP.md)).
 
 ## Status: milestone 1 working
 
@@ -36,6 +35,25 @@ The runner's working state is testaferro's business, not the consumer's: each ru
 directory under testaferro's cache (`%LOCALAPPDATA%\testaferro` on Windows, `$XDG_CACHE_HOME/testaferro` elsewhere),
 seeded with a bootable FreeDOS image that is downloaded once and cached. Pass `boot_image=` to boot a caller-supplied
 DOS floppy image instead.
+
+### Named test machines
+
+Declare a named machine once when several suites share it. `config()` accepts relict `MachineConfig` options directly,
+or a complete `machine_config=` template (a `MachineConfig`, versioned mapping, or path to relict's machine document).
+The template supplies its platform when it declares one; `platform=` is optional and verifies an explicit choice.
+
+```python
+import testaferro
+
+testaferro.config("msdos", boot_image="images/msdos.img", memory=32)
+
+test_guest_case = testaferro.guest_suite(
+    "build/TESTS.EXE", machine="msdos")
+```
+
+Each guest backend session gets its own copy of the template's mutable drive media, so runs do not share guest state.
+Use `platform="dos"` when exactly one configured DOS machine should be selected without naming it. With no
+declarations, DOS executables retain the implicit downloaded-FreeDOS machine.
 
 With several guest suites — or parallel pytest processes — open a *session*, so the image choice is made once and
 every run's state is swept together. From the consuming project's `conftest.py`:
@@ -76,13 +94,10 @@ traceback into the facade. IDE test integrations work per item too: the generate
 `guest_suite()` call site as its source, so run-this-test and jump-to-source in PyCharm-style test trees resolve to
 your module.
 
-Under the hood the two aspects — guest-OS *runner* (any callable
-`run(exe_path, args) -> output`) and *framework adapter* (a module that knows the suite's argv and output grammar) —
-stay orthogonal and swap independently: `testaferro.suite.SuiteBackend` composes any runner with any adapter via its
-`run=` parameter, and `guest_suite()` accepts such a prebuilt backend in place of the executable path. A different
-runner (a host subprocess, some future guest OS's runner) reuses the CppUTest adapter unchanged, and a different framework
-adapter reuses any runner unchanged. Enumeration can also be delegated — a consuming project can enumerate from a
-host-built twin of its guest suite so the two builds stay honest against each other (`enumerator=`).
+Under the hood, relict is the guest-machine runner and a framework adapter knows the suite's argv and output grammar.
+`testaferro.suite.SuiteBackend` composes relict execution with the selected adapter; `guest_suite()` also accepts a
+prebuilt backend as the custom escape hatch. Enumeration can be delegated to a host-built twin of a guest suite through
+`enumerator=`.
 
 The lower layers remain usable directly where the facade is more than you need:
 

@@ -1,14 +1,12 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: BSD-3-Clause
-"""SuiteBackend: a Backend composed from the two pluggable aspects.
+"""SuiteBackend: internal execution × framework composition.
 
-This is how OS x framework pairs compose instead of being
-hand-written: the guest-OS aspect is any
-runner callable `run(exe_path, args) -> output` (e.g.
-a guest runner or a host subprocess wrapper), and the
-guest-framework aspect is any adapter exposing
-list_argv/run_all_argv/run_one_argv and parse_list/parse_run (e.g.
-testaferro.cpputest). Neither aspect knows the other exists.
+The relict-backed platform binding supplies the execution callable;
+the framework adapter exposes list_argv/run_all_argv/run_one_argv and
+parse_list/parse_run (e.g. testaferro.cpputest). Neither aspect knows
+the other exists. The callable remains an internal testing and
+composition seam, not a public runner contract.
 
     backend = SuiteBackend("VRING16.EXE",
                            run=run_guest_program,

@@ -19,6 +19,8 @@ from test_binfmt import new_format_exe_bytes, plain_dos_exe_bytes
 RELICT_AVAILABLE = importlib.util.find_spec("relict") is not None
 
 if RELICT_AVAILABLE:
+    import relict
+
     from testaferro import qemu
     from testaferro.qemu import QemuSuiteBackend
 
@@ -88,14 +90,14 @@ class _QemuFixture(unittest.TestCase):
         `home` so a run that stops passing it fails loudly."""
         seen = []
 
-        def fake_run(exe_path, args, *, home):
-            image_path = os.path.join(home, "drives", "floppy.img")
+        def fake_run(runner, exe_path, args):
+            image_path = os.path.join(runner.home, "drives", "floppy.img")
             with open(image_path, "rb") as image:
-                seen.append((home, image.read()))
+                seen.append((runner.home, image.read()))
             return EMPTY_RUN_OUTPUT
 
-        with mock.patch("relict.run_guest_program",
-                        side_effect=fake_run):
+        with mock.patch.object(relict.Runner, "run", autospec=True,
+                               side_effect=fake_run):
             for _ in range(calls):
                 backend.run_all()
         return seen
@@ -129,6 +131,20 @@ class QemuSuiteBackendTests(_QemuFixture):
                 backend.stop_session()
         self.assertNotEqual(homes[0], homes[1])
 
+    def test_machine_template_is_copied_into_each_runner_home(self):
+        source = pathlib.Path(self.tempdir.name) / "msdos.img"
+        source.write_bytes(b"template image")
+        template = relict.MachineConfig(drives={"floppy": source})
+        backend = qemu.suite_backend(self.exe, machine_config=template)
+
+        backend.start_session()
+        try:
+            copied = pathlib.Path(backend._home) / "drives" / "floppy_0.img"
+            self.assertEqual(copied.read_bytes(), b"template image")
+            self.assertIsNot(backend._runner.config, template)
+        finally:
+            backend.stop_session()
+
     def test_default_boot_image_downloads_once_then_caches(self):
         import relict
 
@@ -153,20 +169,20 @@ class QemuSuiteBackendTests(_QemuFixture):
         download.assert_called_once()
 
     def test_runs_suite_through_relict(self):
-        with mock.patch("relict.run_guest_program",
-                        return_value=EMPTY_RUN_OUTPUT) as run:
+        with mock.patch.object(relict.Runner, "run", autospec=True,
+                               return_value=EMPTY_RUN_OUTPUT) as run:
             backend = qemu.suite_backend(self.exe, boot_image=self.image)
             backend.start_session()
             try:
                 self.assertEqual(backend.run_all(), [])
             finally:
                 backend.stop_session()
-        run.assert_called_once_with(str(self.exe),
+        run.assert_called_once_with(mock.ANY, str(self.exe),
                                     cpputest.run_all_argv(),
-                                    home=mock.ANY)
+                                    )
 
     def test_enumerator_forwards_to_suite_backend(self):
-        with mock.patch("relict.run_guest_program") as run:
+        with mock.patch.object(relict.Runner, "run", autospec=True) as run:
             backend = qemu.suite_backend(
                 self.exe,
                 enumerator=lambda: cpputest.parse_list("Vring.Wraps"))

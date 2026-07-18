@@ -88,10 +88,11 @@ Agreed shape:
   `runner=` override or testaferro runner contract. A prebuilt
   `Backend` remains the custom escape hatch for callers with a wholly
   different execution mechanism.
-- **First step.** The current unreleased seam predates this
-  vocabulary: `guest_suite(..., guest=, **guest_options)` and
-  `binfmt.Format.guest` are renamed into the platform/machine
-  terms, and the facade's binding table keys by platform name.
+- **First step landed.** `testaferro.config()` accumulates named
+  relict machine templates, `guest_suite(..., platform=, machine=)`
+  selects them, `binfmt.Format.platform` names inferred platforms, and
+  the facade's binding table keys by platform name. The local text
+  configuration file and further platforms remain planned work.
 
 ## Parallelism
 

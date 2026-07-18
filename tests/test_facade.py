@@ -72,6 +72,40 @@ class SuitePathDispatchTests(unittest.TestCase):
         factory.assert_called_once_with(exe, enumerator=enumerator)
         self.assertTrue(callable(suite))
 
+    @unittest.skipUnless(RELICT_AVAILABLE, "relict is not installed")
+    def test_named_machine_selects_its_relict_config(self):
+        from unittest import mock
+
+        import testaferro
+        from testaferro import machines
+
+        machines._clear_for_tests()
+        self.addCleanup(machines._clear_for_tests)
+        image = Path(self.tempdir.name) / "msdos.img"
+        image.write_bytes(b"msdos")
+        machine_config = testaferro.config("msdos", boot_image=image)
+        exe = self._exe(plain_dos_exe_bytes())
+        with mock.patch("testaferro.qemu.suite_backend",
+                        return_value=FakeBackend(OUTCOMES)) as factory:
+            testaferro.guest_suite(exe, machine="msdos")
+        factory.assert_called_once_with(exe, machine_config=machine_config)
+
+    @unittest.skipUnless(RELICT_AVAILABLE, "relict is not installed")
+    def test_named_machine_rejects_a_second_machine_template(self):
+        import relict
+        import testaferro
+        from testaferro import machines
+
+        machines._clear_for_tests()
+        self.addCleanup(machines._clear_for_tests)
+        testaferro.config("freedos")
+        exe = self._exe(plain_dos_exe_bytes())
+
+        with self.assertRaisesRegex(TypeError, "cannot be combined"):
+            testaferro.guest_suite(
+                exe, machine="freedos",
+                machine_config=relict.MachineConfig())
+
     def test_unsupported_format_is_rejected_before_any_guest(self):
         import testaferro
 
@@ -83,14 +117,14 @@ class SuitePathDispatchTests(unittest.TestCase):
         exe = self._exe(bytes(header))
 
         with self.assertRaisesRegex(
-                ValueError, r"ELF x86-64.*no supported guest"):
+                ValueError, r"ELF x86-64.*no supported platform"):
             testaferro.guest_suite(exe)
 
-    def test_unknown_guest_name_is_rejected(self):
+    def test_unknown_platform_name_is_rejected(self):
         import testaferro
 
-        with self.assertRaisesRegex(ValueError, "unknown guest"):
-            testaferro.guest_suite("SUITE.EXE", guest="os2")
+        with self.assertRaisesRegex(ValueError, "unsupported platform"):
+            testaferro.guest_suite("SUITE.EXE", platform="os2")
 
     def test_pe_is_rejected_naming_format_and_architecture(self):
         import testaferro
@@ -99,17 +133,17 @@ class SuitePathDispatchTests(unittest.TestCase):
         exe = self._exe(new_format_exe_bytes(b"PE\0\0" + machine))
 
         with self.assertRaisesRegex(
-                ValueError, r"Windows x86 \(PE\).*no supported guest"):
+                ValueError, r"Windows x86 \(PE\).*no supported platform"):
             testaferro.guest_suite(exe)
 
     @unittest.skipUnless(RELICT_AVAILABLE, "relict is not installed")
-    def test_wrong_guest_option_names_the_selected_guest(self):
+    def test_wrong_machine_option_names_the_selected_platform(self):
         import testaferro
 
         exe = self._exe(plain_dos_exe_bytes())
 
         with self.assertRaisesRegex(TypeError,
-                                    "selected guest is 'dos'"):
+                                    "selected platform is 'dos'"):
             testaferro.guest_suite(exe, guest_image="OTHER.IMG")
 
     def test_backend_target_rejects_path_only_options(self):
@@ -119,12 +153,12 @@ class SuitePathDispatchTests(unittest.TestCase):
             testaferro.guest_suite(FakeBackend(OUTCOMES),
                                   boot_image="OTHER.IMG")
 
-    def test_backend_target_rejects_a_guest_selector(self):
+    def test_backend_target_rejects_a_platform_selector(self):
         import testaferro
 
-        with self.assertRaisesRegex(TypeError, "guest"):
+        with self.assertRaisesRegex(TypeError, "platform"):
             testaferro.guest_suite(FakeBackend(OUTCOMES),
-                                  guest="dos")
+                                  platform="dos")
 
     def test_items_report_the_guest_suite_call_site_as_source(self):
         # IDE per-item actions (run-one, jump-to-source) resolve the
