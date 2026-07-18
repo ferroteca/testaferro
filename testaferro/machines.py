@@ -5,18 +5,37 @@
 A declaration is reusable configuration, not a running machine. The
 selected binding materializes it into a fresh relict home for every
 backend session.
+
+Declarations come from ``configure()`` / ``testaferro.config()`` or
+from an optional per-project ``testaferro.ini`` — one section per
+machine, the declarative twin of ``configure()``. ``load_config()``
+reads that file; ``guest_suite()`` searches upward from the call site
+so test modules can name only the suite executable.
 """
 
 from __future__ import annotations
 
 import collections.abc
+import configparser
 import json
 import os
 
 import relict
 
 
+CONFIG_FILENAME = "testaferro.ini"
+
+# Path-valued options resolved relative to the config file directory.
+_PATH_KEYS = frozenset({"boot_image", "machine_config", "template"})
+# MachineConfig fields whose INI values are JSON (not bare strings).
+_JSON_KEYS = frozenset({"drives", "qemu_args", "machine"})
+_INT_KEYS = frozenset({"memory"})
+_FLOAT_KEYS = frozenset({"timeout"})
+
 _machines = {}
+# None until the first load/search; then the absolute path or False
+# when a search found no file.
+_loaded_config = None
 
 
 def configure(name, platform=None, machine_config=None, template=None,
@@ -108,6 +127,113 @@ def select(name=None, platform=None, inferred=None):
         f"configured: {_choices(_machines)}")
 
 
+def load_config(path=None, *, search_from=None):
+    """Load machine declarations from a local ``testaferro.ini``.
+
+    With ``path``, read that file (a missing file is an error). With
+    ``path`` omitted, search upward from ``search_from`` (default:
+    the current directory) for ``testaferro.ini`` and load it when
+    found; a fruitless search is a no-op and returns None.
+
+    Each section is one test machine — the same options as
+    ``configure()``. Relative ``boot_image``, ``machine_config``, and
+    ``template`` paths resolve from the file's directory. Structured
+    ``MachineConfig`` fields (``drives``, ``qemu_args``, ``machine``)
+    accept JSON values. Idempotent for a repeated load of the same
+    path or a repeated empty search.
+    """
+    global _loaded_config
+
+    if path is not None:
+        path = os.path.abspath(os.fspath(path))
+        if _loaded_config == path:
+            return path
+        if _loaded_config is not None:
+            raise RuntimeError(
+                "project config already loaded"
+                + (f" from {_loaded_config}"
+                   if _loaded_config else " (no file found)"))
+        if not os.path.isfile(path):
+            raise FileNotFoundError(path)
+        _load_ini(path)
+        _loaded_config = path
+        return path
+
+    if _loaded_config is not None:
+        return _loaded_config if _loaded_config else None
+
+    start = os.getcwd() if search_from is None else os.fspath(search_from)
+    found = _find_config(start)
+    if found is None:
+        _loaded_config = False
+        return None
+    _load_ini(found)
+    _loaded_config = found
+    return found
+
+
+def _find_config(start):
+    """Walk upward from start looking for CONFIG_FILENAME."""
+    directory = os.path.abspath(start)
+    if os.path.isfile(directory):
+        directory = os.path.dirname(directory)
+    while True:
+        candidate = os.path.join(directory, CONFIG_FILENAME)
+        if os.path.isfile(candidate):
+            return candidate
+        parent = os.path.dirname(directory)
+        if parent == directory:
+            return None
+        directory = parent
+
+
+def _load_ini(path):
+    parser = configparser.ConfigParser(interpolation=None)
+    read = parser.read(path, encoding="utf-8")
+    if not read:
+        raise FileNotFoundError(path)
+    base_dir = os.path.dirname(path)
+    for name in parser.sections():
+        options = _section_options(parser[name], base_dir)
+        platform = options.pop("platform", None)
+        configure(name, platform=platform, **options)
+
+
+def _section_options(section, base_dir):
+    if "machine_config" in section and "template" in section:
+        raise TypeError(
+            "pass either machine_config or template, not both")
+    options = {}
+    for key, raw in section.items():
+        value = _parse_option(key, raw)
+        if key in _PATH_KEYS and isinstance(value, str):
+            value = _resolve_path(base_dir, value)
+        options[key] = value
+    return options
+
+
+def _parse_option(key, raw):
+    if key in _JSON_KEYS:
+        return json.loads(raw)
+    stripped = raw.strip()
+    if key in _INT_KEYS:
+        return int(stripped, 10)
+    if key in _FLOAT_KEYS:
+        return float(stripped)
+    # Allow JSON for any value that looks like a structured literal,
+    # so future MachineConfig fields stay expressible without a
+    # parser change.
+    if stripped[:1] in "[{":
+        return json.loads(stripped)
+    return raw
+
+
+def _resolve_path(base_dir, value):
+    if os.path.isabs(value):
+        return value
+    return os.path.abspath(os.path.join(base_dir, value))
+
+
 def _coerce_machine_config(value, platform=None):
     if isinstance(value, relict.MachineConfig):
         return value
@@ -134,4 +260,6 @@ def _choices(values):
 
 def _clear_for_tests():
     """Clear declarations; private support for isolated unit tests."""
+    global _loaded_config
     _machines.clear()
+    _loaded_config = None

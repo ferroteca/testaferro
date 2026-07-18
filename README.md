@@ -51,8 +51,29 @@ test_guest_case = testaferro.guest_suite(
     "build/TESTS.EXE", machine="msdos")
 ```
 
+The same declarations can live in an optional per-project `testaferro.ini` — one section per machine, the
+declarative twin of `config()`. `guest_suite()` searches upward from the calling test module and loads the file
+automatically, so the suite can name only the executable when a unique machine matches:
+
+```ini
+[msdos]
+boot_image = images/msdos.img
+memory = 32
+
+[custom]
+machine_config = machines/custom.json
+```
+
+```python
+test_guest_case = testaferro.guest_suite("build/TESTS.EXE")
+```
+
+Relative `boot_image` / `machine_config` / `template` paths resolve from the ini file's directory. Structured
+relict fields (`drives`, `qemu_args`, `machine`) accept JSON values. Call `testaferro.load_config(path)` to load an
+explicit file, or `load_config()` to search upward from the current directory.
+
 Each guest backend session gets its own copy of the template's mutable drive media, so runs do not share guest state.
-Use `platform="dos"` when exactly one configured DOS machine should be selected without naming it. With no
+Use `platform="dos"` or `machine="msdos"` when more than one configured DOS machine would otherwise match. With no
 declarations, DOS executables retain the implicit downloaded-FreeDOS machine.
 
 With several guest suites — or parallel pytest processes — open a *session*, so the image choice is made once and

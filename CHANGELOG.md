@@ -28,6 +28,10 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 - Named test machines: `testaferro.config()` declares reusable relict `MachineConfig` templates, and
   `guest_suite(..., machine=...)` or `platform=...` selects one. Each backend session materializes its own copy of
   mutable drive media, so template-backed runs remain isolated.
+- Optional per-project `testaferro.ini`: one section per named machine (the declarative twin of `config()`).
+  `guest_suite()` searches upward from the calling module and loads it automatically; `testaferro.load_config()`
+  loads an explicit path or searches from the current directory. Relative media/template paths resolve from the
+  file's directory; structured relict fields accept JSON values.
 - Parallel-safe runs: every run gets a private home and private image copy, so suites in separate pytest processes
   never share mutable guest state; with pytest-xdist, `pytest -n auto --dist loadfile` keeps each suite on one worker
   (preserving one-boot batching) while different suites boot concurrently.

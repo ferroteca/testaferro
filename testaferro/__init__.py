@@ -19,8 +19,9 @@ run in a QEMU guest; anything else is rejected), the
 framework adapter defaults to testaferro.cpputest (`framework=`
 overrides), and the runner's working state lives in
 testaferro-managed disposable directories. Named test machines are
-declared with config(); a prebuilt Backend remains the custom escape
-hatch for callers that need a different execution mechanism.
+declared with config() or an optional per-project testaferro.ini; a
+prebuilt Backend remains the custom escape hatch for callers that
+need a different execution mechanism.
 
 For many suites (and future parallel runs), open a session so the
 boot image is specified once and all per-run state is swept together
@@ -47,9 +48,22 @@ def config(machine, platform=None, **options):
     ``template`` declares it. Without a template, remaining options
     construct relict.MachineConfig directly. The declaration is reused
     as a template; each guest session receives a fresh materialization.
+    The same declarations may be written in ``testaferro.ini`` (see
+    ``load_config``).
     """
     from .machines import configure
     return configure(machine, platform=platform, **options)
+
+
+def load_config(path=None):
+    """Load named machines from a ``testaferro.ini``.
+
+    With ``path``, read that file. With ``path`` omitted, search
+    upward from the current directory. ``guest_suite()`` performs the
+    same search from its call site automatically.
+    """
+    from .machines import load_config as load
+    return load(path)
 
 
 def start(boot_image=None):

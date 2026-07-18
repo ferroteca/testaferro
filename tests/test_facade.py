@@ -91,6 +91,29 @@ class SuitePathDispatchTests(unittest.TestCase):
         factory.assert_called_once_with(exe, machine_config=machine_config)
 
     @unittest.skipUnless(RELICT_AVAILABLE, "relict is not installed")
+    def test_guest_suite_searches_for_ini_from_the_call_site(self):
+        from unittest import mock
+
+        import testaferro
+        from testaferro import machines
+
+        machines._clear_for_tests()
+        self.addCleanup(machines._clear_for_tests)
+
+        def enumerator():
+            return [TestId("Vring", "Wraps")]
+
+        exe = self._exe(plain_dos_exe_bytes())
+        with mock.patch("testaferro.machines.load_config") as load:
+            with mock.patch("testaferro.qemu.suite_backend",
+                            return_value=FakeBackend(OUTCOMES)):
+                testaferro.guest_suite(exe, enumerator=enumerator)
+        load.assert_called_once()
+        self.assertEqual(
+            Path(load.call_args.kwargs["search_from"]).resolve(),
+            Path(__file__).resolve().parent)
+
+    @unittest.skipUnless(RELICT_AVAILABLE, "relict is not installed")
     def test_named_machine_rejects_a_second_machine_template(self):
         import relict
         import testaferro

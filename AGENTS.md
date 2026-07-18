@@ -18,7 +18,8 @@ Package layout (each module states its contract in its docstring):
   from CppUTest v4.0's own source, not from observed samples.
 - [testaferro/machines.py](testaferro/machines.py) — named test-machine
   declarations backed by immutable relict `MachineConfig` templates,
-  plus platform-aware selection.
+  plus platform-aware selection and loading of the optional
+  per-project `testaferro.ini` (declarative twin of `config()`).
 - [testaferro/suite.py](testaferro/suite.py) — `SuiteBackend`, the
   internal execution × framework composition.
 - [testaferro/binfmt.py](testaferro/binfmt.py) — stdlib-only
@@ -62,7 +63,8 @@ Package layout (each module states its contract in its docstring):
 The framework adapter stays independent of relict: it never imports
 the runner and `QemuSuiteBackend` defaults it to CppUTest while keeping
 it a parameter. Consumers see none of the backend classes: the public
-surface is `testaferro.config()` for named machines and
+surface is `testaferro.config()` / `testaferro.load_config()` for
+named machines (including `testaferro.ini`) and
 `testaferro.guest_suite()` for platform/machine selection. A prebuilt
 `Backend` remains the custom escape hatch. End-to-end proof belongs in
 a consuming project that runs real guest tests through the facade,

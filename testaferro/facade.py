@@ -76,7 +76,8 @@ def guest_suite(target, framework=None, enumerator=None,
     adapter, `enumerator` supplies a faster host-side source of the
     test list, `platform` chooses an OS platform when the executable's
     own format should not decide, and `machine` chooses a named test
-    machine declared with testaferro.config(). Any further keyword is
+    machine declared with testaferro.config() or testaferro.ini
+    (searched upward from this call site). Any further keyword is
     machine-specific and validated by the selected binding: today,
     `boot_image=` or `machine_config=` for DOS.
 
@@ -105,7 +106,11 @@ def guest_suite(target, framework=None, enumerator=None,
                if value is not None}
     options.update(machine_options)
     if isinstance(target, (str, os.PathLike)):
-        backend = _dispatched_backend(target, platform, machine, options)
+        search_from = (None if call_site is None
+                       else os.path.dirname(call_site[0]))
+        backend = _dispatched_backend(
+            target, platform, machine, options,
+            search_from=search_from)
     else:
         given = sorted(options)
         if platform is not None:
@@ -160,12 +165,14 @@ def guest_suite(target, framework=None, enumerator=None,
     return run_guest_test
 
 
-def _dispatched_backend(target, platform, machine, options):
+def _dispatched_backend(target, platform, machine, options,
+                        search_from=None):
     """Build the suite backend for an executable path: select the
     platform binding — from the caller's machine/platform choice or
     the executable's own format — import it, and hand it its options."""
     from . import machines
 
+    machines.load_config(search_from=search_from)
     if platform is not None:
         platform = str(platform).lower()
         if platform not in _PLATFORM_BINDINGS:
