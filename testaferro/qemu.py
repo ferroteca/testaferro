@@ -1,14 +1,12 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: BSD-3-Clause
-"""The QEMU/DOS guest backend, plus the executable interrogation that
-selects it.
+"""The QEMU/DOS guest binding.
 
-`suite_backend()` inspects the referenced suite executable: a DOS
-program yields a QemuSuiteBackend; a provably non-DOS binary — a
-Windows PE such as the suite's host build, a Linux/BSD ELF, a macOS
-Mach-O (including universal), an NE/LX/LE, on any architecture — is
-rejected before any guest work, with the format and architecture
-named. The framework adapter defaults to testaferro.cpputest.
+`suite_backend()` guards the door with `binfmt.classify()`: a DOS
+program — plain MZ or a headerless/.com image — yields a
+QemuSuiteBackend; anything else is rejected before any guest work,
+with the format and architecture named. The framework adapter
+defaults to testaferro.cpputest.
 
 QemuSuiteBackend manages the quemados runner entirely on the caller's
 behalf. Each facade session runs in a fresh, disposable quemados home
@@ -31,85 +29,10 @@ import tempfile
 
 import quemados
 
+from . import binfmt
+from . import cache
 from . import cpputest
 from .suite import SuiteBackend
-
-# architecture names per format, keyed by each format's machine field
-_ELF_MACHINES = {0x03: "x86", 0x28: "ARM", 0x3E: "x86-64",
-                 0xB7: "ARM64", 0xF3: "RISC-V"}
-_PE_MACHINES = {0x014C: "x86", 0x01C0: "ARM", 0x01C4: "ARM",
-                0x8664: "x64", 0xAA64: "ARM64"}
-_MACHO_CPUTYPES = {7: "x86", 0x01000007: "x86-64",
-                   12: "ARM", 0x0100000C: "ARM64"}
-
-
-def _elf_format(header):
-    """Kind string for an ELF image (Linux and the BSDs; most carry
-    the generic System V OS/ABI byte, so no OS is claimed)."""
-    arch = None
-    if len(header) >= 0x14:
-        order = "little" if header[5] == 1 else "big"
-        arch = _ELF_MACHINES.get(
-            int.from_bytes(header[0x12:0x14], order))
-    return (f"an ELF {arch} (Linux/BSD)" if arch
-            else "an ELF (Linux/BSD)")
-
-
-def _macho_format(header):
-    """Kind string for a Mach-O image, or None when the magic is
-    really something else's."""
-    magic = header[:4]
-    if magic in (b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf"):
-        # a universal binary's big-endian arch count is tiny; a Java
-        # class file shares the magic but puts its version there
-        if (len(header) >= 8
-                and int.from_bytes(header[4:8], "big") < 0x40):
-            return "a macOS universal (Mach-O)"
-        return None
-    order = "big" if magic[:2] == b"\xfe\xed" else "little"
-    arch = (_MACHO_CPUTYPES.get(int.from_bytes(header[4:8], order))
-            if len(header) >= 8 else None)
-    return (f"a macOS {arch} (Mach-O)" if arch
-            else "a macOS (Mach-O)")
-
-
-def _mz_extension_format(found):
-    """Kind string for the newer-format header an extended MZ file
-    points at through e_lfanew. DOS cannot run any of these."""
-    if found.startswith(b"PE\0\0"):
-        arch = (_PE_MACHINES.get(int.from_bytes(found[4:6], "little"))
-                if len(found) >= 6 else None)
-        return (f"a Windows {arch} (PE)" if arch
-                else "a Windows (PE)")
-    for signature, kind in ((b"NE", "a 16-bit Windows or OS/2 (NE)"),
-                            (b"LX", "an OS/2 (LX)"),
-                            (b"LE", "a linear (LE)")):
-        if found.startswith(signature):
-            return kind
-    return None
-
-
-def _non_dos_format(exe_path):
-    """The provable non-DOS format of an executable ('a Windows x64
-    (PE)', 'an ELF x86-64 (Linux/BSD)', ...), or None when the file
-    could be a DOS program — plain MZ layout, or no recognizable
-    magic at all (a .com image is raw code with no header, so it can
-    never be ruled out here)."""
-    with open(exe_path, "rb") as f:
-        header = f.read(0x40)
-        if header[:4] == b"\x7fELF":
-            return _elf_format(header)
-        if header[:4] in (b"\xfe\xed\xfa\xce", b"\xfe\xed\xfa\xcf",
-                          b"\xce\xfa\xed\xfe", b"\xcf\xfa\xed\xfe",
-                          b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf"):
-            return _macho_format(header)
-        if len(header) < 0x40 or header[:2] != b"MZ":
-            return None
-        if int.from_bytes(header[0x18:0x1A], "little") < 0x40:
-            return None
-        f.seek(int.from_bytes(header[0x3C:0x40], "little"))
-        found = f.read(8)
-    return _mz_extension_format(found)
 
 
 def suite_backend(exe_path, framework=cpputest, enumerator=None,
@@ -120,28 +43,14 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
     ValueError for a provably non-DOS executable (e.g. the suite's
     host build passed by mistake)."""
     exe_path = os.fspath(exe_path)
-    kind = _non_dos_format(exe_path)
-    if kind is not None:
+    fmt = binfmt.classify(exe_path)
+    if fmt.guest != "dos":
         raise ValueError(
-            f"{os.path.basename(exe_path)} is {kind} executable; "
+            f"{os.path.basename(exe_path)} is {fmt.kind} executable; "
             "only DOS guest suites are supported")
     return QemuSuiteBackend(exe_path, framework=framework,
                             enumerator=enumerator,
                             boot_image=boot_image)
-
-
-def _cache_root():
-    """testaferro's own filespace: boot-image cache plus the
-    disposable per-session quemados homes (under runs/; stale ones
-    from killed processes can be deleted freely)."""
-    if os.name == "nt":
-        base = (os.environ.get("LOCALAPPDATA")
-                or os.path.join(os.path.expanduser("~"),
-                                "AppData", "Local"))
-    else:
-        base = (os.environ.get("XDG_CACHE_HOME")
-                or os.path.join(os.path.expanduser("~"), ".cache"))
-    return os.path.join(base, "testaferro")
 
 
 # The active testaferro session opened by start(), or None: its
@@ -159,7 +68,7 @@ def start(boot_image=None):
     global _session
     if _session is not None:
         raise RuntimeError("a testaferro session is already active")
-    root = os.path.join(_cache_root(), "sessions")
+    root = os.path.join(cache.cache_root(), "sessions")
     os.makedirs(root, exist_ok=True)
     _session = {
         "dir": tempfile.mkdtemp(prefix="session-", dir=root),
@@ -182,7 +91,7 @@ def stop(clear_downloads=False):
         shutil.rmtree(_session["dir"], ignore_errors=True)
         _session = None
     if clear_downloads:
-        cached = os.path.join(_cache_root(), "boot.img")
+        cached = os.path.join(cache.cache_root(), "boot.img")
         for path in (cached, cached + ".part"):
             if os.path.exists(path):
                 os.remove(path)
@@ -201,11 +110,11 @@ def _session_image():
 def _cached_default_image():
     """testaferro's cached copy of the default boot image, obtained
     through quemados.download() (FreeDOS) on first use."""
-    cached = os.path.join(_cache_root(), "boot.img")
+    cached = os.path.join(cache.cache_root(), "boot.img")
     if not os.path.exists(cached):
-        os.makedirs(_cache_root(), exist_ok=True)
+        os.makedirs(cache.cache_root(), exist_ok=True)
         with tempfile.TemporaryDirectory(
-                prefix="download-", dir=_cache_root()) as home:
+                prefix="download-", dir=cache.cache_root()) as home:
             previous = quemados._home
             quemados.set_home(home)
             try:
@@ -227,7 +136,7 @@ class QemuSuiteBackend(SuiteBackend):
                          framework=framework, enumerator=enumerator)
 
     def start_session(self):
-        area = _session["dir"] if _session else _cache_root()
+        area = _session["dir"] if _session else cache.cache_root()
         runs = os.path.join(area, "runs")
         os.makedirs(runs, exist_ok=True)
         self._home = tempfile.mkdtemp(prefix="run-", dir=runs)

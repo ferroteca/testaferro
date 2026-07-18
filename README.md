@@ -5,7 +5,8 @@ guest via the bundled quemados runner, and its tests surface as pytest tests on 
 reporting them feels like an ordinary local pytest run.
 
 DOS and CppUTest are what it supports; the design keeps both as pluggable aspects — guest OS and guest unit-test
-framework — with the intent that other guest OSes and frameworks could potentially be supported in the future.
+framework — with the intent that other guest OSes and frameworks could potentially be supported in the future (see
+[ROADMAP.md](ROADMAP.md)).
 
 ## Status: milestone 1 working
 
@@ -79,7 +80,7 @@ Under the hood the two aspects — guest-OS *runner* (any callable
 `run(exe_path, args) -> output`) and *framework adapter* (a module that knows the suite's argv and output grammar) —
 stay orthogonal and swap independently: `testaferro.suite.SuiteBackend` composes any runner with any adapter via its
 `run=` parameter, and `guest_suite()` accepts such a prebuilt backend in place of the executable path. A different
-runner (a host subprocess, a future Win95 guest) reuses the CppUTest adapter unchanged, and a different framework
+runner (a host subprocess, some future guest OS's runner) reuses the CppUTest adapter unchanged, and a different framework
 adapter reuses any runner unchanged. Enumeration can also be delegated — a consuming project can enumerate from a
 host-built twin of its guest suite so the two builds stay honest against each other (`enumerator=`).
 

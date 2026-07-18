@@ -12,6 +12,8 @@ import unittest
 from testaferro.backend import Backend, TestId, TestOutcome
 from testaferro.facade import ResultBroker
 
+from test_binfmt import new_format_exe_bytes, plain_dos_exe_bytes
+
 
 class FakeBackend(Backend):
     def __init__(self, outcomes):
@@ -45,6 +47,15 @@ QUEMADOS_AVAILABLE = importlib.util.find_spec("quemados") is not None
 
 @unittest.skipUnless(PYTEST_AVAILABLE, "pytest is not installed")
 class SuitePathDispatchTests(unittest.TestCase):
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tempdir.cleanup)
+
+    def _exe(self, content):
+        path = Path(self.tempdir.name) / "SUITE.EXE"
+        path.write_bytes(content)
+        return path
+
     @unittest.skipUnless(QUEMADOS_AVAILABLE, "quemados is not installed")
     def test_path_target_resolves_backend_from_executable(self):
         from unittest import mock
@@ -54,13 +65,52 @@ class SuitePathDispatchTests(unittest.TestCase):
         def enumerator():
             return [TestId("Vring", "Wraps")]
 
+        exe = self._exe(plain_dos_exe_bytes())
         with mock.patch("testaferro.qemu.suite_backend",
                         return_value=FakeBackend(OUTCOMES)) as factory:
-            suite = testaferro.guest_suite("SUITE.EXE",
-                                          enumerator=enumerator)
-        factory.assert_called_once_with("SUITE.EXE",
-                                        enumerator=enumerator)
+            suite = testaferro.guest_suite(exe, enumerator=enumerator)
+        factory.assert_called_once_with(exe, enumerator=enumerator)
         self.assertTrue(callable(suite))
+
+    def test_unsupported_format_is_rejected_before_any_guest(self):
+        import testaferro
+
+        header = bytearray(0x40)
+        header[0:4] = b"\x7fELF"
+        header[4] = 2
+        header[5] = 1
+        header[0x12:0x14] = (0x3E).to_bytes(2, "little")
+        exe = self._exe(bytes(header))
+
+        with self.assertRaisesRegex(
+                ValueError, r"ELF x86-64.*no supported guest"):
+            testaferro.guest_suite(exe)
+
+    def test_unknown_guest_name_is_rejected(self):
+        import testaferro
+
+        with self.assertRaisesRegex(ValueError, "unknown guest"):
+            testaferro.guest_suite("SUITE.EXE", guest="os2")
+
+    def test_pe_is_rejected_naming_format_and_architecture(self):
+        import testaferro
+
+        machine = (0x014C).to_bytes(2, "little")
+        exe = self._exe(new_format_exe_bytes(b"PE\0\0" + machine))
+
+        with self.assertRaisesRegex(
+                ValueError, r"Windows x86 \(PE\).*no supported guest"):
+            testaferro.guest_suite(exe)
+
+    @unittest.skipUnless(QUEMADOS_AVAILABLE, "quemados is not installed")
+    def test_wrong_guest_option_names_the_selected_guest(self):
+        import testaferro
+
+        exe = self._exe(plain_dos_exe_bytes())
+
+        with self.assertRaisesRegex(TypeError,
+                                    "selected guest is 'dos'"):
+            testaferro.guest_suite(exe, guest_image="OTHER.IMG")
 
     def test_backend_target_rejects_path_only_options(self):
         import testaferro
@@ -68,6 +118,13 @@ class SuitePathDispatchTests(unittest.TestCase):
         with self.assertRaisesRegex(TypeError, "executable path"):
             testaferro.guest_suite(FakeBackend(OUTCOMES),
                                   boot_image="OTHER.IMG")
+
+    def test_backend_target_rejects_a_guest_selector(self):
+        import testaferro
+
+        with self.assertRaisesRegex(TypeError, "guest"):
+            testaferro.guest_suite(FakeBackend(OUTCOMES),
+                                  guest="dos")
 
     def test_items_report_the_guest_suite_call_site_as_source(self):
         # IDE per-item actions (run-one, jump-to-source) resolve the

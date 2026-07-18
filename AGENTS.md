@@ -18,15 +18,24 @@ Package layout (each module states its contract in its docstring):
   from CppUTest v4.0's own source, not from observed samples.
 - [testaferro/suite.py](testaferro/suite.py) — `SuiteBackend`, the
   generic runner × framework composition.
-- [testaferro/qemu.py](testaferro/qemu.py) — the QEMU/DOS backend:
-  `suite_backend()` interrogates the referenced executable (plain MZ
-  and headerless/.com images accepted; provable PE, NE/LX/LE, ELF,
-  and Mach-O rejected with format and architecture named) and
-  returns a
+- [testaferro/binfmt.py](testaferro/binfmt.py) — stdlib-only
+  executable-format classification. `classify()` names the guest OS
+  able to run a file — "dos" for plain MZ and headerless/.com
+  images, None for a provable PE, NE/LX/LE, ELF, or Mach-O
+  (including universal) — with format and architecture named for
+  error messages; a future guest extends this by claiming formats
+  currently mapped to None. Shared by the facade's dispatch and
+  each guest binding's own guard.
+- [testaferro/cache.py](testaferro/cache.py) — `cache_root()`,
+  testaferro's durable filespace (LOCALAPPDATA or XDG_CACHE_HOME),
+  shared by the guest bindings.
+- [testaferro/qemu.py](testaferro/qemu.py) — the QEMU/DOS guest
+  binding: `suite_backend()` guards with `binfmt.classify()`
+  (rejections name the format and architecture) and returns a
   `QemuSuiteBackend` — `SuiteBackend` with
   `quemados.run_guest_program` prebound and `framework` defaulting
   to the CppUTest adapter. Each facade session runs in a fresh,
-  disposable quemados home under testaferro's cache dir, seeded from
+  disposable quemados home under `cache_root()`, seeded from
   `boot_image=` or a once-downloaded cached FreeDOS image; the
   process-global quemados home is bracketed per guest run.
   `start()`/`stop()` (re-exported as `testaferro.start`/`stop`) open
@@ -36,7 +45,11 @@ Package layout (each module states its contract in its docstring):
 - [testaferro/facade.py](testaferro/facade.py) — the pytest facade
   and public entry point: `guest_suite(path_or_backend, ...)` items
   (re-exported as `testaferro.guest_suite`),
-  path→backend dispatch (lazily via `testaferro.qemu`),
+  path→binding dispatch (an explicit `guest=` name or
+  `binfmt.classify()` inference selects the binding module from
+  `_GUEST_BINDINGS`, imported lazily; guest-specific options pass
+  through `**guest_options` and are validated by the binding's own
+  signature),
   selection-aware batching (`ResultBroker`), guest-failure replay.
   The returned test function is re-homed
   (`code.replace(co_filename=...)`) to the guest_suite() call site so
@@ -48,54 +61,35 @@ Package layout (each module states its contract in its docstring):
 The two aspects stay orthogonal: a framework adapter never imports a
 runner, a runner never learns a framework, and no module may
 hard-bind a specific guest OS to a specific framework. They meet only
-inside `SuiteBackend`, which takes both as parameters;
-`QemuSuiteBackend` prebinds the runner aspect and *defaults* the
-framework to the CppUTest adapter — the flagship pair — but the
-framework stays a parameter, and any other pairing composes through
-`SuiteBackend`. Consumers see neither backend class: the public
-surface is `testaferro.guest_suite()`, which selects the backend from the
-executable itself (a prebuilt `Backend` is accepted as the custom
-escape hatch).
-Guest-OS runners live in their own packages; end-to-end proof belongs
-in a consuming project that runs real guest tests through the facade,
-both batched and `-k`-narrowed.
+inside `SuiteBackend`, which takes both as parameters; each guest
+binding (today only `QemuSuiteBackend`) prebinds the runner aspect
+and *defaults* the framework to the CppUTest adapter —
+but the framework stays a parameter, and any other pairing composes
+through `SuiteBackend`. Consumers see none of the backend classes:
+the public surface is `testaferro.guest_suite()`, which selects the
+guest binding from the executable itself or an explicit `guest=`
+(a prebuilt `Backend` is accepted as the custom escape hatch).
+Guest-OS runners live in their own packages, bound through
+per-runner sibling modules like `qemu.py`; end-to-end
+proof belongs in a consuming project that runs real guest tests
+through the facade, both batched and `-k`-narrowed.
 
-## Parked work: parallelism
+## Roadmap
 
-Multi-process parallelism (pytest-xdist) already works across suites
-(`-n auto --dist loadfile`; private homes/images make it safe). The
-backlog, in value order:
-
-1. **Intra-suite sharding** — the one with real payoff. A middle
-   backend operation between `run_all()` and `run_test()` ("run this
-   subset in one boot"): CppUTest filter argv can select several
-   tests per invocation, so a worker holding part of a suite boots
-   once, not per test. Makes `--dist load` efficient on a single
-   suite (~Nx wall clock for N workers) and softens `-k` narrowed
-   selections in serial runs too. Touches `ResultBroker`, the
-   `Backend` seam, and the CppUTest argv builders.
-2. **QMP port collision check** — before leaning on parallel runs,
-   verify (read-only) that the runner's free-port selection is
-   collision-safe when several VMs start concurrently.
-3. **Download lock** — two cold-cache workers can both download the
-   default boot image; `.part` + `os.replace` keeps it correct but
-   duplicates the fetch. A lock file in the cache would serialize it.
-4. **Enumeration per worker** — each xdist worker imports the test
-   modules, so guest-side enumeration (no `enumerator=`) costs a
-   boot per worker. Document the `enumerator=` recommendation or
-   cache enumeration keyed on the executable's hash.
-5. **xdist_group auto-marking** — would let `--dist loadgroup` keep
-   multi-suite files whole; deferred (unregistered marks warn when
-   xdist is absent) and likely moot once sharding lands.
+Parked and planned work — the parallelism backlog, future guest
+OSes, configuration, lifecycle, and runner-seam questions — lives in
+[ROADMAP.md](ROADMAP.md). Consult it before starting feature work,
+and record newly agreed-but-deferred direction there, not here.
 
 ## Constraints
 
 - Python code: stdlib plus two declared dependencies — pytest (the
-  facade's host surface, imported lazily) and quemados (the QEMU
+  facade's host surface, imported lazily) and quemados (the QEMU/DOS
   runner, imported only in `testaferro/qemu.py`) — so every other
-  module stays stdlib-only. Any other guest-OS runner remains a
-  *consumer's* dependency, passed into `SuiteBackend` at the
-  consumer's call site, never imported here.
+  module stays stdlib-only. Guest-OS runners bind through
+  per-runner sibling modules like `testaferro/qemu.py`; any other
+  runner remains a *consumer's* dependency, passed into
+  `SuiteBackend` at the consumer's call site, never imported here.
   Support Python 3.9 and newer; keep lines near 79 columns.
 - As a reusable library, testaferro never names specific consuming
   projects in source, tests, README.md, or repository guidance. Refer

@@ -11,6 +11,7 @@ path = [
     "AGENTS.md",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
+    "ROADMAP.md",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Paul Galbraith"

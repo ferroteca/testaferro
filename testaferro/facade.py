@@ -24,9 +24,15 @@ this facade.
 
 from __future__ import annotations
 
+import importlib
 import os
 
+from . import binfmt
 from .backend import TestId
+
+# guest name -> binding module (a sibling of this one), imported only
+# when dispatch selects it, so unused runner packages are never loaded
+_GUEST_BINDINGS = {"dos": "qemu"}
 
 
 class ResultBroker:
@@ -57,7 +63,7 @@ class ResultBroker:
 
 
 def guest_suite(target, framework=None, enumerator=None,
-               boot_image=None):
+               guest=None, **guest_options):
     """Return a pytest test function with one parameterized item per
     test in the referenced suite. Assign it to a test_-prefixed
     module attribute:
@@ -68,8 +74,10 @@ def guest_suite(target, framework=None, enumerator=None,
     the guest backend) or a prebuilt Backend. The keyword options
     apply to the path form only: `framework` overrides the framework
     adapter, `enumerator` supplies a faster host-side source of the
-    test list, and `boot_image` a bootable DOS image to use instead
-    of the downloaded default.
+    test list, and `guest` names the guest OS when the executable's
+    own format should not decide (today only "dos"). Any further
+    keyword is guest-specific and validated by the selected
+    binding: `boot_image=` for DOS.
 
     Enumeration (backend.list_tests()) happens in its own session at
     import/collection time. A second session starts lazily when the
@@ -92,19 +100,18 @@ def guest_suite(target, framework=None, enumerator=None,
 
     options = {name: value
                for name, value in (("framework", framework),
-                                   ("enumerator", enumerator),
-                                   ("boot_image", boot_image))
+                                   ("enumerator", enumerator))
                if value is not None}
+    options.update(guest_options)
     if isinstance(target, (str, os.PathLike)):
-        from . import qemu
-        backend = qemu.suite_backend(target, **options)
+        backend = _dispatched_backend(target, guest, options)
     else:
-        if options:
+        given = sorted(options) + ([] if guest is None else ["guest"])
+        if given:
             raise TypeError(
-                "framework/enumerator/boot_image apply only when "
-                "passing an executable path; a prebuilt Backend "
-                "carries its own configuration: "
-                + ", ".join(sorted(options)))
+                "keyword options apply only when passing an "
+                "executable path; a prebuilt Backend carries its own "
+                "configuration: " + ", ".join(given))
         backend = target
 
     try:
@@ -146,6 +153,32 @@ def guest_suite(target, framework=None, enumerator=None,
             co_filename=call_site[0], co_firstlineno=call_site[1])
     run_guest_test._testaferro_broker = broker
     return run_guest_test
+
+
+def _dispatched_backend(target, guest, options):
+    """Build the suite backend for an executable path: select the
+    guest binding — from the caller's `guest` or the executable's own
+    format — import it, and hand it the guest-specific options."""
+    if guest is None:
+        fmt = binfmt.classify(target)
+        if fmt.guest is None:
+            raise ValueError(
+                f"{os.path.basename(os.fspath(target))} is "
+                f"{fmt.kind} executable; no supported guest OS can "
+                "run it")
+        guest = fmt.guest
+    elif guest not in _GUEST_BINDINGS:
+        raise ValueError(f"unknown guest {guest!r}; supported: "
+                         + ", ".join(sorted(_GUEST_BINDINGS)))
+    binding = importlib.import_module(
+        "." + _GUEST_BINDINGS[guest], __package__)
+    try:
+        return binding.suite_backend(target, **options)
+    except TypeError as error:
+        if "unexpected keyword argument" not in str(error):
+            raise
+        raise TypeError(f"{error} — options are guest-specific; "
+                        f"the selected guest is {guest!r}") from None
 
 
 def _item_id(test_id):

@@ -12,7 +12,9 @@ import tempfile
 import unittest
 from unittest import mock
 
-from testaferro import cpputest
+from testaferro import cache, cpputest
+
+from test_binfmt import new_format_exe_bytes, plain_dos_exe_bytes
 
 QUEMADOS_AVAILABLE = importlib.util.find_spec("quemados") is not None
 
@@ -24,26 +26,11 @@ EMPTY_RUN_OUTPUT = (
     "OK (2 tests, 0 ran, 0 checks, 0 ignored, 2 filtered out, 0 ms)\n")
 
 
-def _new_format_exe_bytes(signature):
-    """An MZ image whose relocation table at 0x40+ marks a
-    newer-format header (PE/NE/...) at e_lfanew."""
-    header = bytearray(0x40)
-    header[0:2] = b"MZ"
-    header[0x18:0x1A] = (0x40).to_bytes(2, "little")  # e_lfarlc
-    header[0x3C:0x40] = (0x40).to_bytes(4, "little")  # e_lfanew
-    return bytes(header) + signature
-
-
-def _plain_dos_exe_bytes():
-    # e_lfarlc below 0x40: original MZ layout, no newer header.
-    header = bytearray(0x40)
-    header[0:2] = b"MZ"
-    header[0x18:0x1A] = (0x1C).to_bytes(2, "little")
-    return bytes(header)
-
-
 @unittest.skipUnless(QUEMADOS_AVAILABLE, "quemados is not installed")
 class SuiteBackendDispatchTests(unittest.TestCase):
+    """The guard on qemu.suite_backend; the per-format naming matrix
+    lives with the classifier in test_binfmt."""
+
     def setUp(self):
         self.tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(self.tempdir.cleanup)
@@ -54,65 +41,16 @@ class SuiteBackendDispatchTests(unittest.TestCase):
         return path
 
     def test_rejects_windows_pe_executable(self):
-        exe = self._exe(_new_format_exe_bytes(b"PE\0\0"))
+        exe = self._exe(new_format_exe_bytes(b"PE\0\0"))
 
         with self.assertRaisesRegex(ValueError, r"Windows \(PE\)"):
             qemu.suite_backend(exe)
 
-    def test_rejects_windows_pe_with_architecture(self):
-        machine = (0x8664).to_bytes(2, "little")
-        exe = self._exe(_new_format_exe_bytes(b"PE\0\0" + machine))
+    def test_rejects_pe_x86_naming_the_architecture(self):
+        machine = (0x014C).to_bytes(2, "little")
+        exe = self._exe(new_format_exe_bytes(b"PE\0\0" + machine))
 
-        with self.assertRaisesRegex(ValueError, r"Windows x64 \(PE\)"):
-            qemu.suite_backend(exe)
-
-    def test_rejects_win16_ne_executable(self):
-        exe = self._exe(_new_format_exe_bytes(b"NE\0\0"))
-
-        with self.assertRaisesRegex(ValueError, r"\(NE\)"):
-            qemu.suite_backend(exe)
-
-    def test_rejects_linux_bsd_elf_executable(self):
-        header = bytearray(0x40)
-        header[0:4] = b"\x7fELF"
-        header[4] = 2                                   # 64-bit
-        header[5] = 1                                   # little-endian
-        header[0x12:0x14] = (0x3E).to_bytes(2, "little")  # x86-64
-        exe = self._exe(bytes(header))
-
-        with self.assertRaisesRegex(ValueError,
-                                    r"ELF x86-64 \(Linux/BSD\)"):
-            qemu.suite_backend(exe)
-
-    def test_rejects_elf_arm64_executable(self):
-        header = bytearray(0x40)
-        header[0:4] = b"\x7fELF"
-        header[4] = 2
-        header[5] = 1
-        header[0x12:0x14] = (0xB7).to_bytes(2, "little")  # aarch64
-        exe = self._exe(bytes(header))
-
-        with self.assertRaisesRegex(ValueError, r"ELF ARM64"):
-            qemu.suite_backend(exe)
-
-    def test_rejects_macos_macho_executable(self):
-        # little-endian 64-bit Mach-O, cputype arm64
-        header = (b"\xcf\xfa\xed\xfe"
-                  + (0x0100000C).to_bytes(4, "little"))
-        exe = self._exe(header + bytes(0x40 - len(header)))
-
-        with self.assertRaisesRegex(ValueError,
-                                    r"macOS ARM64 \(Mach-O\)"):
-            qemu.suite_backend(exe)
-
-    def test_rejects_macos_universal_binary(self):
-        # fat header: big-endian magic + tiny arch count (a Java
-        # class file shares the magic but never a small count there)
-        header = b"\xca\xfe\xba\xbe" + (2).to_bytes(4, "big")
-        exe = self._exe(header + bytes(0x40 - len(header)))
-
-        with self.assertRaisesRegex(ValueError,
-                                    r"macOS universal \(Mach-O\)"):
+        with self.assertRaisesRegex(ValueError, r"Windows x86 \(PE\)"):
             qemu.suite_backend(exe)
 
     def test_accepts_headerless_image_like_a_com_program(self):
@@ -137,13 +75,13 @@ class _QemuFixture(unittest.TestCase):
         self.addCleanup(self.tempdir.cleanup)
         root = pathlib.Path(self.tempdir.name)
         self.exe = root / "SUITE.EXE"
-        self.exe.write_bytes(_plain_dos_exe_bytes())
+        self.exe.write_bytes(plain_dos_exe_bytes())
         self.image = root / "custom.img"
         self.image.write_bytes(b"custom dos")
-        cache = mock.patch.object(qemu, "_cache_root",
-                                  return_value=str(root / "cache"))
-        cache.start()
-        self.addCleanup(cache.stop)
+        cache_patch = mock.patch.object(
+            cache, "cache_root", return_value=str(root / "cache"))
+        cache_patch.start()
+        self.addCleanup(cache_patch.stop)
         self.quemados_home_before = quemados._home
 
     def _guest_homes_seen(self, backend, calls=1):
@@ -175,7 +113,7 @@ class QemuSuiteBackendTests(_QemuFixture):
         try:
             [(home, image)] = self._guest_homes_seen(backend)
             self.assertTrue(home.startswith(
-                os.path.join(qemu._cache_root(), "runs")))
+                os.path.join(cache.cache_root(), "runs")))
             self.assertEqual(image, b"custom dos")
             self.assertEqual(quemados._home, self.quemados_home_before)
         finally:
@@ -270,7 +208,7 @@ class SessionLifecycleTests(_QemuFixture):
         cached.assert_not_called()
 
     def test_stop_sweeps_run_homes_but_keeps_download_cache(self):
-        cached = pathlib.Path(qemu._cache_root()) / "boot.img"
+        cached = pathlib.Path(cache.cache_root()) / "boot.img"
         cached.parent.mkdir(parents=True, exist_ok=True)
         cached.write_bytes(b"freedos")
         qemu.start()
@@ -282,7 +220,7 @@ class SessionLifecycleTests(_QemuFixture):
         self.assertTrue(cached.exists())
 
     def test_stop_clear_downloads_removes_cached_image(self):
-        cached = pathlib.Path(qemu._cache_root()) / "boot.img"
+        cached = pathlib.Path(cache.cache_root()) / "boot.img"
         cached.parent.mkdir(parents=True, exist_ok=True)
         cached.write_bytes(b"freedos")
 
