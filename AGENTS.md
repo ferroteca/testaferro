@@ -1,13 +1,19 @@
 # AGENTS.md — repository guidance
 
-Canonical, agent-agnostic guidance for working on testaferro.
-Human usage documentation belongs in [README.md](README.md).
+Canonical, agent-agnostic guidance for working on testaferro — how to
+change this repository safely. Human usage documentation belongs in
+[README.md](README.md); where the project is going, what it has
+decided, and how work enters is
+[planning/README.md](planning/README.md).
 
 ## Project state
 
-Milestone 1 built and verified end to end: a pytest facade over reliquary
-for DOS CppUTest suites. Reliquary is the sole guest-machine runner;
-testaferro's pluggable aspect is the guest unit-test framework.
+A pytest facade over reliquary for DOS CppUTest suites, built and
+working under its unit tier — though no guest has run since the
+migration to the blueprint model, so end-to-end proof is owed (see
+"Unit and integration" below). Reliquary is the sole guest-machine
+runner (P1); testaferro's pluggable aspect is the guest unit-test
+framework (U6).
 
 Package layout (each module states its contract in its docstring):
 
@@ -108,29 +114,93 @@ named machines (including `testaferro.ini`) and
 a consuming project that runs real guest tests through the facade,
 both batched and `-k`-narrowed.
 
-## Roadmap
+## Planning and governance
 
-Parked and planned work — the parallelism backlog, future guest
-OSes, configuration, lifecycle, and runner-seam questions — lives in
-[ROADMAP.md](ROADMAP.md). Consult it before starting feature work,
-and record newly agreed-but-deferred direction there, not here.
+- [planning/README.md](planning/README.md) is the map of the
+  maintainer-facing planning machinery, and the place to start. The
+  directories are the classification, and the lifecycle ones hold the
+  **same filenames** — `USE-CASES.md`, `ARCHITECTURE.md`,
+  `FEATURES.md` — because they hold the same artifacts in different
+  states: `planning/proposed/` is argued but not accepted, and
+  nothing is worked from there; `planning/accepted/` is approved but
+  not yet delivered. Promotion is by *moving* a document or an entry,
+  and the commit is the acceptance record. The **planning root**
+  holds what never moves and so has no state — the map, the vetting
+  rule (`INTERFACES.md`), the adjudication record (`DECISIONS.md`,
+  which spans open, accepted, refused and retired alike), and the
+  task queue. Design sits with what it serves. Once an interface
+  ships, its normative specification leaves `planning/` for good —
+  current truth does not live there.
+- **The vision governs, and it is not in force yet.** The numbered
+  use cases and P-numbered architectural principles carry equal
+  weight and are the surface every significant change is weighed
+  against; when a plan of any kind disagrees with them, they govern
+  and the plan is realigned. testaferro adopted this model after the
+  code was written (D7), so its whole vision is drafted in
+  [planning/proposed/](planning/proposed/) and nothing has reached
+  the root lists — root `USE-CASES.md` and `ARCHITECTURE.md` do not
+  exist. Cite a U- or P-number knowing it names a draft.
+- **Interface changes are vetted** by
+  [planning/INTERFACES.md](planning/INTERFACES.md), and the
+  enumeration it scopes over is
+  [planning/proposed/ARCHITECTURE.md](planning/proposed/ARCHITECTURE.md)
+  "The interfaces" — the embedding API, the machine declaration,
+  `testaferro.ini`, the `Backend` ABC, the pytest items testaferro
+  produces, and the cache layout. Ask "does this change an
+  interface?" **first**, and answer it by lookup against that list
+  rather than from intuition about the diff. A yes is never
+  housekeeping, however small the diff.
+- **There is no roadmap** (D7): `accepted/` says the direction is
+  agreed and nothing about when, so the absence of order in
+  `TASKS.md` holds equally for accepted features, the only binding
+  order running inside a feature. **Features carry F-numbers** — the
+  handle a dependency, commit or decision points at — which unlike
+  U-, P- and D-numbers **evaporate on delivery**, retiring unreused,
+  gaps being history rather than a promise. Designs take no number.
+  **A feature must fit in one sprint**, here hours, so an accepted
+  feature is far smaller than "milestone" suggests; the bound bites
+  at acceptance. References between items run **down the lifecycle or
+  sideways, never up**. Do not produce a roadmap, a schedule, or a
+  delivery estimate, and do not sort the backlog into one when asked
+  where to start: what is coming is what has been accepted, and the
+  project does not say when.
+- **Search the record before a governed act.** Before drafting a
+  proposal, accepting one, or changing a norm, search
+  [planning/DECISIONS.md](planning/DECISIONS.md) for what bears on it
+  and report what you found — including finding nothing. Anything
+  recorded as killed, declined or superseded is not revisited without
+  new evidence, so re-raising one unknowingly wastes the argument; an
+  entry that *supports* the change is worth citing.
+- **Writing anywhere under `planning/` is a governed act**, and
+  authority is the owner alone. One gate covers entering a document
+  in `proposed/`, promoting one to `accepted/`, and entering work in
+  `TASKS.md`; the issue tracker is the one open door. **Agents do not
+  add tasks on their own initiative and ask before editing
+  `TASKS.md` at all.** The gate sits at entry only, so anyone may
+  pick up what is already there.
 
 ## Constraints
 
-- Python code: stdlib plus two declared dependencies — pytest (the
+These are the standing engineering constraints, and most of them are
+also drafted principles — the P-numbers point at
+[planning/proposed/ARCHITECTURE.md](planning/proposed/ARCHITECTURE.md),
+which becomes their canonical home once accepted. Until then this
+section is the operative statement.
+
+- Python code: stdlib plus two declared dependencies (P11) — pytest (the
   facade's host surface, imported lazily) and reliquary (the sole
   guest-machine runner, imported by `testaferro/qemu.py` for the
   machine lifecycle and by `testaferro/machines.py` for its JSONC
   reader alone). Support Python 3.9 and newer; keep lines near 79
   columns.
 - Reliquary is pinned to an exact version in
-  [pyproject.toml](pyproject.toml). Its API is still moving fast and
+  [pyproject.toml](pyproject.toml) (D4). Its API is still moving fast and
   has already removed the layer testaferro was built on once; a
   floating requirement would break consumers without warning. Moving
   the pin is a deliberate task — expect the binding to need work,
   and re-run the checks below against the new version.
 - As a reusable library, testaferro never names specific consuming
-  projects in source, tests, README.md, or repository guidance. Refer
+  projects in source, tests, README.md, or repository guidance (P12). Refer
   to consumers and runners only in general instructional terms.
 - Tests are stdlib `unittest` under `tests/`.
 - Licensing is BSD-3-Clause, REUSE-style.
@@ -155,7 +225,7 @@ fixtures are source-derived, not captured.
 
 ## Unit and integration
 
-The split is by **cost**, not by coverage: a unit test is cheap and
+The split is by **cost**, not by coverage (P10): a unit test is cheap and
 draws in nothing external or uncontrolled. Nearly all of this
 project's behaviour can only be proved by booting a guest, so the
 integration tier will always carry most of the real coverage — which
@@ -192,4 +262,6 @@ fails loudly rather than silently running a suite off the wrong
 drive. Keep that guard until reliquary offers a public query.
 
 There is **no integration suite yet**, so no guest has run since the
-migration to the blueprint model. End-to-end proof is still owed.
+migration to the blueprint model. End-to-end proof is still owed, and
+it is what would arm the use cases: building that tier is F6 in
+[planning/proposed/FEATURES.md](planning/proposed/FEATURES.md).

@@ -5,12 +5,16 @@ guest via reliquary, and its tests surface as pytest tests on the host — runni
 reporting them feels like an ordinary local pytest run.
 
 DOS and CppUTest are what it supports today. Reliquary owns the guest-machine side; testaferro owns the pytest facade and
-its test-framework adapters. Other platforms and frameworks remain planned work (see [ROADMAP.md](ROADMAP.md)).
+its test-framework adapters. Other platforms and frameworks are not built; what has been argued for them, and what the
+project has decided so far, is in [planning/](planning/).
 
-## Status: milestone 1 working
+## Status: alpha
 
-The architecture is built and verified end to end for its first target pair: a DOS-built CppUTest suite run inside a
-QEMU guest, surfacing as ordinary pytest items on the host.
+The architecture is built and works for its first target pair: a DOS-built CppUTest suite run inside a QEMU guest,
+surfacing as ordinary pytest items on the host. It was verified end to end before the move onto reliquary's blueprint
+model; since that move the unit suite passes but no guest has actually run, so treat a first run here as unproven
+ground and expect to report what you find. testaferro is pre-1.0 and makes no compatibility promise: interfaces change
+coherently and completely, without a bridge for the old shape.
 
 ## Usage
 

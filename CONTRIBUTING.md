@@ -6,9 +6,37 @@ project's pluggable-aspect design and BSD licensing.
 
 ## Before you start
 
-For a substantial change, open an issue before investing significant
-work. This gives us a chance to agree on the problem, scope, and
-approach. Small, focused fixes may go directly to a pull request.
+**Open an issue first for anything substantial.** The issue tracker
+is the open door — anyone may file there, and filing commits you to
+nothing. It is also, deliberately, the only way in for a change that
+touches what testaferro promises: the project decides direction
+before work is picked up, so finished work arriving with no agreed
+proposal behind it is refused for *not having argued the merit* —
+never for its quality and never for who wrote it. That is a door, not
+a wall: make the argument in the issue, and if it wins, the work is
+welcome.
+
+Small, focused fixes may go directly to a pull request. Two things
+decide whether yours is one, and the first is a lookup rather than a
+judgement:
+
+- **Does it change an interface?** The surfaces are enumerated in
+  [planning/proposed/ARCHITECTURE.md](planning/proposed/ARCHITECTURE.md)
+  "The interfaces" — the public Python API, the machine declaration,
+  `testaferro.ini`, the `Backend` class, the pytest items testaferro
+  produces, and the cache layout. A yes is never a small change,
+  however small the diff, and takes the argued route.
+- **Is it tiny *and* clearly a problem?** A small cleanup or a small
+  reported defect is approved as a class, in advance; it needs no
+  issue and no ceremony, and the commit is the record.
+
+How direction is agreed, recorded, and refused is
+[planning/README.md](planning/README.md); the rule that weighs an
+interface change is
+[planning/INTERFACES.md](planning/INTERFACES.md); what has already
+been settled — and what was declined, which is worth checking before
+you argue for it — is
+[planning/DECISIONS.md](planning/DECISIONS.md).
 
 Keep changes narrowly scoped and avoid unrelated cleanup. New behavior
 should include focused tests, especially for the output grammars and
@@ -52,7 +80,9 @@ dependency before adding one.
 - Match the existing style and keep lines near 79 columns.
 - Add or update stdlib `unittest` coverage under `tests/` for changed
   behavior.
-- Update README.md when public behavior changes.
+- Update README.md when public behavior changes — and note that
+  changing public behavior is an interface change, so it should have
+  been agreed before the work started (above).
 - Add SPDX headers to new files as described below.
 
 Run the required checks:
