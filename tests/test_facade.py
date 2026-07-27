@@ -42,7 +42,7 @@ OUTCOMES = [
 ]
 
 PYTEST_AVAILABLE = importlib.util.find_spec("pytest") is not None
-RELICT_AVAILABLE = importlib.util.find_spec("relict") is not None
+RELIQUARY_AVAILABLE = importlib.util.find_spec("reliquary") is not None
 
 
 @unittest.skipUnless(PYTEST_AVAILABLE, "pytest is not installed")
@@ -56,7 +56,7 @@ class SuitePathDispatchTests(unittest.TestCase):
         path.write_bytes(content)
         return path
 
-    @unittest.skipUnless(RELICT_AVAILABLE, "relict is not installed")
+    @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
     def test_path_target_resolves_backend_from_executable(self):
         from unittest import mock
 
@@ -72,8 +72,8 @@ class SuitePathDispatchTests(unittest.TestCase):
         factory.assert_called_once_with(exe, enumerator=enumerator)
         self.assertTrue(callable(suite))
 
-    @unittest.skipUnless(RELICT_AVAILABLE, "relict is not installed")
-    def test_named_machine_selects_its_relict_config(self):
+    @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+    def test_named_machine_selects_its_reliquary_config(self):
         from unittest import mock
 
         import testaferro
@@ -90,7 +90,7 @@ class SuitePathDispatchTests(unittest.TestCase):
             testaferro.guest_suite(exe, machine="msdos")
         factory.assert_called_once_with(exe, machine_config=machine_config)
 
-    @unittest.skipUnless(RELICT_AVAILABLE, "relict is not installed")
+    @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
     def test_guest_suite_searches_for_ini_from_the_call_site(self):
         from unittest import mock
 
@@ -113,9 +113,8 @@ class SuitePathDispatchTests(unittest.TestCase):
             Path(load.call_args.kwargs["search_from"]).resolve(),
             Path(__file__).resolve().parent)
 
-    @unittest.skipUnless(RELICT_AVAILABLE, "relict is not installed")
+    @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
     def test_named_machine_rejects_a_second_machine_template(self):
-        import relict
         import testaferro
         from testaferro import machines
 
@@ -127,7 +126,7 @@ class SuitePathDispatchTests(unittest.TestCase):
         with self.assertRaisesRegex(TypeError, "cannot be combined"):
             testaferro.guest_suite(
                 exe, machine="freedos",
-                machine_config=relict.MachineConfig())
+                machine_config=machines.MachineSpec({}))
 
     def test_unsupported_format_is_rejected_before_any_guest(self):
         import testaferro
@@ -159,7 +158,7 @@ class SuitePathDispatchTests(unittest.TestCase):
                 ValueError, r"Windows x86 \(PE\).*no supported platform"):
             testaferro.guest_suite(exe)
 
-    @unittest.skipUnless(RELICT_AVAILABLE, "relict is not installed")
+    @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
     def test_wrong_machine_option_names_the_selected_platform(self):
         import testaferro
 

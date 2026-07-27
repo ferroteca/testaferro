@@ -8,28 +8,66 @@ QemuSuiteBackend; anything else is rejected before any guest work,
 with the format and architecture named. The framework adapter
 defaults to testaferro.cpputest.
 
-QemuSuiteBackend manages a configured relict Runner on the caller's
-behalf. Each facade session runs in a fresh, disposable relict home
-under testaferro's cache directory (LOCALAPPDATA or XDG_CACHE_HOME).
-Named machine templates are copied into that home so mutable drives
-never leak between runs; zero configuration is seeded from the
+QemuSuiteBackend drives a reliquary machine on the caller's behalf.
+Each facade session gets a fresh, disposable reliquary home under
+testaferro's cache directory (LOCALAPPDATA or XDG_CACHE_HOME): the
+declaration is written there as a blueprint, reliquary creates and
+boots one machine from it, and every guest run is one `reliquary.exec`
+against that machine. The suite executable reaches the guest on a
+host-directory (hostdir) work drive testaferro adds to the blueprint and
+stages before boot. Zero configuration is seeded from the
 caller-supplied `boot_image` or a cached FreeDOS image.
 """
 
 from __future__ import annotations
 
 import atexit
-import dataclasses
+import json
 import os
 import shutil
 import tempfile
 
-import relict
+import reliquary
 
 from . import binfmt
 from . import cache
 from . import cpputest
 from .suite import SuiteBackend
+
+
+# The blueprint name testaferro writes into each session's private
+# asset root, and the machine created from it.
+_BLUEPRINT_NAME = "testaferro"
+# The host-directory drive carrying the suite executable to the guest.
+_WORK_MEDIA_NAME = "testaferro-work"
+_BOOT_MEDIA_NAME = "testaferro-boot"
+_DEFAULT_MEMORY = "32M"
+# Seconds one guest command may take before reliquary gives up.
+_DEFAULT_TIMEOUT = 120
+_HDD_SLOTS = 4
+
+# FreeDOS 1.4's FloppyEdition, from which x86BOOT.img (a ready-to-boot
+# 1.44M floppy image) is extracted; a reliquary media definition,
+# fetched and hash-verified through reliquary.fetch_media().
+_FREEDOS_FLOPPY_MEDIA_NAME = "freedos-boot-floppy"
+_FREEDOS_FLOPPY_MEDIA_DEFINITION = [
+    {
+        "type": "media",
+        "name": "freedos-floppy-edition",
+        "location": "https://download.freedos.org/1.4/FD14-FloppyEdition.zip",
+        "sha256": ("45b1fa7c52dd996c3bfa5e352ffcd410781b952a6ad629f"
+                  "15a4c9ec4bbaefc5a"),
+        "children": [
+            {
+                "type": "media",
+                "name": _FREEDOS_FLOPPY_MEDIA_NAME,
+                "path": "144m/x86BOOT.img",
+                "sha256": ("552f7cbb0625960c050a3e682a4d2121cc2ffdfa9dc9d59"
+                          "2ccd49edf179333dc"),
+            },
+        ],
+    },
+]
 
 
 def suite_backend(exe_path, framework=cpputest, enumerator=None,
@@ -66,6 +104,37 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
 # home) plus the recorded image choice, staged lazily on first use.
 _session = None
 
+# Backends holding a booted machine right now. A machine outlives the
+# call that started it, so an interpreter that goes down between
+# start_session() and stop_session() would otherwise leave the guest
+# running — and sweeping its home would pull the disk out from under
+# it. Every exit path stops machines before deleting anything.
+_running = set()
+_sweep_registered = False
+
+
+def _machine_started(backend):
+    """Record a backend whose machine is now running."""
+    global _sweep_registered
+    _running.add(backend)
+    if not _sweep_registered:
+        atexit.register(_stop_running_machines)
+        _sweep_registered = True
+
+
+def _stop_running_machines():
+    """Stop every machine still running, best effort.
+
+    Called before any sweep and again at interpreter exit. One
+    backend failing to stop must not strand the others, so failures
+    are swallowed here; the machine's own home is removed regardless.
+    """
+    for backend in list(_running):
+        try:
+            backend.stop_session()
+        except Exception:
+            _running.discard(backend)
+
 
 def start(boot_image=None):
     """Open a testaferro session: one boot-image choice serving every
@@ -95,6 +164,9 @@ def stop(clear_downloads=False):
     boot image, forcing a fresh download next time."""
     global _session
     atexit.unregister(stop)
+    # Machines first: the run homes about to be swept are the disks
+    # those guests are running from.
+    _stop_running_machines()
     if _session is not None:
         shutil.rmtree(_session["dir"], ignore_errors=True)
         _session = None
@@ -116,19 +188,58 @@ def _session_image():
 
 
 def _cached_default_image():
-    """testaferro's cached copy of the default boot image, obtained
-    through relict.download() (FreeDOS) on first use."""
+    """testaferro's cached copy of the default boot image: FreeDOS
+    1.4's floppy-edition boot floppy, fetched and hash-verified
+    through reliquary.fetch_media() on first use."""
     cached = os.path.join(cache.cache_root(), "boot.img")
     if not os.path.exists(cached):
         os.makedirs(cache.cache_root(), exist_ok=True)
         with tempfile.TemporaryDirectory(
                 prefix="download-", dir=cache.cache_root()) as home:
-            relict.download(home=home)
-            shutil.copy(
-                os.path.join(relict.drives_dir(home), "floppy.img"),
-                cached + ".part")
+            assets = os.path.join(home, "assets")
+            os.makedirs(assets)
+            definition = os.path.join(assets, "freedos-floppy.rlqb")
+            with open(definition, "w", encoding="utf-8") as handle:
+                json.dump(_FREEDOS_FLOPPY_MEDIA_DEFINITION, handle)
+            payload = reliquary.fetch_media(
+                _FREEDOS_FLOPPY_MEDIA_NAME,
+                _context(home, assets))
+            shutil.copy(payload, cached + ".part")
         os.replace(cached + ".part", cached)
     return cached
+
+
+def _context(home, assets):
+    """A reliquary context pinned to one disposable testaferro home.
+
+    Dir-mode assets keep the resolution hermetic: only what testaferro
+    wrote for this run, never the user's own reliquary home or the
+    built-in codex.
+    """
+    return reliquary.Context(home=home,
+                             cache=os.path.join(home, "cache"),
+                             assets=assets)
+
+
+def _work_drive(drives):
+    """Place testaferro's work drive and name the letter DOS gives it.
+
+    reliquary assigns DOS letters from declared facts alone: floppies
+    take A:/B: by slot and hard disks C: onward in slot order. The
+    work drive takes the lowest free disk slot, so its letter is its
+    own position among the declared disks.
+    """
+    used = sorted({int(key[len("hdd"):] or 0)
+                   for key in drives if key.startswith("hdd")})
+    free = [slot for slot in range(_HDD_SLOTS) if slot not in used]
+    if not free:
+        raise ValueError(
+            "the machine declares every disk slot; testaferro needs one "
+            "free slot for the work drive that carries the suite "
+            "executable into the guest")
+    slot = free[0]
+    letter = chr(ord("C") + sorted(used + [slot]).index(slot))
+    return f"hdd{slot}", letter
 
 
 class QemuSuiteBackend(SuiteBackend):
@@ -137,8 +248,13 @@ class QemuSuiteBackend(SuiteBackend):
         self._boot_image = (None if boot_image is None
                             else os.fspath(boot_image))
         self._home = None
-        self._runner = None
+        self._ctx = None
+        self._machine = None
+        self._letter = None
         self._machine_config = machine_config
+        self._timeout = (
+            _DEFAULT_TIMEOUT if machine_config is None
+            or machine_config.timeout is None else machine_config.timeout)
         super().__init__(os.fspath(exe_path), run=self._run_in_guest,
                          framework=framework, enumerator=enumerator)
 
@@ -147,55 +263,102 @@ class QemuSuiteBackend(SuiteBackend):
         runs = os.path.join(area, "runs")
         os.makedirs(runs, exist_ok=True)
         self._home = tempfile.mkdtemp(prefix="run-", dir=runs)
-        drives = os.path.join(self._home, "drives")
-        os.makedirs(drives)
-        config = self._materialize_config(drives)
-        self._runner = relict.Runner(self._home, config)
+        assets = os.path.join(self._home, "assets")
+        work = os.path.join(self._home, "work")
+        os.makedirs(assets)
+        os.makedirs(work)
+        # the backend snapshots the host directory when the drive is
+        # attached, so the executable is staged before the machine
+        # boots, not on the first run.
+        shutil.copy2(self._exe, os.path.join(work, self._program()))
+
+        document, self._letter = self._blueprint(work)
+        with open(os.path.join(assets, _BLUEPRINT_NAME + ".rlqb"),
+                  "w", encoding="utf-8") as handle:
+            json.dump(document, handle)
+        self._ctx = _context(self._home, assets)
+        try:
+            self._machine = reliquary.create_machine(
+                _BLUEPRINT_NAME, context=self._ctx)
+            _machine_started(self)
+            reliquary.start_machine(self._machine, context=self._ctx)
+        except BaseException:
+            self.stop_session()
+            raise
 
     def stop_session(self):
-        if self._home is not None:
+        if self._home is None:
+            return
+        _running.discard(self)
+        try:
+            if self._machine is not None:
+                reliquary.stop_machine(self._machine,
+                                       context=self._ctx)
+        finally:
+            # The machine's own cache lives under this home, so the
+            # sweep takes the whole run with it.
             shutil.rmtree(self._home, ignore_errors=True)
             self._home = None
-            self._runner = None
+            self._ctx = None
+            self._machine = None
+            self._letter = None
+
+    def _program(self):
+        """The suite's guest-side command name."""
+        return os.path.basename(self._exe)
 
     def _run_in_guest(self, exe_path, args):
         if self._home is None:
             raise RuntimeError("no active session: guest runs happen "
                                "between start_session and stop_session")
-        return self._runner.run(exe_path, args)
+        command = f"{self._letter}:\\{self._program()}"
+        if args:
+            command += " " + " ".join(args)
+        rows = reliquary.exec(command, machine=self._machine,
+                              context=self._ctx,
+                              timeout=self._timeout)
+        return "\n".join(rows) + "\n"
 
-    def _materialize_config(self, drives):
-        """Copy a machine template into this backend session's home.
+    def _blueprint(self, work):
+        """The blueprint document for this backend session.
 
-        Relict mounts configured drive sources in place. Testaferro
-        deliberately copies them so a machine declaration is a template,
-        never mutable state shared by two guest runs.
+        The declaration (or the zero-configuration default) plus
+        testaferro's own work drive, which is how the suite executable
+        reaches the guest. Every drive is authored JSON passed through
+        to reliquary, which owns materialization: a declaration stays
+        a template because reliquary materializes a fresh machine from
+        it each session.
         """
-        config = self._machine_config or relict.MachineConfig()
-        options = {}
-        bootable = False
-        for key, declaration in config.drives.items():
-            source = declaration["source"]
-            drive_options = dict(declaration["options"])
-            if source is not None:
-                target = _materialized_drive_path(drives, key, source)
-                if os.path.isdir(source):
-                    shutil.copytree(source, target)
-                else:
-                    shutil.copy2(source, target)
-                    bootable = True
-            if drive_options:
-                options[key] = {"options": drive_options}
-        if not bootable:
-            source = self._boot_image or (
-                _session_image() if _session else _cached_default_image())
-            shutil.copy2(source, os.path.join(drives, "floppy.img"))
-        return dataclasses.replace(config, drives=options)
+        spec = self._machine_config
+        fields = dict(spec.fields) if spec is not None else {}
+        fields.setdefault("platform", "dos")
+        fields.setdefault("memory", _DEFAULT_MEMORY)
+        drives = dict(fields.get("drives") or {})
+        if not drives:
+            drives["floppy0"] = {
+                "type": "media",
+                "name": _BOOT_MEDIA_NAME,
+                "location": {"local": self._boot_media_path()},
+                "materialize": "use",
+            }
+            fields.setdefault("boot", ["floppy0"])
+        key, letter = _work_drive(drives)
+        drives[key] = {
+            "type": "media",
+            "name": _WORK_MEDIA_NAME,
+            "location": {"local": work},
+            "materialize": "use",
+        }
+        fields["drives"] = drives
+        fields["type"] = "machine"
+        fields["name"] = _BLUEPRINT_NAME
+        media = list(spec.media) if spec is not None else []
+        return [fields, *media], letter
 
-
-def _materialized_drive_path(drives, key, source):
-    """The private-home declaration path for one configured source."""
-    if os.path.isdir(source):
-        return os.path.join(drives, key)
-    extension = os.path.splitext(source)[1]
-    return os.path.join(drives, key + extension)
+    def _boot_media_path(self):
+        """The image the zero-configuration machine boots: this
+        backend's own choice, the session's staged image, or the
+        cached default."""
+        if self._boot_image is not None:
+            return self._boot_image
+        return _session_image() if _session else _cached_default_image()

@@ -1,10 +1,12 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: BSD-3-Clause
-"""Named test-machine declarations backed by relict configurations.
+"""Named test-machine declarations backed by reliquary blueprints.
 
-A declaration is reusable configuration, not a running machine. The
-selected binding materializes it into a fresh relict home for every
-backend session.
+A declaration is reusable configuration, not a running machine: it is
+the authored blueprint document reliquary materializes into a fresh
+machine for every backend session. testaferro carries the authored
+JSON through untouched and mirrors none of reliquary's schema —
+validation happens when reliquary parses it.
 
 Declarations come from ``configure()`` / ``testaferro.config()`` or
 from an optional per-project ``testaferro.ini`` — one section per
@@ -19,18 +21,33 @@ import collections.abc
 import configparser
 import json
 import os
+import types
 
-import relict
+# The .rlqb dialect (comments, trailing commas): a declaration is
+# authored blueprint JSON, so it is read the way reliquary reads it.
+from reliquary import jsonc
 
 
 CONFIG_FILENAME = "testaferro.ini"
 
 # Path-valued options resolved relative to the config file directory.
 _PATH_KEYS = frozenset({"boot_image", "machine_config", "template"})
-# MachineConfig fields whose INI values are JSON (not bare strings).
-_JSON_KEYS = frozenset({"drives", "qemu_args", "machine"})
-_INT_KEYS = frozenset({"memory"})
+# Blueprint fields whose INI values are JSON (not bare strings).
+_JSON_KEYS = frozenset({"drives", "boot", "scripts", "media",
+                        "control_planes", "backend_settings",
+                        "parameters"})
 _FLOAT_KEYS = frozenset({"timeout"})
+# Blueprint fields whose names hyphenate: written with underscores as
+# a Python keyword or an INI option, stored as the blueprint spells
+# them.
+_HYPHENATED = types.MappingProxyType({
+    "control_planes": "control-planes",
+    "backend_settings": "backend-settings",
+})
+
+# Options testaferro consumes itself rather than passing to the
+# blueprint: how long one guest command may take.
+_TESTAFERRO_KEYS = frozenset({"timeout"})
 
 _machines = {}
 # None until the first load/search; then the absolute path or False
@@ -38,14 +55,70 @@ _machines = {}
 _loaded_config = None
 
 
+class MachineSpec:
+    """One declared test machine: an authored reliquary blueprint.
+
+    Immutable, and a template rather than a machine — the binding
+    writes it into a private reliquary home and creates a fresh
+    machine from it per session. Blueprint fields are readable as
+    attributes (``spec.platform``, ``spec.memory``, ``spec.drives``),
+    with underscores standing in for the hyphens the blueprint spells
+    (``spec.backend_settings``).
+    """
+
+    __slots__ = ("_machine", "_media", "timeout")
+
+    def __init__(self, machine, media=(), timeout=None):
+        fields = {_HYPHENATED.get(key, key): value
+                  for key, value in machine.items()
+                  if key not in ("type", "name")}
+        fields.setdefault("platform", "dos")
+        fields["platform"] = str(fields["platform"]).lower()
+        object.__setattr__(self, "_machine", types.MappingProxyType(fields))
+        object.__setattr__(self, "_media", tuple(dict(spec)
+                                                 for spec in media))
+        object.__setattr__(self, "timeout", timeout)
+
+    def __getattr__(self, name):
+        try:
+            return self._machine[name.replace("_", "-")]
+        except KeyError:
+            raise AttributeError(
+                f"{type(self).__name__!r} declares no {name!r}") from None
+
+    def __setattr__(self, name, value):
+        raise AttributeError("a machine declaration is immutable")
+
+    def __repr__(self):
+        return f"MachineSpec({dict(self._machine)!r})"
+
+    @property
+    def fields(self):
+        """The authored machine spec, without its type/name identity."""
+        return self._machine
+
+    @property
+    def media(self):
+        """Media specs authored beside the machine, if any."""
+        return self._media
+
+    def document(self, name):
+        """The ``.rlqb`` document declaring this machine as ``name``."""
+        machine = dict(self._machine)
+        machine["type"] = "machine"
+        machine["name"] = name
+        return [machine, *(dict(spec) for spec in self._media)]
+
+
 def configure(name, platform=None, machine_config=None, template=None,
               boot_image=None, **options):
-    """Declare a named test machine and return its MachineConfig.
+    """Declare a named test machine and return its MachineSpec.
 
-    ``machine_config`` (or its ``template`` spelling) accepts the same
-    relict forms as its one-shot helpers: a MachineConfig, a versioned
-    mapping, or a machine-document path. Without one, the remaining
-    options are passed to ``relict.MachineConfig``. ``platform`` is an
+    ``machine_config`` (or its ``template`` spelling) accepts a
+    MachineSpec, a mapping (a blueprint machine spec, or a whole
+    blueprint document), or the path to a ``.rlqb``. Without one, the
+    remaining options are the blueprint's own machine fields —
+    ``memory``, ``drives``, ``boot`` and friends. ``platform`` is an
     optional consistency check for a supplied configuration and a
     convenient field when constructing one here.
     """
@@ -65,12 +138,19 @@ def configure(name, platform=None, machine_config=None, template=None,
         raise TypeError("boot_image and drives cannot be combined")
 
     if machine_config is None:
-        fields = dict(options)
+        fields = {key: value for key, value in options.items()
+                  if key not in _TESTAFERRO_KEYS}
+        # `media` is a document-level spec, not a machine field: it
+        # declares media the drives refer to by name, and belongs
+        # beside the machine rather than inside it.
+        media = _media_specs(fields.pop("media", ()))
         if boot_image is not None:
-            fields["drives"] = {"floppy": os.fspath(boot_image)}
+            fields["drives"] = {"floppy0": _boot_media(boot_image)}
+            fields.setdefault("boot", ["floppy0"])
         if platform is not None:
             fields["platform"] = platform
-        machine_config = relict.MachineConfig(**fields)
+        machine_config = MachineSpec(fields, media,
+                                     timeout=options.get("timeout"))
     else:
         machine_config = _coerce_machine_config(machine_config, platform)
         if (platform is not None
@@ -81,6 +161,32 @@ def configure(name, platform=None, machine_config=None, template=None,
 
     _machines[name] = machine_config
     return machine_config
+
+
+def _media_specs(value):
+    """Normalize a declared ``media`` option to a list of specs.
+
+    One spec or several: a lone mapping is the list of one, which is
+    the natural thing to write for a machine needing a single named
+    medium.
+    """
+    if isinstance(value, collections.abc.Mapping):
+        return [value]
+    if isinstance(value, (str, bytes)) or not isinstance(
+            value, collections.abc.Iterable):
+        raise TypeError(
+            "media must be a blueprint media spec or a list of them")
+    return list(value)
+
+
+def _boot_media(boot_image):
+    """The blueprint drive declaring a caller-supplied boot floppy."""
+    return {
+        "type": "media",
+        "name": "testaferro-boot",
+        "location": {"local": os.path.abspath(os.fspath(boot_image))},
+        "materialize": "use",
+    }
 
 
 def configured():
@@ -138,9 +244,9 @@ def load_config(path=None, *, search_from=None):
     Each section is one test machine — the same options as
     ``configure()``. Relative ``boot_image``, ``machine_config``, and
     ``template`` paths resolve from the file's directory. Structured
-    ``MachineConfig`` fields (``drives``, ``qemu_args``, ``machine``)
-    accept JSON values. Idempotent for a repeated load of the same
-    path or a repeated empty search.
+    blueprint fields (``drives``, ``boot``, ``backend_settings`` and
+    friends) accept JSON values. Idempotent for a repeated load of the
+    same path or a repeated empty search.
     """
     global _loaded_config
 
@@ -216,13 +322,15 @@ def _parse_option(key, raw):
     if key in _JSON_KEYS:
         return json.loads(raw)
     stripped = raw.strip()
-    if key in _INT_KEYS:
-        return int(stripped, 10)
     if key in _FLOAT_KEYS:
         return float(stripped)
-    # Allow JSON for any value that looks like a structured literal,
-    # so future MachineConfig fields stay expressible without a
-    # parser change.
+    # Sizes are written either way — `memory = 32` and `memory = 32M`
+    # are both blueprint-legal, so a bare integer stays an integer and
+    # anything else passes through as authored.
+    if stripped.lstrip("-").isdigit():
+        return int(stripped, 10)
+    # Allow JSON for any value that looks like a structured literal, so
+    # future blueprint fields stay expressible without a parser change.
     if stripped[:1] in "[{":
         return json.loads(stripped)
     return raw
@@ -235,23 +343,50 @@ def _resolve_path(base_dir, value):
 
 
 def _coerce_machine_config(value, platform=None):
-    if isinstance(value, relict.MachineConfig):
+    if isinstance(value, MachineSpec):
         return value
     if isinstance(value, collections.abc.Mapping):
-        overrides = ({"platform": platform}
-                     if platform is not None and "platform" not in value
-                     else {})
-        return relict.MachineConfig.from_mapping(value, **overrides)
+        return _from_document(value, platform)
     if isinstance(value, (str, os.PathLike)):
         path = os.fspath(value)
         with open(path, encoding="utf-8") as handle:
-            document = json.load(handle)
-        overrides = ({"platform": platform}
-                     if platform is not None
-                     and "platform" not in document else {})
-        return relict.MachineConfig.from_file(path, **overrides)
+            document = jsonc.load(handle)
+        return _from_document(document, platform)
+    if isinstance(value, collections.abc.Sequence):
+        return _from_document(list(value), platform)
     raise TypeError(
-        "machine_config must be a relict.MachineConfig, mapping, or path")
+        "machine_config must be a MachineSpec, a blueprint mapping, "
+        "a blueprint document, or a path to one")
+
+
+def _from_document(document, platform=None):
+    """Build a declaration from an authored blueprint or machine spec.
+
+    A ``.rlqb`` document is a list of specs; a lone spec object is the
+    document of one, which is also how a bare machine spec arrives from
+    ``configure()``. Exactly one machine must be present — a
+    declaration names one test machine.
+    """
+    specs = document if isinstance(document, list) else [document]
+    machines = [spec for spec in specs
+                if isinstance(spec, collections.abc.Mapping)
+                and spec.get("type", "media") == "machine"]
+    media = [spec for spec in specs
+             if isinstance(spec, collections.abc.Mapping)
+             and spec.get("type", "media") != "machine"]
+    if not machines and len(specs) == 1 and isinstance(
+            specs[0], collections.abc.Mapping):
+        # A bare machine spec, written without its `type` — the form
+        # configure() itself builds and the natural one to hand-write.
+        machines, media = [specs[0]], []
+    if len(machines) != 1:
+        raise ValueError(
+            f"a machine declaration needs exactly one machine spec, "
+            f"found {len(machines)}")
+    fields = dict(machines[0])
+    if platform is not None and "platform" not in fields:
+        fields["platform"] = platform
+    return MachineSpec(fields, media)
 
 
 def _choices(values):

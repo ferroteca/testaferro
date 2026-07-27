@@ -7,8 +7,6 @@ import os
 import tempfile
 import unittest
 
-import relict
-
 from testaferro import machines
 
 
@@ -41,7 +39,7 @@ class ProjectConfigTests(unittest.TestCase):
         config = machines.configured()["msdos"]
         self.assertEqual(config.platform, "dos")
         self.assertEqual(config.memory, 32)
-        self.assertEqual(config.drives["floppy_0"]["source"],
+        self.assertEqual(config.drives["floppy0"]["location"]["local"],
                          os.path.abspath(image))
 
     def test_search_walks_upward_from_start(self):
@@ -65,15 +63,16 @@ class ProjectConfigTests(unittest.TestCase):
 
     def test_machine_config_path_resolves_from_the_ini_directory(self):
         document = {
-            "version": 1,
+            "type": "machine",
+            "name": "custom",
             "platform": "dos",
             "memory": 48,
         }
-        self._write("machines/custom.json", json.dumps(document))
+        self._write("machines/custom.rlqb", json.dumps(document))
         ini = self._write(
             "testaferro.ini",
             "[custom]\n"
-            "machine_config = machines/custom.json\n")
+            "machine_config = machines/custom.rlqb\n")
 
         machines.load_config(ini)
 
@@ -83,14 +82,28 @@ class ProjectConfigTests(unittest.TestCase):
         ini = self._write(
             "testaferro.ini",
             "[tuned]\n"
-            "qemu_args = [\"-cpu\", \"486\"]\n"
-            "machine = {\"type\": \"pc\", \"accel\": \"tcg\"}\n")
+            "boot = [\"hdd0\"]\n"
+            "backend_settings = {\"qemu\": {\"accel\": \"tcg\"}}\n")
 
         machines.load_config(ini)
         config = machines.configured()["tuned"]
 
-        self.assertEqual(config.qemu_args, ("-cpu", "486"))
-        self.assertEqual(config.machine["type"], "pc")
+        self.assertEqual(config.boot, ["hdd0"])
+        self.assertEqual(config.backend_settings["qemu"]["accel"], "tcg")
+
+    def test_media_section_value_becomes_a_document_spec(self):
+        ini = self._write(
+            "testaferro.ini",
+            "[freedos]\n"
+            "drives = {\"floppy0\": {\"media\": \"boot\"}}\n"
+            "media = [{\"name\": \"boot\", \"location\": \"boot.img\"}]\n")
+
+        machines.load_config(ini)
+        config = machines.configured()["freedos"]
+
+        self.assertEqual(config.media,
+                         ({"name": "boot", "location": "boot.img"},))
+        self.assertNotIn("media", config.fields)
 
     def test_duplicate_name_with_configure_fails_closed(self):
         ini = self._write("testaferro.ini", "[freedos]\nmemory = 16\n")
@@ -117,8 +130,7 @@ class ProjectConfigTests(unittest.TestCase):
             machines.load_config(second)
 
     def test_explicit_platform_in_section(self):
-        template = relict.MachineConfig(platform="win9x", memory=64)
-        # File form: platform alone constructs a MachineConfig.
+        # File form: platform alone constructs a declaration.
         ini = self._write(
             "testaferro.ini",
             "[win98]\n"
@@ -128,7 +140,7 @@ class ProjectConfigTests(unittest.TestCase):
         machines.load_config(ini)
 
         config = machines.configured()["win98"]
-        self.assertEqual(config.platform, template.platform)
+        self.assertEqual(config.platform, "win9x")
         self.assertEqual(config.memory, 64)
 
 

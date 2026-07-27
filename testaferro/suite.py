@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """SuiteBackend: internal execution × framework composition.
 
-The relict-backed platform binding supplies the execution callable;
+The reliquary-backed platform binding supplies the execution callable;
 the framework adapter exposes list_argv/run_all_argv/run_one_argv and
 parse_list/parse_run (e.g. testaferro.cpputest). Neither aspect knows
 the other exists. The callable remains an internal testing and

@@ -37,16 +37,16 @@ boot image is specified once and all per-run state is swept together
 
 # eager: the facade's own imports are stdlib-only (pytest is loaded
 # lazily inside it). start/stop delegate lazily instead, because
-# importing testaferro.qemu pulls in relict.
+# importing testaferro.qemu pulls in reliquary.
 from .facade import guest_suite  # noqa: F401
 
 
 def config(machine, platform=None, **options):
-    """Declare a named relict test machine.
+    """Declare a named reliquary test machine.
 
     ``platform`` is optional when the supplied ``machine_config`` or
-    ``template`` declares it. Without a template, remaining options
-    construct relict.MachineConfig directly. The declaration is reused
+    ``template`` declares it. Without a template, remaining options are
+    the blueprint's own machine fields. The declaration is reused
     as a template; each guest session receives a fresh materialization.
     The same declarations may be written in ``testaferro.ini`` (see
     ``load_config``).

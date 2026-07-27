@@ -23,13 +23,8 @@ classifiers = [
     "Topic :: Software Development :: Testing",
 ]
 # pytest is the facade's host surface (testaferro.facade). QemuSuiteBackend
-# requires relict, which is included as a dependency.
-dependencies = ["pytest", "relict"]
+# requires reliquary, which is included as a dependency.
+dependencies = ["pytest", "reliquary==0.1.0.dev2"]
 
 [tool.setuptools]
 packages = ["testaferro"]
-
-# until relict is published to PyPI, resolve it from the sibling
-# checkout when developing with uv
-[tool.uv.sources]
-relict = { path = "../relict", editable = true }

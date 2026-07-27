@@ -25,19 +25,27 @@ py -m venv .venv
 python -m pip install -e .
 ```
 
-This installs the two runtime dependencies, pytest and relict.
-Until relict is published to PyPI, install it first from its own
-checkout (`python -m pip install -e path\to\relict`) and then run
-the `pip install -e .` above.
+This installs the two runtime dependencies, pytest and reliquary.
+Reliquary is pinned to an exact version: its API is still changing
+quickly, so the pin is what keeps a checkout reproducible. Moving it
+is its own change, not a drive-by.
 
 The unit suite also runs under a plain stdlib Python: tests that need
-pytest or relict skip when those are absent. Run the full suite from
+pytest or reliquary skip when those are absent. Run the full suite from
 an environment that has both installed before submitting.
 
+Unit tests here are **cheap** — the whole suite runs in a couple of
+seconds and never launches a virtual machine. They do use reliquary
+for real, up to but not including the boot. If a change makes the
+suite noticeably slower, something has started drawing in an external
+resource; see [AGENTS.md](AGENTS.md) for where that line sits and
+why.
+
 Runtime code is standard-library-only outside two seams — pytest is
-imported lazily in `testaferro/facade.py` and relict only in
-`testaferro/qemu.py`. Please discuss a new dependency before adding
-one.
+imported lazily in `testaferro/facade.py`, and reliquary in
+`testaferro/qemu.py` (the guest machine) and `testaferro/machines.py`
+(its JSONC reader, for the `.rlqb` dialect). Please discuss a new
+dependency before adding one.
 
 ## Make and verify a change
 
