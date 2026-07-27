@@ -1,5 +1,10 @@
 # testaferro
 
+[![Python](https://img.shields.io/pypi/pyversions/testaferro.svg)](https://pypi.org/project/testaferro/)
+[![License](https://img.shields.io/github/license/ferroteca/testaferro.svg)](LICENSE)
+![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)
+![Tested on Windows](https://img.shields.io/badge/tested%20on-Windows-0078d4.svg)
+
 testaferro is a pytest facade for DOS-based CppUTest unit testing: a CppUTest suite built for DOS runs inside a QEMU
 guest via reliquary, and its tests surface as pytest tests on the host — running, selecting, and
 reporting them feels like an ordinary local pytest run.

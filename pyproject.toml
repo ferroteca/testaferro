@@ -19,12 +19,16 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Framework :: Pytest",
     "Intended Audience :: Developers",
+    "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python :: 3",
     "Topic :: Software Development :: Testing",
 ]
 # pytest is the facade's host surface (testaferro.facade). QemuSuiteBackend
 # requires reliquary, which is included as a dependency.
 dependencies = ["pytest", "reliquary==0.1.0.dev2"]
+
+[project.urls]
+Repository = "https://github.com/ferroteca/testaferro"
 
 [tool.setuptools]
 packages = ["testaferro"]
