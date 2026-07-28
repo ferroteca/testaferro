@@ -162,6 +162,46 @@ class PluginTests(unittest.TestCase):
 
         self.assertIn("SUITE.EXE::Vring-Wraps", result.stdout)
 
+    def test_a_scan_claims_what_a_command_line_mask_opts_in(self):
+        # The mask has a command-line spelling as well as an ini one,
+        # so a mask can be tried before it is written down (P16).
+        self.suite()
+
+        result = self.pytest("--collect-only",
+                             "--testaferro-suites=*.EXE")
+
+        self.assertIn("SUITE.EXE::Vring-Wraps", result.stdout)
+
+    def test_command_line_masks_add_to_the_ini_rather_than_replace(self):
+        # A mask names files rather than choosing between them.
+        self.write("pytest.ini", "[pytest]\ntestaferro-suites = *.EXE\n")
+        self.suite()
+        self.write("OTHER.COM", plain_dos_exe_bytes())
+
+        result = self.pytest("--collect-only",
+                             "--testaferro-suites=*.COM")
+
+        self.assertIn("SUITE.EXE::Vring-Wraps", result.stdout)
+        self.assertIn("OTHER.COM::Vring-Wraps", result.stdout)
+
+    def test_the_timeout_option_reaches_the_binding(self):
+        self.suite()
+
+        self.pytest("SUITE.EXE", "--collect-only",
+                    "--testaferro-timeout=5")
+
+        self.assertIn("resolve:timeout", self.recorded())
+
+    def test_a_non_numeric_timeout_is_refused(self):
+        self.suite()
+
+        result = self.pytest("SUITE.EXE", "--collect-only",
+                             "--testaferro-timeout=soon")
+
+        self.assertIn("takes a number of seconds",
+                      result.stdout + result.stderr)
+        self.assertNotIn("Vring", result.stdout)
+
     def test_a_scan_claims_what_a_declaration_opts_in(self):
         self.write("testaferro.ini",
                    "[msdos]\nsuites = SUITE*.EXE\nmemory = 64\n")

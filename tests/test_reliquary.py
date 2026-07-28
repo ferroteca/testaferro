@@ -265,6 +265,25 @@ class ReliquarySuiteBackendTests(_BindingFixture):
             "C:\\SUITE.EXE -v -sg Vring -sn Wraps",
             machine="testaferro-0", context=mock.ANY, timeout=mock.ANY)
 
+    def test_the_nearest_speaker_sets_the_guest_command_timeout(self):
+        # The call speaks about this run and a declaration about the
+        # environment, so the call wins; absent both, the default.
+        declared = machines.MachineSpec({}, timeout=7)
+
+        self.assertEqual(
+            binding.suite_backend(self.exe, boot_image=self.image,
+                                  timeout=3)._timeout, 3)
+        self.assertEqual(
+            binding.suite_backend(self.exe,
+                                  machine_config=declared)._timeout, 7)
+        self.assertEqual(
+            binding.suite_backend(self.exe, machine_config=declared,
+                                  timeout=3)._timeout, 3)
+        self.assertEqual(
+            binding.suite_backend(self.exe,
+                                  boot_image=self.image)._timeout,
+            binding._DEFAULT_TIMEOUT)
+
     def test_enumerator_forwards_to_suite_backend(self):
         with self._fake_machine() as guest_exec:
             backend = binding.suite_backend(

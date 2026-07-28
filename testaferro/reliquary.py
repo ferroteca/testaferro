@@ -84,12 +84,16 @@ _FREEDOS_FLOPPY_MEDIA_DEFINITION = [
 
 
 def suite_backend(exe_path, framework=cpputest, enumerator=None,
-                  boot_image=None, machine_config=None):
+                  boot_image=None, machine_config=None, timeout=None):
     """Interrogate the referenced suite executable and return the
     backend matching its format — a ReliquarySuiteBackend for a DOS
     program. Raises FileNotFoundError for a missing file and
     ValueError for a provably non-DOS executable (e.g. the suite's
-    host build passed by mistake)."""
+    host build passed by mistake).
+
+    `timeout` is seconds one guest command may take, and overrides
+    what a declaration says: it is the caller speaking about this
+    run, and a declaration speaks about the environment."""
     exe_path = os.fspath(exe_path)
     fmt = binfmt.classify(exe_path)
     if fmt.platform != "dos":
@@ -107,9 +111,10 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
     if boot_image is not None and machine_config is not None:
         raise TypeError("boot_image and machine_config cannot be combined")
     return ReliquarySuiteBackend(exe_path, framework=framework,
-                            enumerator=enumerator,
-                            boot_image=boot_image,
-                            machine_config=machine_config)
+                                 enumerator=enumerator,
+                                 boot_image=boot_image,
+                                 machine_config=machine_config,
+                                 timeout=timeout)
 
 
 # The active testaferro run opened by start(), or None: its
@@ -273,7 +278,7 @@ def _work_drive(drives):
 
 class ReliquarySuiteBackend(SuiteBackend):
     def __init__(self, exe_path, framework=cpputest, enumerator=None,
-                 boot_image=None, machine_config=None):
+                 boot_image=None, machine_config=None, timeout=None):
         self._boot_image = (None if boot_image is None
                             else os.fspath(boot_image))
         self._home = None
@@ -281,9 +286,13 @@ class ReliquarySuiteBackend(SuiteBackend):
         self._machine = None
         self._letter = None
         self._machine_config = machine_config
-        self._timeout = (
-            _DEFAULT_TIMEOUT if machine_config is None
-            or machine_config.timeout is None else machine_config.timeout)
+        # Nearest speaker wins: this call, then the declaration, then
+        # the default.
+        declared = (None if machine_config is None
+                    else machine_config.timeout)
+        self._timeout = next(
+            (value for value in (timeout, declared) if value is not None),
+            _DEFAULT_TIMEOUT)
         super().__init__(os.fspath(exe_path), run=self._run_in_guest,
                          framework=framework, enumerator=enumerator)
 

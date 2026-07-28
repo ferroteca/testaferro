@@ -106,12 +106,29 @@ That is also why it was pledged rather than severed the way U4 was:
 when it was written nothing in the code stood behind it, and the
 plugin's option design cited it (D13).
 
-**Arming it is an open call, and there is known residue.** A
-principle reaches root `ARCHITECTURE.md` on being honored *as a
-rule*, with every known residue filed as a defect in the same
-change. Two declaration keywords have no plugin spelling today:
-`timeout`, which would need the binding to accept one, and
-`framework`, which is a Python object and may be the honest limit of
-"three spellings" rather than a gap — deciding which is part of
-arming. Until that call is made this stays pledged vision, and a
-shortfall stays unbuilt work rather than a bug.
+**What counts as a consumer-facing option**, since the principle is
+unassertable without saying: testaferro's own vocabulary, and not
+what passes through it. `memory` and `drives` are the provider's
+words in an authored document (P2, P3) — carried untouched, never
+interpreted — so their having no `--testaferro-memory` is not a
+shortfall but the boundary working. The keywords P16 binds are the
+ones testaferro itself defines: `machine`, `platform`,
+`machine_config`, `boot_image`, `suites`, `timeout`. `template` is
+an alias of `machine_config` rather than a keyword of its own.
+
+**`framework` is the honest limit, not a gap.** It takes a Python
+module — argv builders and an output grammar — and no command line
+or ini file can carry one. A keyword inexpressible in the other
+spellings is worth questioning, and this one has been: what it names
+is an object, so the answer is that the vocabulary ends where
+objects begin rather than that a spelling is missing. `enumerator`
+sits under the exploration exception already named above, which is
+why its command-line form may name a host-built twin by path while
+the embedding form takes a callable.
+
+**The residue is closed.** `timeout` and `suites` had no
+command-line spelling when this was pledged; both have one now, and
+the binding accepts a timeout so the option has somewhere to land.
+Every keyword the paragraph above binds is spelled all three ways,
+so what stands between this and root `ARCHITECTURE.md` is the act
+rather than the work.

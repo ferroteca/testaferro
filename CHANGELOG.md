@@ -21,6 +21,10 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   `--testaferro-platform`, `--testaferro-boot-image`, `--testaferro-machine-config`, each also a pytest ini key.
   Command line wins over ini, and both win over a declaration. Exploration-only:
   `--testaferro-keep-guest-home` preserves each guest session's home (and names what it kept) instead of sweeping it.
+- **`--testaferro-suites` and `--testaferro-timeout`**, completing the command-line half of the declaration
+  vocabulary (P16). Masks can now be tried before they are written down, and command-line masks *add* to what the ini
+  declares rather than replacing it. A timeout given on the command line overrides what a declaration says — the call
+  speaks about this run, the declaration about the environment — and the binding takes one directly.
 - **`suites` in a machine declaration** — the masks saying which executables are that machine's guest suites, in
   `config()` and in `testaferro.ini` alike. Written as a list or as one comma- or space-separated string, and matched
   case-insensitively on every host so a checked-in project collects the same suites wherever it is cloned.

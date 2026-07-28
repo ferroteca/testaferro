@@ -89,9 +89,13 @@ _SETTINGS = (
                        "suites run on"),
     ("enumerator", "host-built twin that enumerates a suite, as a "
                    "path template: build/host/{stem}.exe"),
+    ("timeout", "seconds one guest command may take before the "
+                "provider gives up"),
 )
 # Settings naming a file, resolved from the rootdir when relative.
 _PATH_SETTINGS = frozenset({"boot-image", "machine-config"})
+# Settings the binding wants as a number rather than as text.
+_FLOAT_SETTINGS = frozenset({"timeout"})
 
 # What DOS itself executes by name: COMMAND.COM runs .COM and .EXE
 # images. It is the only evidence available about a file whose
@@ -116,9 +120,14 @@ def pytest_addoption(parser):
                     action="store_true", default=False,
                     help="keep each guest session's home for "
                          "inspection instead of sweeping it")
-    parser.addini("testaferro-suites",
-                  "file-name masks a tree scan claims as guest suites",
-                  type="args", default=[])
+    suites_help = ("file-name masks a tree scan claims as guest "
+                   "suites")
+    group.addoption("--testaferro-suites", dest="testaferro_suites",
+                    action="append", default=[], metavar="MASK",
+                    help=suites_help + "; repeatable, and one value "
+                         "may list several")
+    parser.addini("testaferro-suites", suites_help, type="args",
+                  default=[])
 
 
 def pytest_configure(config):
@@ -306,8 +315,20 @@ def _told(config, filename):
 
 def _opted_in(config, filename):
     """Whether a tree scan was told this file is a guest suite."""
-    return (_matches(filename, config.getini("testaferro-suites"))
+    return (_matches(filename, _suite_masks(config))
             or _declared_machine(filename) is not None)
+
+
+def _suite_masks(config):
+    """Every mask opted in for this run: the command line's and the
+    ini's together, since a mask names files rather than choosing
+    between them — a trial adding one on the command line keeps what
+    the project already declared."""
+    masks = []
+    for value in config.getoption("testaferro_suites", []) or []:
+        masks.extend(machines._masks(value))
+    masks.extend(config.getini("testaferro-suites") or [])
+    return masks
 
 
 def _named_on_command_line(config, path):
@@ -358,6 +379,15 @@ def _backend_for(config, path):
         value = _setting(config, name)
         if value is not None:
             options[name.replace("-", "_")] = _rooted(config, value)
+    for name in _FLOAT_SETTINGS:
+        value = _setting(config, name)
+        if value is not None:
+            try:
+                options[name.replace("-", "_")] = float(value)
+            except (TypeError, ValueError):
+                raise pytest.UsageError(
+                    f"--testaferro-{name} takes a number of seconds, "
+                    f"not {value!r}") from None
     twin = _twin_for(config, path)
     if twin is not None:
         options["enumerator"] = _twin_enumerator(twin)
