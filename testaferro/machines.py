@@ -11,8 +11,13 @@ validation happens when reliquary parses it.
 Declarations come from ``configure()`` / ``testaferro.config()`` or
 from an optional per-project ``testaferro.ini`` — one section per
 machine, the declarative twin of ``configure()``. ``load_config()``
-reads that file; ``guest_suite()`` searches upward from the call site
-so test modules can name only the suite executable.
+reads that file; the entry point searches upward from wherever it was
+reached so test modules can name only the suite executable.
+
+``select()`` is where a name becomes a declaration: the project's own
+first, then the standard catalog testaferro curates (D10, and
+``catalog.py``). Nothing else is consulted — never the user's
+reliquary home (D6).
 """
 
 from __future__ import annotations
@@ -26,6 +31,8 @@ import types
 # The .rlqb dialect (comments, trailing commas): a declaration is
 # authored blueprint JSON, so it is read the way reliquary reads it.
 from reliquary import jsonc
+
+from . import catalog
 
 
 CONFIG_FILENAME = "testaferro.ini"
@@ -50,6 +57,9 @@ _HYPHENATED = types.MappingProxyType({
 _TESTAFERRO_KEYS = frozenset({"timeout"})
 
 _machines = {}
+# Standard-catalog documents materialized on first use: the documents
+# are authored and immutable, so one name is always one declaration.
+_standard = {}
 # None until the first load/search; then the absolute path or False
 # when a search found no file.
 _loaded_config = None
@@ -195,17 +205,26 @@ def configured():
 
 
 def select(name=None, platform=None, inferred=None):
-    """Select a declared test machine, or return None for DOS's
+    """Select a test machine, or return None for DOS's
     zero-configuration default. Raises ValueError for absent or
     ambiguous choices.
+
+    A **name** resolves against the project's declarations first and
+    the standard catalog second (D10), so a project may declare its
+    own machine under a standard name and get its own. A **platform**
+    — given or inferred from the executable — matches declarations
+    only: the catalog is reached by asking for it, never by falling
+    into it, which is what keeps zero configuration zero (P8).
     """
     if name is not None:
-        try:
-            machine_config = _machines[name]
-        except KeyError:
+        machine_config = _machines.get(name)
+        if machine_config is None:
+            machine_config = _standard_machine(name)
+        if machine_config is None:
             raise ValueError(
                 f"unknown test machine {name!r}; configured: "
-                + _choices(_machines)) from None
+                f"{_choices(_machines)}; standard: "
+                f"{_choices(catalog.STANDARD)}")
         if (platform is not None
                 and machine_config.platform != str(platform).lower()):
             raise ValueError(
@@ -231,6 +250,21 @@ def select(name=None, platform=None, inferred=None):
     raise ValueError(
         f"no configured test machine for platform {wanted!r}; "
         f"configured: {_choices(_machines)}")
+
+
+def _standard_machine(name):
+    """The standard catalog's machine of that name, or None.
+
+    The document is authored and never edited, so it is materialized
+    once and shared: every resolution of one standard name yields the
+    same immutable declaration, exactly as a declared name does.
+    """
+    document = catalog.STANDARD.get(name)
+    if document is None:
+        return None
+    if name not in _standard:
+        _standard[name] = _from_document(list(document))
+    return _standard[name]
 
 
 def load_config(path=None, *, search_from=None):

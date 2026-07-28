@@ -117,6 +117,20 @@ each drive decides whether media is attached in place, copied, or layered. Use `
 when more than one configured DOS machine would otherwise match. With no declarations, DOS executables retain the
 implicit downloaded-FreeDOS machine.
 
+Between declaring nothing and declaring a machine of your own sits a name:
+
+```python
+test_guest_case = testaferro.guest_suite("build/TESTS.EXE", machine="freedos")
+```
+
+`freedos` is a **standard environment** testaferro curates — the zero-configuration DOS machine, made nameable, so a
+suite can say which machine it means without the project declaring one. More arrive as guests grow.
+
+A name resolves against your own declarations first and the standard catalog second, so declaring `freedos` yourself
+gets you yours. The catalog is reached by asking for it by name and never by inference: with nothing declared, an
+executable still selects the implicit machine exactly as before. Nothing is ever resolved from your reliquary home — a
+test run depends only on what testaferro authored or what the project checked in.
+
 With several guest suites — or parallel pytest processes — open a *session*, so the image choice is made once and
 every run's state is swept together. From the consuming project's `conftest.py`:
 

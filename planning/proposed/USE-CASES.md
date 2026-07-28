@@ -132,4 +132,6 @@ gap in the numbering here is where one went.
   grow. Resolution runs project declarations first, then the
   standard catalog (D10), and never the user's reliquary home
   (D6): a test run depends only on state testaferro authored or
-  the project checked in. *(Unbuilt: resolution lands with F7.)*
+  the project checked in. *(Resolution and the catalog are built:
+  `machine="freedos"` names the standard DOS environment. Plural
+  is what waits — a second entry arrives with a second guest.)*

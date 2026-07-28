@@ -6,6 +6,22 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [Unreleased]
 
+### Added
+
+- **Standard environments, by name**: `guest_suite(..., machine="freedos")` selects a machine testaferro itself
+  curates — the zero-configuration DOS machine, made nameable — so a suite can say which machine it means without the
+  project declaring one. A name resolves against the project's own declarations first and the standard catalog second,
+  so a project declaring `freedos` still gets its own; the catalog is reached by name and never by inference, leaving
+  the no-declaration path exactly as it was. Nothing resolves from the user's reliquary home.
+
+### Changed
+
+- Resolving an executable and its options to a backend moved out of the pytest facade into the core
+  (`testaferro.resolution.resolve_backend`): config search, platform validation, format classification, machine
+  selection, binding import and option validation now answer the same way for every entry point rather than only for
+  `guest_suite()`. The seam takes the `testaferro.ini` search directory as a parameter instead of deriving it from the
+  caller's stack frame, which the facade still does for its own call site. No public surface changes.
+
 ## [0.1.0.dev5] - 2026-07-28
 
 ### Changed

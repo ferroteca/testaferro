@@ -12,7 +12,7 @@ import unittest
 from testaferro.backend import Backend, TestId, TestOutcome
 from testaferro.facade import ResultBroker
 
-from test_binfmt import new_format_exe_bytes, plain_dos_exe_bytes
+from test_binfmt import plain_dos_exe_bytes
 
 
 class FakeBackend(Backend):
@@ -46,7 +46,13 @@ RELIQUARY_AVAILABLE = importlib.util.find_spec("reliquary") is not None
 
 
 @unittest.skipUnless(PYTEST_AVAILABLE, "pytest is not installed")
-class SuitePathDispatchTests(unittest.TestCase):
+class GuestSuiteTargetTests(unittest.TestCase):
+    """What guest_suite() does with the target it is handed. Resolving
+    a path to a backend is the seam's own (test_resolution); what is
+    tested here is the facade's half — that a path goes through it,
+    that the call site is where the search starts, and that a prebuilt
+    Backend takes no options."""
+
     def setUp(self):
         self.tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(self.tempdir.cleanup)
@@ -73,24 +79,6 @@ class SuitePathDispatchTests(unittest.TestCase):
         self.assertTrue(callable(suite))
 
     @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
-    def test_named_machine_selects_its_reliquary_config(self):
-        from unittest import mock
-
-        import testaferro
-        from testaferro import machines
-
-        machines._clear_for_tests()
-        self.addCleanup(machines._clear_for_tests)
-        image = Path(self.tempdir.name) / "msdos.img"
-        image.write_bytes(b"msdos")
-        machine_config = testaferro.config("msdos", boot_image=image)
-        exe = self._exe(plain_dos_exe_bytes())
-        with mock.patch("testaferro.qemu.suite_backend",
-                        return_value=FakeBackend(OUTCOMES)) as factory:
-            testaferro.guest_suite(exe, machine="msdos")
-        factory.assert_called_once_with(exe, machine_config=machine_config)
-
-    @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
     def test_guest_suite_searches_for_ini_from_the_call_site(self):
         from unittest import mock
 
@@ -112,61 +100,6 @@ class SuitePathDispatchTests(unittest.TestCase):
         self.assertEqual(
             Path(load.call_args.kwargs["search_from"]).resolve(),
             Path(__file__).resolve().parent)
-
-    @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
-    def test_named_machine_rejects_a_second_machine_template(self):
-        import testaferro
-        from testaferro import machines
-
-        machines._clear_for_tests()
-        self.addCleanup(machines._clear_for_tests)
-        testaferro.config("freedos")
-        exe = self._exe(plain_dos_exe_bytes())
-
-        with self.assertRaisesRegex(TypeError, "cannot be combined"):
-            testaferro.guest_suite(
-                exe, machine="freedos",
-                machine_config=machines.MachineSpec({}))
-
-    def test_unsupported_format_is_rejected_before_any_guest(self):
-        import testaferro
-
-        header = bytearray(0x40)
-        header[0:4] = b"\x7fELF"
-        header[4] = 2
-        header[5] = 1
-        header[0x12:0x14] = (0x3E).to_bytes(2, "little")
-        exe = self._exe(bytes(header))
-
-        with self.assertRaisesRegex(
-                ValueError, r"ELF x86-64.*no supported platform"):
-            testaferro.guest_suite(exe)
-
-    def test_unknown_platform_name_is_rejected(self):
-        import testaferro
-
-        with self.assertRaisesRegex(ValueError, "unsupported platform"):
-            testaferro.guest_suite("SUITE.EXE", platform="os2")
-
-    def test_pe_is_rejected_naming_format_and_architecture(self):
-        import testaferro
-
-        machine = (0x014C).to_bytes(2, "little")
-        exe = self._exe(new_format_exe_bytes(b"PE\0\0" + machine))
-
-        with self.assertRaisesRegex(
-                ValueError, r"Windows x86 \(PE\).*no supported platform"):
-            testaferro.guest_suite(exe)
-
-    @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
-    def test_wrong_machine_option_names_the_selected_platform(self):
-        import testaferro
-
-        exe = self._exe(plain_dos_exe_bytes())
-
-        with self.assertRaisesRegex(TypeError,
-                                    "selected platform is 'dos'"):
-            testaferro.guest_suite(exe, guest_image="OTHER.IMG")
 
     def test_backend_target_rejects_path_only_options(self):
         import testaferro

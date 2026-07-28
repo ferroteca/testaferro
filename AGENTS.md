@@ -33,6 +33,16 @@ Package layout (each module states its contract in its docstring):
   validates them when it parses the document. Keys hyphenated in the
   blueprint (`backend-settings`, `control-planes`) are written with
   underscores in Python and INI and normalized on construction.
+  `select()` resolves a *name* against those declarations first and
+  the standard catalog second (D10); an inferred *platform* matches
+  declarations only, so zero configuration stays zero (P8).
+- [testaferro/catalog.py](testaferro/catalog.py) — the standard
+  environments testaferro curates, reachable by name
+  (`machine="freedos"`). Each entry is an authored provider document
+  carried through untouched, exactly as a declaration is (P3);
+  `freedos` declares only its platform, which is what makes naming it
+  and naming nothing run the same guest. Siblings arrive as guests
+  grow.
 - [testaferro/suite.py](testaferro/suite.py) — `SuiteBackend`, the
   internal execution × framework composition.
 - [testaferro/binfmt.py](testaferro/binfmt.py) — stdlib-only
@@ -103,13 +113,24 @@ Package layout (each module states its contract in its docstring):
   Guest output is whatever `reliquary.exec()` returns: the visible
   screen, as rows. A command that scrolls past a screenful leaves
   only its tail, which is why `enumerator=` matters for real suites.
+- [testaferro/resolution.py](testaferro/resolution.py) — the
+  backend-resolution seam: `resolve_backend()` is the single place
+  where an executable plus options becomes a `Backend`, and every
+  entry point calls it. Config search, platform validation, format
+  classification, machine selection, binding import
+  (`_PLATFORM_BINDINGS`) and option validation live here, so they
+  answer the same way whoever asked. It is deliberately
+  entry-point-neutral: `search_from` — where the `testaferro.ini`
+  search begins — is a parameter, because nothing here can know how
+  the caller was reached. Its imports stay stdlib-only; `machines`
+  (and so reliquary) is imported inside the call.
 - [testaferro/facade.py](testaferro/facade.py) — the pytest facade
   and public entry point: `guest_suite(path_or_backend, ...)` items
-  (re-exported as `testaferro.guest_suite`), path→binding dispatch
-  (an explicit `platform=`, named `machine=`, or `binfmt.classify()`
-  inference selects the binding module from `_PLATFORM_BINDINGS`;
-  machine-specific options pass through to the selected binding),
-  selection-aware batching (`ResultBroker`), guest-failure replay.
+  (re-exported as `testaferro.guest_suite`), selection-aware batching
+  (`ResultBroker`), guest-failure replay. A path target is resolved
+  through the seam above; what the facade adds is the caller's stack
+  frame — the call site is both where the `testaferro.ini` search
+  starts and where the items report their source.
   The returned test function is re-homed
   (`code.replace(co_filename=...)`) to the guest_suite() call site so
   IDE per-item actions — run one item, jump to source — resolve to
@@ -217,6 +238,14 @@ section is the operative statement.
   floating requirement would break consumers without warning. Moving
   the pin is a deliberate task — expect the binding to need work,
   and re-run the checks below against the new version.
+- Every environment testaferro offers by name is testaferro's own
+  (P17): a standard-catalog entry — and any blueprint, script or
+  medium shipped with one — is authored here and complete in itself,
+  never a name resolved out of reliquary's codex or the user's
+  reliquary home (D6, D10). `StandardCatalogTests` guards it: a
+  catalog document declares its media beside the machine that uses
+  them. Provider content reaches a run only because a tester
+  declared it.
 - As a reusable library, testaferro never names specific consuming
   projects in source, tests, README.md, or repository guidance (P12). Refer
   to consumers and runners only in general instructional terms.

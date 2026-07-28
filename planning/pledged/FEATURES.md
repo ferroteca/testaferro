@@ -20,19 +20,6 @@ and shapeless entries stay in
 [../proposed/FEATURES.md](../proposed/FEATURES.md). Every entry cites
 what demands it.
 
-## F7 — The backend-resolution seam
-
-Serves **U4** (pledged), **U9** (drafted) — and every entry point
-equally. Extracted from retired F1, whose first work item it was:
-`facade._dispatched_backend()` — config search, platform validation,
-format classification, machine selection (project declarations first,
-then the standard catalog, D10), binding import, option validation —
-moves into the core as the single place where "an executable plus
-options" becomes a `Backend`. The facade and the plugin (F8) both
-call it. Extracting it is real work because today it is fused to the
-pytest entry point: it takes `search_from`, which `guest_suite()`
-computes from the caller's stack frame.
-
 ## F8 — The pytest collection plugin
 
 Serves **U4** (pledged), **U1** (drafted). The command-line surface

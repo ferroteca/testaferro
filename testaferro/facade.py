@@ -9,9 +9,14 @@ executable (public entry point: testaferro.guest_suite):
 
 The executable is interrogated to select the matching platform binding
 (currently: DOS programs, run under QEMU); a provably unsupported
-binary is rejected with a clear error. Alternatively a prebuilt
-Backend may be passed in place of the path — the custom execution
-escape hatch and test seam for this facade.
+binary is rejected with a clear error. That resolution is the core's
+and is shared with every other entry point (testaferro.resolution);
+what this module adds is what only a call from a test module can
+supply — the call site, which is both where the project's
+testaferro.ini search starts and where the generated items report
+their source. Alternatively a prebuilt Backend may be passed in place
+of the path — the custom execution escape hatch and test seam for
+this facade.
 
 Each of the suite's tests becomes one pytest item, so pytest's own
 selection (-k, node ids) drives what actually runs remotely. When the
@@ -24,15 +29,10 @@ this facade.
 
 from __future__ import annotations
 
-import importlib
 import os
 
-from . import binfmt
 from .backend import TestId
-
-# platform name -> binding module (a sibling of this one), imported only
-# when dispatch selects it
-_PLATFORM_BINDINGS = {"dos": "qemu"}
+from .resolution import resolve_backend
 
 
 class ResultBroker:
@@ -75,9 +75,10 @@ def guest_suite(target, framework=None, enumerator=None,
     apply to the path form only: `framework` overrides the framework
     adapter, `enumerator` supplies a faster host-side source of the
     test list, `platform` chooses an OS platform when the executable's
-    own format should not decide, and `machine` chooses a named test
-    machine declared with testaferro.config() or testaferro.ini
-    (searched upward from this call site). Any further keyword is
+    own format should not decide, and `machine` names a test machine —
+    one declared with testaferro.config() or testaferro.ini (searched
+    upward from this call site), or one of the standard environments
+    testaferro curates, such as "freedos". Any further keyword is
     machine-specific and validated by the selected binding: today,
     `boot_image=` or `machine_config=` for DOS.
 
@@ -108,9 +109,9 @@ def guest_suite(target, framework=None, enumerator=None,
     if isinstance(target, (str, os.PathLike)):
         search_from = (None if call_site is None
                        else os.path.dirname(call_site[0]))
-        backend = _dispatched_backend(
-            target, platform, machine, options,
-            search_from=search_from)
+        backend = resolve_backend(target, platform=platform,
+                                  machine=machine,
+                                  search_from=search_from, **options)
     else:
         given = sorted(options)
         if platform is not None:
@@ -163,51 +164,6 @@ def guest_suite(target, framework=None, enumerator=None,
             co_filename=call_site[0], co_firstlineno=call_site[1])
     run_guest_test._testaferro_broker = broker
     return run_guest_test
-
-
-def _dispatched_backend(target, platform, machine, options,
-                        search_from=None):
-    """Build the suite backend for an executable path: select the
-    platform binding — from the caller's machine/platform choice or
-    the executable's own format — import it, and hand it its options."""
-    from . import machines
-
-    machines.load_config(search_from=search_from)
-    if platform is not None:
-        platform = str(platform).lower()
-        if platform not in _PLATFORM_BINDINGS:
-            raise ValueError(f"unsupported platform {platform!r}; "
-                             "supported: "
-                             + ", ".join(sorted(_PLATFORM_BINDINGS)))
-    fmt = binfmt.classify(target)
-    if fmt.platform is None and platform is None and machine is None:
-        raise ValueError(
-            f"{os.path.basename(os.fspath(target))} is "
-            f"{fmt.kind} executable; no supported platform can run it")
-    selected = machines.select(machine, platform, fmt.platform)
-    if selected is not None:
-        _, machine_config = selected
-        if "machine_config" in options:
-            raise TypeError(
-                "machine_config cannot be combined with a named machine")
-        selected_platform = machine_config.platform
-        options["machine_config"] = machine_config
-    else:
-        selected_platform = platform if platform is not None else fmt.platform
-    if selected_platform not in _PLATFORM_BINDINGS:
-        raise ValueError(f"unsupported platform {selected_platform!r}; "
-                         "supported: "
-                         + ", ".join(sorted(_PLATFORM_BINDINGS)))
-    binding = importlib.import_module(
-        "." + _PLATFORM_BINDINGS[selected_platform], __package__)
-    try:
-        return binding.suite_backend(target, **options)
-    except TypeError as error:
-        if "unexpected keyword argument" not in str(error):
-            raise
-        raise TypeError(f"{error} — options are machine-specific; "
-                        f"the selected platform is "
-                        f"{selected_platform!r}") from None
 
 
 def _item_id(test_id):
