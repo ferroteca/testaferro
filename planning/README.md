@@ -111,13 +111,19 @@ none of them has a lifecycle state to be in:
 
 The in-force artifacts belong at the **repository root**, not here,
 because they are claims about the code as it exists today:
-`USE-CASES.md`, every entry met by the code, and `ARCHITECTURE.md`,
-the whole-system view plus the P-numbered architectural principles,
-every principle honored by the code. Together with the normative
+`USE-CASES.md`, every entry met by the code, and
+[`ARCHITECTURE.md`](../ARCHITECTURE.md), the P-numbered architectural
+principles, every one honored by the code. The whole-system view
+belongs there too and has not followed yet: it describes a consumer
+vocabulary that is pledged but unbuilt (P1, P2, D18), so it is not a
+claim about the code, and the interface enumeration beside it is what
+the vetting rule looks up. Each moves when it can be asserted on its
+own terms. Together with the normative
 specifications they are the project's **vision**: the standing
 statement of what testaferro is and is for.
 
-**Neither root document exists yet.** testaferro adopted this model
+**Root `ARCHITECTURE.md` exists; root `USE-CASES.md` does not.**
+testaferro adopted this model
 after the code was written (D7), so its whole vision was drafted at
 once into [proposed/](proposed/):
 [proposed/USE-CASES.md](proposed/USE-CASES.md),
@@ -129,11 +135,11 @@ since been pledged into [pledged/](pledged/) (D13), and the two
 features among them have been delivered — **which arms nothing**.
 Features carry no vision; delivering one leaves code and retires a
 number. A use case still reaches the root list only on full
-delivery and a principle only on being honored as a rule, and
-neither has happened, so both root documents are still unwritten:
-until a use case or principle is pledged *and then* delivered, this
-project has no in-force list, and the honest answer to "what does
-testaferro promise?" is *nothing yet stated*. Several drafted entries describe
+delivery and a principle only on being honored as a rule. **P16 is
+the first entry of any kind to arm**, so the project now makes
+one in-force claim, to maintainers. No use case has armed — none can
+until a guest runs — so the honest answer to "what does testaferro
+promise *a user*?" is still *nothing yet stated*. Several drafted entries describe
 code that already exists; that makes their route short, not
 automatic — the pledge is still an act, and delivery still has to be
 true.

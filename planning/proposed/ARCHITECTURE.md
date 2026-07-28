@@ -9,12 +9,14 @@ SPDX-License-Identifier: BSD-3-Clause
 > The whole-system view and the itemized architectural principles,
 > P-numbered so use cases, decisions, designs and commits can cite
 > them — reconstructed from the project's own prose when testaferro
-> adopted the planning model (D7). When pledged and honored, this
-> becomes root `ARCHITECTURE.md`, the in-force claim: *the model is
-> the shipped system's and every principle is honored as the code
-> stands today*. It is not that yet. Numbering comes from one global
-> P-sequence, never reused, and an entry keeps its number all the way
-> to the root list.
+> adopted the planning model (D7). An entry leaves for
+> [pledged/](../pledged/) when the project undertakes it and for
+> [root `ARCHITECTURE.md`](../../ARCHITECTURE.md) when the code
+> honors it — that root file exists now, holding P16, and a
+> divergence from anything in it is a bug rather than unbuilt work.
+> Nothing in *this* file carries that weight. Numbering comes from one
+> global P-sequence, never reused, and an entry keeps its number all
+> the way to the root list.
 
 Principles carry **equal weight with the use cases**
 ([USE-CASES.md](USE-CASES.md)) as a decision surface: a principle

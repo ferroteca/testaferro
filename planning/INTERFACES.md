@@ -24,15 +24,17 @@ are numbered so a decision, review, or specification section can
 cite the use case or principle it serves — and so a proposed change
 can be rejected by naming what it costs.
 
-**testaferro has no in-force lists yet.** Root `USE-CASES.md` and
-`ARCHITECTURE.md` hold only what the code delivers and honors today,
-and nothing has been pledged and delivered under this model, so
-neither file exists (see [README.md](README.md) "Where the vision
-stands today"). Until then the whole decision surface is drafted, in
+**Almost the whole decision surface is still drafted.** The root
+lists hold only what the code delivers and honors today, so root
+`USE-CASES.md` does not exist and root
+[`ARCHITECTURE.md`](../ARCHITECTURE.md) holds exactly one entry, P16.
+Everything else is drafted, in
 [proposed/USE-CASES.md](proposed/USE-CASES.md) and
-[proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md), and a citation
-names a drafted entry — which is weaker than citing an in-force one
-and should be read that way. Both files number from the same global
+[proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md), or pledged, in
+[pledged/](pledged/) — so read a citation by where it points: an
+in-force entry binds, a pledged one is owed, and a drafted one names
+an argument. A change that costs P16 something is the first that can
+be refused by naming an in-force cost. Both files number from the same global
 sequences and keep their numbers when they move. A number is never
 reused.
 

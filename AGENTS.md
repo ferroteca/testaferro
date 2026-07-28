@@ -230,11 +230,13 @@ both batched and `-k`-narrowed.
   code was written (D7), so its vision began wholly drafted in
   [planning/proposed/](planning/proposed/); U4 and P16 were pledged
   first (D13), then P1 and P2 (D18), and nothing has reached the
-  root lists — root
-  `USE-CASES.md` and `ARCHITECTURE.md` do not exist. Cite a U- or
+  root lists until P16 armed, which is now root
+  [ARCHITECTURE.md](ARCHITECTURE.md) and the project's one in-force
+  claim; root `USE-CASES.md` still does not exist. Cite a U- or
   P-number knowing it names a draft, unless it sits in
   [planning/pledged/](planning/pledged/), where it names something
-  the project owes and has not yet delivered.
+  the project owes and has not yet delivered, or at the root, where
+  a divergence is a bug rather than unbuilt work.
 - **Interface changes are vetted** by
   [planning/INTERFACES.md](planning/INTERFACES.md), and the
   enumeration it scopes over is

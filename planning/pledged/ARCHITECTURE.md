@@ -6,11 +6,15 @@ SPDX-License-Identifier: BSD-3-Clause
 # Pledged architecture
 
 > **Status:** pledged — owed by the project, and not yet honored as a
-> rule. A principle leaves for root `ARCHITECTURE.md` when the code
-> honors it as a rule, every known residue filed as a defect in the
-> same change; until then it waits here, undertaken and unarmed.
-> Numbering comes from one global P-sequence, never reused, and an
-> entry keeps its number every time it moves.
+> rule. A principle leaves for
+> [root `ARCHITECTURE.md`](../../ARCHITECTURE.md) when the code
+> honors it as a rule, every known residue closed or filed as a defect
+> in the same change; until then it waits here, undertaken and
+> unarmed. A shortfall against an entry in this file is unbuilt work;
+> the same shortfall against the root list would be a bug. Numbering
+> comes from one global P-sequence, never reused, and an entry keeps
+> its number every time it moves. **P16 has left for the root list**,
+> the first entry of any kind to arm.
 
 **The whole-system view and the interface enumeration are not here.**
 They stay in
@@ -81,54 +85,3 @@ already allows.
   pair, per D3, which D18 retires. Then "and nothing underneath
   one" was struck, having read as a limit on what a tester may
   configure when it was only ever about what testaferro says.]*
-
-- **P16 — One vocabulary, three spellings.** Every consumer-facing
-  option is one vocabulary spelled three ways: a `guest_suite()`
-  keyword, a `testaferro.ini` key, and the plugin's option on
-  pytest's own command line — kebab-case there, underscores in
-  Python and INI. What you typed to try a suite is what you keep
-  when you embed it, because the trial and the embedded run are the
-  same execution (D9). A keyword inexpressible in the other
-  spellings is a keyword worth questioning. Exploration-only
-  options — preserving a run home, enumeration overrides — are the
-  named exception, concerning trying a suite out rather than
-  defining tests. **The subject now exists**: the plugin ships, its
-  options and ini keys are declared from one list so the two
-  spellings cannot drift, and `--testaferro-keep-guest-home` and the
-  enumerator are the named exception in the flesh. What stands
-  between that and the root list is stated below.
-
-P16 is three surfaces over two interfaces: the embedding API and
-`testaferro.ini` are two spellings of one declaration
-([../INTERFACES.md](../INTERFACES.md)), and the plugin's options are
-a second presentation of them rather than a surface of their own.
-That is also why it was pledged rather than severed the way U4 was:
-when it was written nothing in the code stood behind it, and the
-plugin's option design cited it (D13).
-
-**What counts as a consumer-facing option**, since the principle is
-unassertable without saying: testaferro's own vocabulary, and not
-what passes through it. `memory` and `drives` are the provider's
-words in an authored document (P2, P3) — carried untouched, never
-interpreted — so their having no `--testaferro-memory` is not a
-shortfall but the boundary working. The keywords P16 binds are the
-ones testaferro itself defines: `machine`, `platform`,
-`machine_config`, `boot_image`, `suites`, `timeout`. `template` is
-an alias of `machine_config` rather than a keyword of its own.
-
-**`framework` is the honest limit, not a gap.** It takes a Python
-module — argv builders and an output grammar — and no command line
-or ini file can carry one. A keyword inexpressible in the other
-spellings is worth questioning, and this one has been: what it names
-is an object, so the answer is that the vocabulary ends where
-objects begin rather than that a spelling is missing. `enumerator`
-sits under the exploration exception already named above, which is
-why its command-line form may name a host-built twin by path while
-the embedding form takes a callable.
-
-**The residue is closed.** `timeout` and `suites` had no
-command-line spelling when this was pledged; both have one now, and
-the binding accepts a timeout so the option has somewhere to land.
-Every keyword the paragraph above binds is spelled all three ways,
-so what stands between this and root `ARCHITECTURE.md` is the act
-rather than the work.
