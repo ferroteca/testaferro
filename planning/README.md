@@ -86,9 +86,10 @@ the same artifacts in different states. A thing in `proposed/` moves
 to `pledged/`, and **the commit that moves it is the record**. Each
 mirrored file appears in `pledged/` with its first promoted entry
 rather than standing empty, and leaves again when its last one
-does: `USE-CASES.md` and `ARCHITECTURE.md` are there today, and
-`FEATURES.md` returns with the next feature pledged — the two it
-held were delivered, and a delivered feature stops existing.
+does. All three are there today. `FEATURES.md` has done the whole
+round trip already: it held F7 and F8, went when both were delivered
+and their numbers evaporated, and came back with F11 and F12 — which
+is the file behaving exactly as intended rather than churn.
 
 **The planning root holds what does not move.** The map, the rule,
 the record and the queue are machinery rather than proposals, and

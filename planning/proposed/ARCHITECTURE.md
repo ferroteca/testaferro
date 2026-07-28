@@ -87,7 +87,8 @@ said **platform** and **test machine**, the pair D3 made the
 consumer's vocabulary; `platform` is reliquary's own word, reaching
 testaferro as configuration passing through (P3) rather than as
 something a suite says. D3 was retired by D18, which pledged the
-amendment; the work that makes the code speak this way is F10.]*
+amendment; the work that makes the code speak this way is F11 and
+F12.]*
 
 ## The interfaces
 
@@ -143,7 +144,7 @@ and caches, never over test runs.
 
 **The second and third surfaces are named for today's spelling**,
 deliberately. P1 and P2 — now pledged (D18) — make a declaration a
-*test environment* rather than a machine, and F10 is the work that
+*test environment* rather than a machine, and F11 is the work that
 renames it; but this enumeration is looked up to answer "does this
 change an interface?", so it names the surfaces as they exist rather
 than as they are owed to become. It is renamed by the work, not by
