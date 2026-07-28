@@ -12,7 +12,7 @@ SPDX-License-Identifier: BSD-3-Clause
 > adopted the planning model (D7). An entry leaves for
 > [pledged/](../pledged/) when the project undertakes it and for
 > [root `ARCHITECTURE.md`](../../ARCHITECTURE.md) when the code
-> honors it — that root file exists now, holding P10 and P16, and a
+> honors it — that root file exists now, holding P4, P10 and P16, and a
 > divergence from anything in it is a bug rather than unbuilt work.
 > Nothing in *this* file carries that weight. Numbering comes from one
 > global P-sequence, never reused, and an entry keeps its number all
@@ -71,7 +71,9 @@ compose:
    provider rather than the provider.]*
 3. **The framework adapter** — argv builders and output grammars for
    one guest unit-test framework, independent of how the output was
-   obtained and of who obtained it (P4).
+   obtained and of who obtained it. This seam is the one specified in
+   force: P4, at [root `ARCHITECTURE.md`](../../ARCHITECTURE.md),
+   names the five callables an adapter supplies.
 
 `SuiteBackend` is the internal composition of an execution path with
 a framework adapter. It is internal on purpose: composing them is
@@ -170,11 +172,6 @@ anything that looks normative is written.
   hyphenated blueprint keys are written with underscores in Python
   and INI and normalized on construction, neither host spelling
   admitting a hyphen. (D4, D11.)
-- **P4 — The framework adapter is independent of the runner.** It is
-  argv and grammar only; it never imports reliquary, and the guest
-  binding defaults it to CppUTest while keeping it a parameter. That
-  independence is what makes the adapter usable against output
-  obtained some other way. (U6.)
 - **P5 — The guest side is testaferro's, and hermetic.** Every
   session pins its own reliquary home, cache and asset root under
   testaferro's cache, so resolution sees only what testaferro
@@ -256,8 +253,10 @@ anything that looks normative is written.
   the tester declares it (P1, P3), which is their choice to make and
   never testaferro's default to drift into.
 
-**Pledged principles have left this file** for
-[../pledged/ARCHITECTURE.md](../pledged/ARCHITECTURE.md); a gap in
-the numbering here is where one went. The whole-system view above and
+**Principles that moved on have left this file** — pledged ones for
+[../pledged/ARCHITECTURE.md](../pledged/ARCHITECTURE.md), in-force
+ones for [root `ARCHITECTURE.md`](../../ARCHITECTURE.md), and P4 went
+straight to the second without stopping at the first. A gap in the
+numbering here is where one went. The whole-system view above and
 the interface enumeration stay here whatever moves, because the
 vetting rule looks the interfaces up in this file.

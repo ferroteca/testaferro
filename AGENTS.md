@@ -202,7 +202,11 @@ Package layout (each module states its contract in its docstring):
 
 The framework adapter stays independent of reliquary: it never imports
 the runner and `ReliquarySuiteBackend` defaults it to CppUTest while keeping
-it a parameter. Consumers see none of the backend classes: the public
+it a parameter. **P4 is in force over that seam** — the five callables
+an adapter supplies (`list_argv`, `run_all_argv`, `run_one_argv`,
+`parse_list`, `parse_run`), argv crossing as tokens, and no ABC
+built ahead of a second concrete adapter — so a divergence there is
+a bug rather than unbuilt work. Consumers see none of the backend classes: the public
 surface is `testaferro.config()` / `testaferro.load_config()` for
 named test environments (including `testaferro.ini`) and
 `testaferro.guest_suite()` for `environment=` selection. A prebuilt
@@ -237,9 +241,11 @@ both batched and `-k`-narrowed.
   code was written (D7), so its vision began wholly drafted in
   [planning/proposed/](planning/proposed/); U4 and P16 were pledged
   first (D13), then P1 and P2 (D18), and nothing has reached the
-  root lists until P16 armed, followed by P10; root
-  [ARCHITECTURE.md](ARCHITECTURE.md) carries both, and root
-  `USE-CASES.md` still does not exist. Cite a U- or
+  root lists until P16 armed, followed by P10 and P4; root
+  [ARCHITECTURE.md](ARCHITECTURE.md) carries all three, and root
+  `USE-CASES.md` still does not exist. A principle may arm without
+  ever being pledged, as P4 did — the pledged shelf holds what is
+  owed, not a stop every entry makes. Cite a U- or
   P-number knowing it names a draft, unless it sits in
   [planning/pledged/](planning/pledged/), where it names something
   the project owes and has not yet delivered, or at the root, where

@@ -33,11 +33,72 @@ follows when it can be asserted on its own terms.
 The **use cases** are the other half of the decision surface and carry
 equal weight. None is in force yet: root `USE-CASES.md` does not
 exist, because a use case arms on *full delivery* and no guest has run
-since the migration to the blueprint model. What testaferro promises a
-user is therefore still nothing yet stated; what it promises a
-*maintainer* starts here.
+since the migration to the blueprint model. So testaferro still
+promises no user a *journey*. P4 is the first entry here to bind
+anything on their side of the seam — it tells whoever writes a
+framework adapter what one is — and the rest speak to maintainers,
+about how this project is built and verified.
 
 ## The principles
+
+- **P4 — The guest test framework is testaferro's own axis, and
+  CppUTest is the only adapter built.** A **framework adapter** is
+  argv builders and an output grammar for one guest unit-test
+  framework, and nothing else: `list_argv()`, `run_all_argv()`,
+  `run_one_argv(group, name)`, `parse_list()` and `parse_run()` are
+  the whole of what one must supply, and `SuiteBackend` calls exactly
+  those five. An adapter imports no runner — the shared result types
+  and nothing further — and never learns how the output it parses was
+  obtained, which is what makes it usable on its own against output
+  the caller captured some other way (U6). **Argv crosses that seam
+  as a sequence of tokens, never a command line** (D17): only the
+  executing side knows whether the program is reached by a DOS
+  command line or an argv list, so an adapter that has never seen one
+  does not decide how it is quoted.
+
+  **This is the one pluggable aspect that is testaferro's**;
+  everything about the guest itself is the provider's (P1). The
+  difference reaches verification, and in the opposite direction: a
+  property of the guest machine is the provider's to guarantee, so
+  doubting one produces an upstream bug report, while an adapter is
+  testaferro's own code — a grammar that misreads its framework is a
+  bug *here*, answerable to that framework's own source rather than
+  to its maintainers (P9).
+
+  **An adapter needs no base class, and gets none.** `Backend` is an
+  ABC because its implementations hold state — a booted guest, a home
+  directory, a machine handle — so they are objects already, and an
+  abstract base costs nothing over them. An adapter holds none: argv
+  out, text in, results out. Its natural shape in Python is a module
+  of functions, which is what `framework=cpputest` passes, and a base
+  class would force it into an object with nothing to construct. The
+  five callables above are the contract, stated here rather than in
+  an inheritance chain. A **conformance kit** is refused on D1's
+  ground rather than on that one: a shared suite validating adapters
+  that do not exist yet buys no leverage, and anything of the sort is
+  derived from the concrete adapters there are when there are two. So
+  a second adapter is a plain module supplying those five callables,
+  and the guest binding defaults to CppUTest while keeping
+  `framework=` a parameter. That keyword takes a Python module, which
+  is why P16 names it the honest limit of "three spellings" rather
+  than a keyword missing two — the vocabulary ends where objects
+  begin.
+
+  **Where the axis stops short, it says so.** A collection-plugin run
+  can reach no adapter but CppUTest, `framework=` having no
+  command-line or ini spelling to carry one (P16), so the host-twin
+  enumerator in `plugin.py` reads its list with the CppUTest grammar
+  named outright. That is not a divergence while nothing else is
+  reachable, and it is the first place to look the day something is:
+  a second adapter arriving with no way to select it there would make
+  the hardcode a bug rather than a consequence.
+
+  *[Amended before arming: this read "the framework adapter is
+  independent of the runner", which is one clause of an axis rather
+  than the axis itself. The independence is unchanged and restated
+  above; what is added is what the axis claims — the surface an
+  adapter supplies, which side owns verification, and why that
+  surface needs no base class under it.]*
 
 - **P10 — testaferro's own unit tier never starts a guest.** This
   one is about *this repository's* tests of itself, and not about a

@@ -138,11 +138,14 @@ features among them have been delivered — **which arms nothing**.
 Features carry no vision; delivering one leaves code and retires a
 number. A use case still reaches the root list only on full
 delivery and a principle only on being honored as a rule. **P16 was
-the first entry of any kind to arm**, and P10 followed it, so root
-`ARCHITECTURE.md` now carries two in-force claims — both to
-maintainers, about how this project is built and verified. No use
+the first entry of any kind to arm**, and P10 and P4 followed it, so
+root `ARCHITECTURE.md` now carries three in-force claims. Two speak
+to maintainers, about how this project is built and verified; P4
+speaks to whoever writes a framework adapter, and went straight from
+drafted to in force without a pledge, the pledged shelf being for
+what is owed rather than a stop everything makes. No use
 case has armed — none can until a guest runs — so the honest answer
-to "what does testaferro promise *a user*?" is still *nothing yet
+to "what does testaferro promise *a user*?" is still *no journey yet
 stated*. Several drafted entries describe
 code that already exists; that makes their route short, not
 automatic — the pledge is still an act, and delivery still has to be

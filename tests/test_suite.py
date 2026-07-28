@@ -5,6 +5,7 @@
 import unittest
 
 from testaferro import cpputest
+from testaferro.backend import TestId, TestOutcome
 from testaferro.suite import SuiteBackend
 
 LIST_OUTPUT = "Vring.Wraps Vring.Fails\n"
@@ -38,7 +39,64 @@ class ScriptedRunner:
         return self.outputs[args]
 
 
+class ScriptedFramework:
+    """Stands in for the framework aspect: the five callables P4 says
+    an adapter supplies, in an argv spelling and an output grammar
+    nothing in testaferro knows. Deliberately unlike CppUTest's, so a
+    composition reaching for the real adapter rather than the one it
+    was handed fails here instead of passing by coincidence.
+
+    A real adapter is a module of functions (P4). This is an object,
+    and works because the seam only ever does attribute lookup — which
+    is the whole of what makes the axis pluggable.
+    """
+
+    def list_argv(self):
+        return ("--enumerate",)
+
+    def run_all_argv(self):
+        return ("--run-all",)
+
+    def run_one_argv(self, group, name):
+        return ("--run", f"{group}/{name}")
+
+    def parse_list(self, text):
+        return [TestId(*line.split("/")) for line in text.split()]
+
+    def parse_run(self, text):
+        outcomes = []
+        for line in text.splitlines():
+            verdict, _, test = line.partition(" ")
+            group, _, name = test.partition("/")
+            outcomes.append(TestOutcome(group, name, verdict == "PASS"))
+        return outcomes
+
+
 class SuiteBackendTests(unittest.TestCase):
+    def test_any_adapter_drives_the_framework_seam(self):
+        # The composition names no framework: whatever it was handed
+        # builds the argv and reads the output back, and CppUTest's
+        # spellings appear nowhere in this case (P4, U6).
+        run = ScriptedRunner({
+            ("--enumerate",): "Vring/Wraps Vring/Fails\n",
+            ("--run-all",): "PASS Vring/Wraps\nFAIL Vring/Fails\n",
+            ("--run", "Vring/Wraps"): "PASS Vring/Wraps\n",
+        })
+        backend = SuiteBackend("SUITE.EXE", run=run,
+                               framework=ScriptedFramework())
+
+        self.assertEqual([str(i) for i in backend.list_tests()],
+                         ["Vring.Wraps", "Vring.Fails"])
+        self.assertEqual(
+            [(o.group, o.name, o.passed) for o in backend.run_all()],
+            [("Vring", "Wraps", True), ("Vring", "Fails", False)])
+        self.assertTrue(backend.run_test("Vring", "Wraps").passed)
+        self.assertEqual(run.calls, [
+            ("SUITE.EXE", ("--enumerate",)),
+            ("SUITE.EXE", ("--run-all",)),
+            ("SUITE.EXE", ("--run", "Vring/Wraps")),
+        ])
+
     def test_operations_compose_runner_and_framework(self):
         run = ScriptedRunner({
             ("-ln",): LIST_OUTPUT,
