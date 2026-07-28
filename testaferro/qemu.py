@@ -113,6 +113,26 @@ _session = None
 _running = set()
 _sweep_registered = False
 
+# Exploration: when set, a run home survives its session instead of
+# being swept, because looking at what the guest was given is the
+# whole point of asking. Nothing else changes — machines are still
+# stopped on every exit path (a kept home is a directory, not a
+# running guest), so this trades disk for evidence and nothing else.
+_keep_homes = False
+_kept_homes = []
+
+
+def keep_run_homes(enabled=True):
+    """Preserve run homes rather than sweeping them. Set before any
+    session starts; what is kept is reported by kept_run_homes()."""
+    global _keep_homes
+    _keep_homes = bool(enabled)
+
+
+def kept_run_homes():
+    """Every run home preserved so far, in the order they were made."""
+    return tuple(_kept_homes)
+
 
 def _machine_started(backend):
     """Record a backend whose machine is now running."""
@@ -169,7 +189,12 @@ def stop(clear_downloads=False):
     # those guests are running from.
     _stop_running_machines()
     if _session is not None:
-        shutil.rmtree(_session["dir"], ignore_errors=True)
+        if _keep_homes:
+            # The run homes being kept live inside this directory,
+            # so sweeping it would take them with it.
+            _kept_homes.append(_session["dir"])
+        else:
+            shutil.rmtree(_session["dir"], ignore_errors=True)
         _session = None
     if clear_downloads:
         cached = os.path.join(cache.cache_root(), "boot.img")
@@ -310,7 +335,10 @@ class QemuSuiteBackend(SuiteBackend):
         finally:
             # The machine's own cache lives under this home, so the
             # sweep takes the whole run with it.
-            shutil.rmtree(self._home, ignore_errors=True)
+            if _keep_homes:
+                _kept_homes.append(self._home)
+            else:
+                shutil.rmtree(self._home, ignore_errors=True)
             self._home = None
             self._ctx = None
             self._machine = None

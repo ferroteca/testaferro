@@ -30,5 +30,12 @@ dependencies = ["pytest", "reliquary==0.1.0.dev3"]
 [project.urls]
 Repository = "https://github.com/ferroteca/testaferro"
 
+# Auto-loading is the point: `pytest tests/SUITE.EXE` works the moment
+# the distribution is installed, with no wrapper and no flag in front
+# of it (D13). The claiming policy in testaferro/plugin.py is what
+# makes that safe — a tree scan claims nothing that was not opted in.
+[project.entry-points.pytest11]
+testaferro = "testaferro.plugin"
+
 [tool.setuptools]
 packages = ["testaferro"]

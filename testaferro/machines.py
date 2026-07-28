@@ -28,10 +28,6 @@ import json
 import os
 import types
 
-# The .rlqb dialect (comments, trailing commas): a declaration is
-# authored blueprint JSON, so it is read the way reliquary reads it.
-from reliquary import jsonc
-
 from . import catalog
 
 
@@ -53,8 +49,9 @@ _HYPHENATED = types.MappingProxyType({
 })
 
 # Options testaferro consumes itself rather than passing to the
-# blueprint: how long one guest command may take.
-_TESTAFERRO_KEYS = frozenset({"timeout"})
+# blueprint: how long one guest command may take, and which files
+# this machine's guest suites are.
+_TESTAFERRO_KEYS = frozenset({"timeout", "suites"})
 
 _machines = {}
 # Standard-catalog documents materialized on first use: the documents
@@ -74,11 +71,17 @@ class MachineSpec:
     attributes (``spec.platform``, ``spec.memory``, ``spec.drives``),
     with underscores standing in for the hyphens the blueprint spells
     (``spec.backend_settings``).
+
+    ``timeout`` and ``suites`` are testaferro's own rather than
+    blueprint fields: how long one guest command may take, and the
+    file-name masks saying which executables are this machine's guest
+    suites — what a collection scan needs to know that a file is a
+    suite at all, and which machine runs it.
     """
 
-    __slots__ = ("_machine", "_media", "timeout")
+    __slots__ = ("_machine", "_media", "timeout", "suites")
 
-    def __init__(self, machine, media=(), timeout=None):
+    def __init__(self, machine, media=(), timeout=None, suites=()):
         fields = {_HYPHENATED.get(key, key): value
                   for key, value in machine.items()
                   if key not in ("type", "name")}
@@ -88,6 +91,7 @@ class MachineSpec:
         object.__setattr__(self, "_media", tuple(dict(spec)
                                                  for spec in media))
         object.__setattr__(self, "timeout", timeout)
+        object.__setattr__(self, "suites", _masks(suites))
 
     def __getattr__(self, name):
         try:
@@ -131,6 +135,10 @@ def configure(name, platform=None, machine_config=None, template=None,
     ``memory``, ``drives``, ``boot`` and friends. ``platform`` is an
     optional consistency check for a supplied configuration and a
     convenient field when constructing one here.
+
+    ``timeout`` and ``suites`` are testaferro's own rather than
+    blueprint fields, so they may be said beside a complete template
+    as well as beside constructed fields.
     """
     if not isinstance(name, str) or not name:
         raise ValueError("machine name must be a non-empty string")
@@ -140,7 +148,10 @@ def configure(name, platform=None, machine_config=None, template=None,
         raise TypeError("pass either machine_config or template, not both")
     if template is not None:
         machine_config = template
-    if machine_config is not None and (options or boot_image is not None):
+    own = {key: value for key, value in options.items()
+           if key in _TESTAFERRO_KEYS}
+    if machine_config is not None and (len(own) != len(options)
+                                       or boot_image is not None):
         raise TypeError(
             "machine_config is a complete template; pass its options "
             "when creating the template")
@@ -160,7 +171,8 @@ def configure(name, platform=None, machine_config=None, template=None,
         if platform is not None:
             fields["platform"] = platform
         machine_config = MachineSpec(fields, media,
-                                     timeout=options.get("timeout"))
+                                     timeout=options.get("timeout"),
+                                     suites=options.get("suites", ()))
     else:
         machine_config = _coerce_machine_config(machine_config, platform)
         if (platform is not None
@@ -168,9 +180,33 @@ def configure(name, platform=None, machine_config=None, template=None,
             raise ValueError(
                 f"machine {name!r} declares platform "
                 f"{machine_config.platform!r}, not {platform!r}")
+        if own:
+            # A template says nothing about timeouts or which files
+            # are suites, so those are said here — as a fresh spec
+            # rather than a mutation, a MachineSpec being immutable
+            # and often shared between names.
+            machine_config = MachineSpec(
+                dict(machine_config.fields), machine_config.media,
+                timeout=own.get("timeout", machine_config.timeout),
+                suites=own.get("suites", machine_config.suites))
 
     _machines[name] = machine_config
     return machine_config
+
+
+def _masks(value):
+    """Normalize declared ``suites`` masks to a tuple of patterns.
+
+    One mask or several, and written either way: a list of strings,
+    or one string separating them by commas or whitespace — the INI
+    spelling and the natural Python one land in the same place.
+    """
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        return tuple(mask for mask in
+                     value.replace(",", " ").split() if mask)
+    return tuple(str(mask) for mask in value)
 
 
 def _media_specs(value):
@@ -382,6 +418,14 @@ def _coerce_machine_config(value, platform=None):
     if isinstance(value, collections.abc.Mapping):
         return _from_document(value, platform)
     if isinstance(value, (str, os.PathLike)):
+        # The .rlqb dialect (comments, trailing commas): a declaration
+        # is authored blueprint JSON, so it is read the way reliquary
+        # reads it. Imported here rather than at module scope so that
+        # importing this module stays stdlib-cheap — the plugin
+        # auto-loads into every pytest run, and a run that claims no
+        # guest suite must not pay for reliquary.
+        from reliquary import jsonc
+
         path = os.fspath(value)
         with open(path, encoding="utf-8") as handle:
             document = jsonc.load(handle)

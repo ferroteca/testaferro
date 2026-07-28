@@ -32,6 +32,7 @@ from __future__ import annotations
 import os
 
 from .backend import TestId
+from .items import failure_text, item_id
 from .resolution import resolve_backend
 
 
@@ -145,7 +146,7 @@ def guest_suite(target, framework=None, enumerator=None,
             raise
         execution_session_started = True
 
-    @pytest.mark.parametrize("guest_test", ids, ids=_item_id)
+    @pytest.mark.parametrize("guest_test", ids, ids=item_id)
     def run_guest_test(guest_test, request):
         start_execution_session(request.config)
         try:
@@ -154,24 +155,13 @@ def guest_suite(target, framework=None, enumerator=None,
         except LookupError as error:
             pytest.fail(str(error), pytrace=False)
         if not outcome.passed:
-            where = (f"{outcome.file}:{outcome.line}: "
-                     if outcome.file else "")
-            pytest.fail(f"guest test failed: {where}{outcome.message}",
-                        pytrace=False)
+            pytest.fail(failure_text(outcome), pytrace=False)
 
     if call_site is not None:
         run_guest_test.__code__ = run_guest_test.__code__.replace(
             co_filename=call_site[0], co_firstlineno=call_site[1])
     run_guest_test._testaferro_broker = broker
     return run_guest_test
-
-
-def _item_id(test_id):
-    """The bracketed id for one guest test item. A dash join, not
-    str(TestId): a dot inside a parametrize id breaks IDE
-    tree→target mapping (dots are hierarchy separators there),
-    turning run-this-item into run-the-whole-file."""
-    return f"{test_id.group}-{test_id.name}"
 
 
 def _selected_ids(request, broker):

@@ -26,7 +26,12 @@ import collections
 Format = collections.namedtuple("Format", ["platform", "kind"])
 
 _DOS_MZ = Format("dos", "a DOS MZ")
-_HEADERLESS = Format("dos", "a headerless (.com-style)")
+# The one verdict with nothing behind it: no header, so nothing is
+# proven either way and the guest judges. A caller that must tell
+# "proven DOS" from "nothing to prove" — a collection scan deciding
+# whether to claim a file nobody named — compares against this
+# singleton by identity.
+HEADERLESS = Format("dos", "a headerless (.com-style)")
 
 # architecture names per format, keyed by each format's machine field
 _ELF_MACHINES = {0x03: "x86", 0x28: "ARM", 0x3E: "x86-64",
@@ -97,9 +102,9 @@ def classify(exe_path):
                           b"\xce\xfa\xed\xfe", b"\xcf\xfa\xed\xfe",
                           b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf"):
             kind = _macho_format(header)
-            return _HEADERLESS if kind is None else Format(None, kind)
+            return HEADERLESS if kind is None else Format(None, kind)
         if header[:2] != b"MZ":
-            return _HEADERLESS
+            return HEADERLESS
         if len(header) < 0x40:
             return _DOS_MZ
         if int.from_bytes(header[0x18:0x1A], "little") < 0x40:

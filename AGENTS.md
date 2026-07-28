@@ -124,6 +124,22 @@ Package layout (each module states its contract in its docstring):
   search begins — is a parameter, because nothing here can know how
   the caller was reached. Its imports stay stdlib-only; `machines`
   (and so reliquary) is imported inside the call.
+- [testaferro/items.py](testaferro/items.py) — the pytest items
+  testaferro produces, which is the fifth interface: `item_id()` (the
+  dash rule) and `failure_text()` (the guest's own file, line and
+  assertion). Both entry points surface the same guest tests, so the
+  spellings they share live here rather than in either of them.
+- [testaferro/plugin.py](testaferro/plugin.py) — the `pytest11`
+  collection plugin, which **auto-loads on installation** (D13):
+  `pytest_collect_file` claims suite executables, and each guest test
+  becomes an item under the executable's node
+  (`tests/SUITE.EXE::Group-Name`). Options and ini keys are declared
+  from one list (`_SETTINGS`) so the two spellings cannot drift (P16);
+  `--testaferro-keep-run-home` and the enumerator are the
+  exploration-only exceptions. The claiming policy is the load-bearing
+  part — see the invariant below. Its module imports stay stdlib-only:
+  a pytest run that claims no guest suite must not pay for reliquary,
+  which is why `machines.py` imports the JSONC reader lazily.
 - [testaferro/facade.py](testaferro/facade.py) — the pytest facade
   and public entry point: `guest_suite(path_or_backend, ...)` items
   (re-exported as `testaferro.guest_suite`), selection-aware batching
@@ -238,6 +254,21 @@ section is the operative statement.
   floating requirement would break consumers without warning. Moving
   the pin is a deliberate task — expect the binding to need work,
   and re-run the checks below against the new version.
+- **The plugin auto-loads, so what it claims is a promise to every
+  project that installs it.** One rule carries that weight, and it is
+  easy to break by accident: `binfmt`'s `"dos"` verdict has two
+  strengths, and only one of them claims a file. A plain MZ header
+  *proves* a DOS program; `binfmt.HEADERLESS` says only that nothing
+  proves otherwise — which is equally true of a test module, a
+  README, and every other file pytest walks past. Reading the second
+  as the first makes the plugin claim pytest's own files and boot a
+  guest to run them. So: proof claims a file; absence of proof claims
+  nothing on its own (a named file needs a `.com`/`.exe` name or a
+  declaration), a scan claims only what a mask or `testaferro.ini`
+  opted in, and a host-runnable format needs a declaration.
+  `PluginTests` guards each of those four, and
+  `test_a_named_file_that_is_not_a_program_is_left_alone` guards the
+  one that already went wrong once.
 - Every environment testaferro offers by name is testaferro's own
   (P17): a standard-catalog entry — and any blueprint, script or
   medium shipped with one — is authored here and complete in itself,
@@ -298,9 +329,15 @@ in an integration test. Reliquary's own codex `freedos` blueprint
 declares exactly such a blank, so this is easy to walk into.
 
 Six tests once launched real VMs while appearing mocked, costing ~10s
-of a 12s suite; the unit suite now runs in about one second. If it
-starts creeping, something has crossed the line — `--durations` finds
-it quickly.
+of a 12s suite. The suite runs in about eight seconds today, and
+roughly six of those are `tests/test_plugin.py`: a collection plugin's
+whole subject is what pytest does with a file, so each case runs
+pytest for real in a subprocess. Those runs stay on this side of the
+line because the tree's own `conftest.py` puts a fake binding in
+`sys.modules` before resolution imports it — no hypervisor, and no
+reliquary either. Everything else is still about one second, so a
+jump outside `test_plugin.py` means something crossed the line;
+`--durations` finds it quickly.
 
 `_work_drive()` duplicates a rule reliquary owns and does not expose
 (DOS drive letters). `WorkDrivePlacementTests` cross-checks the copy

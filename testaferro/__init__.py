@@ -1,11 +1,20 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: BSD-3-Clause
-"""testaferro: a pytest facade for remote (e.g. QEMU-guest) unit
+"""testaferro: a pytest plugin for remote (e.g. QEMU-guest) unit
 tests.
 
 A suite compiled for and running on a remote target surfaces as
-ordinary pytest tests on the host. Hand guest_suite() a reference to
-the suite executable:
+ordinary pytest tests on the host. There are two ways in, and they
+are the same execution underneath.
+
+Point pytest at the executable — the plugin auto-loads with the
+distribution, claims it, and collects its tests as
+`tests/SUITE.EXE::Group-Name` items:
+
+    pytest tests/SUITE.EXE
+
+Or embed it, when programmatic control is wanted. Hand guest_suite()
+a reference to the suite executable:
 
     from pathlib import Path
 

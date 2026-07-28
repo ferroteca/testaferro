@@ -114,14 +114,19 @@ named here follows that rule.
    what `stop()` and `stop(clear_downloads=True)` sweep. A durable
    on-disk footprint on the user's machine is a contract with them.
 
-**Plugin options join this list when F8 lands**, and they are not a
+**The plugin's options have joined this list**, and they are not a
 seventh surface but a second presentation of the first two:
-pytest's own command line grows testaferro's options, each the
-kebab-case spelling of a declaration keyword (P16, D9), and the
+pytest's own command line and ini carry testaferro's options, each
+the kebab-case spelling of a declaration keyword (P16, D9), and the
 items the plugin collects extend the fifth surface's id contract to
-`suite.exe::Group-Name` spellings. A **lifecycle CLI** (F2) joins
-as its own small surface when it lands: verbs over machines and
-caches, never over test runs.
+`suite.exe::Group-Name` spellings. Two additions came with them and
+belong to the surfaces they extend: `suites` masks are declaration
+vocabulary (the second and third surfaces), and **which files the
+plugin claims** is world-facing in its own right — a project's tree
+is scanned by it, so what a scan may claim is a contract with every
+project that installs the distribution. A **lifecycle CLI** (F2)
+joins as its own small surface when it lands: verbs over machines
+and caches, never over test runs.
 
 **testaferro currently has no norms.** Each surface above should name
 the artifact that says exactly what it *is* and that the

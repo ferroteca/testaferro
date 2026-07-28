@@ -45,6 +45,65 @@ coherently and completely, without a bridge for the old shape.
 
 ## Usage
 
+### Point pytest at the executable
+
+Nothing to write, and nothing to install beyond the distribution — testaferro is a pytest plugin, so pytest's own
+command is the whole of it:
+
+```bash
+pytest tests/TESTS.EXE
+```
+
+Each test in the suite becomes an item under the executable's own node, so everything downstream is pytest as usual:
+
+```
+tests/TESTS.EXE::Vring-Wraps PASSED
+tests/TESTS.EXE::Vring-Fails FAILED
+```
+
+`-k`, `-x`, `--lf`, `--collect-only` and node ids all work, because there is no wrapper for them to work through. A
+failure reports what the guest reported — its file, line and assertion — never a traceback into testaferro. Run one
+test with `pytest "tests/TESTS.EXE::Vring-Wraps"`, and keep the guest's home for inspection with
+`--testaferro-keep-run-home`.
+
+**The plugin activates on installation, and claims almost nothing.** A file *you name* on the command line is claimed
+when it is a DOS program (or when a declaration says a guest runs it). A directory *scan* claims only what you opted
+in — a `testaferro-suites` mask in pytest's ini, or a `suites` mask on a machine in `testaferro.ini`:
+
+```ini
+# pytest.ini — a tree scan collects these beside your host tests
+[pytest]
+testaferro-suites = *_TEST.EXE
+```
+
+```ini
+# testaferro.ini — the same opt-in, saying which machine runs them
+[msdos]
+boot_image = images/msdos.img
+suites = *_TEST.EXE
+```
+
+So installing testaferro into an existing venv changes no existing run: with nothing opted in, a scan collects
+nothing. A binary this host can run itself (a plain Windows PE) is never claimed by inference — only a declaration
+claims one, because nothing about the file can tell testaferro that the situation demands a VM.
+
+Every declaration keyword has a command-line and ini spelling, kebab-cased: `--testaferro-machine`,
+`--testaferro-platform`, `--testaferro-boot-image`, `--testaferro-machine-config` (and `testaferro-machine`,
+`testaferro-platform`, … in pytest's ini). The command line wins over the ini, and both win over a declaration.
+
+**Enumerating costs a guest boot**, once per suite — and once per xdist worker, since every worker collects. If you
+also build the suite for the host, point testaferro at that twin and collection stops booting anything:
+
+```bash
+pytest tests/ --testaferro-enumerator=build/host/{stem}.exe
+```
+
+`{stem}` and `{name}` stand for each claimed executable's own, so one setting serves a whole tree, and a suite with no
+twin built simply falls back to the guest. That fallback is honest about itself: a list read inside the guest can lose
+its head to the screen, so it warns (`GuestEnumerationWarning`) rather than quietly showing you fewer tests than exist.
+
+### Embed it in a test module
+
 Hand the facade a reference to the suite executable in a normal pytest test module:
 
 ```python

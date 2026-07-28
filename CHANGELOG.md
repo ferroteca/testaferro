@@ -8,6 +8,27 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ### Added
 
+- **The pytest collection plugin**: `pytest tests/SUITE.EXE` is now the whole command. The plugin auto-loads through a
+  `pytest11` entry point, claims suite executables, and collects each guest test as an item under the executable's own
+  node (`tests/SUITE.EXE::Vring-Wraps`), so `-k`, `-x`, `--lf`, `--collect-only` and node ids all work with no wrapper
+  in between. A failure carries the guest's own file, line and assertion rather than a traceback into testaferro.
+- **A claiming policy that makes installation-is-activation safe**: a file named on the command line is claimed when a
+  guest can run it; a tree scan claims only what a `testaferro-suites` mask in pytest's ini, or a `suites` mask on a
+  machine in `testaferro.ini`, opted in; a host-runnable binary (a plain PE) is claimed only by declaration; and a file
+  whose content proves nothing is never claimed from a scan. Installing into an existing venv therefore changes no
+  existing run.
+- **Plugin options and ini keys** as kebab-case spellings of the declaration vocabulary — `--testaferro-machine`,
+  `--testaferro-platform`, `--testaferro-boot-image`, `--testaferro-machine-config`, each also a pytest ini key.
+  Command line wins over ini, and both win over a declaration. Exploration-only:
+  `--testaferro-keep-run-home` preserves each run's guest home (and names what it kept) instead of sweeping it.
+- **`suites` in a machine declaration** — the masks saying which executables are that machine's guest suites, in
+  `config()` and in `testaferro.ini` alike. Written as a list or as one comma- or space-separated string, and matched
+  case-insensitively on every host so a checked-in project collects the same suites wherever it is cloned.
+- **Host-built twin enumeration**: `--testaferro-enumerator=build/host/{stem}.exe` names where each suite's host build
+  lives, and collection reads the test list from it instead of booting a guest — which matters most under xdist, where
+  every worker collects. A missing twin falls back to the guest, and a list read inside the guest now warns
+  (`GuestEnumerationWarning`) that it may be short rather than passing itself off as complete.
+
 - **Standard environments, by name**: `guest_suite(..., machine="freedos")` selects a machine testaferro itself
   curates — the zero-configuration DOS machine, made nameable — so a suite can say which machine it means without the
   project declaring one. A name resolves against the project's own declarations first and the standard catalog second,

@@ -47,7 +47,7 @@ gap in the numbering here is where one went.
   than a traceback into the facade, and an IDE's run-this-test
   resolves to the item wherever it was collected — a `guest_suite()`
   call in the developer's own module, or the suite executable
-  itself once the plugin claims it (F8). What it takes to boot a
+  itself, which the plugin now claims. What it takes to boot a
   machine, get the executable into it, run it and read the results
   back is testaferro's business; the developer names an executable.
 

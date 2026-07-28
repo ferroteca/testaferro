@@ -29,11 +29,11 @@ at the pledge.
 **F1 is retired by split** (D9): the backend-resolution seam became
 F7, the command-line surface became the plugin, F8, and the `run`
 verb died with the wrapper it named — a lifecycle CLI survives
-inside F2, whose verbs are not test runs. Both pieces were pledged;
-F7 has since been delivered and its number has evaporated with it,
-and F8 waits in [../pledged/FEATURES.md](../pledged/FEATURES.md),
-which is where pledged features go. A gap in the numbering here is
-where one went.
+inside F2, whose verbs are not test runs. Both pieces were pledged
+and both have since been delivered, so both numbers have evaporated
+and nothing is pledged today: `pledged/FEATURES.md` will reappear
+with the next promotion. A gap in the numbering here is where one
+went.
 
 ## F2 — Persistent machines and the lifecycle verbs
 

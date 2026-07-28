@@ -414,6 +414,20 @@ class SessionLifecycleTests(_QemuFixture):
         self.assertFalse(os.path.exists(os.path.dirname(home)))
         self.assertTrue(cached.exists())
 
+    def test_kept_run_homes_survive_the_sweep_and_are_named(self):
+        # The exploration option: looking at what the guest was given
+        # is the whole point, so the directory has to still be there.
+        qemu.keep_run_homes(True)
+        self.addCleanup(qemu.keep_run_homes, False)
+        self.addCleanup(qemu._kept_homes.clear)
+        qemu.start(boot_image=self.image)
+        home, _ = self._run_suite(qemu.suite_backend(self.exe))
+
+        qemu.stop()
+
+        self.assertTrue(os.path.exists(home))
+        self.assertIn(home, qemu.kept_run_homes())
+
     def test_stop_clear_downloads_removes_cached_image(self):
         cached = pathlib.Path(cache.cache_root()) / "boot.img"
         cached.parent.mkdir(parents=True, exist_ok=True)
