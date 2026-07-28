@@ -153,7 +153,7 @@ Package layout (each module states its contract in its docstring):
   where an executable plus options becomes a `Backend`, and every
   entry point calls it. Config search, platform validation, format
   classification, machine selection, binding import
-  (`_PLATFORM_BINDINGS`) and option validation live here, so they
+  (`_PLATFORM_PROVIDERS`) and option validation live here, so they
   answer the same way whoever asked. It is deliberately
   entry-point-neutral: `search_from` — where the `testaferro.ini`
   search begins — is a parameter, because nothing here can know how
