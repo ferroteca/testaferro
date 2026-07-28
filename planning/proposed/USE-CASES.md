@@ -29,7 +29,13 @@ any of them is armed.
 Reconstructed drafts, so read them for accuracy first: these are the
 owner's use cases put into words by an agent, not dictated by him.
 Reshape freely — a proposed use case may be changed in nature at
-will; only an in-force one may not.
+will; only an in-force one may not. Reshaping a clause a *pledged*
+entry leans on is still allowed and no longer free: it re-opens what
+that pledge rests on (D13).
+
+**Pledged entries have left this file.**
+[../pledged/USE-CASES.md](../pledged/USE-CASES.md) holds them, and a
+gap in the numbering here is where one went.
 
 - **U1 — Unit tests that can only run on the target OS, surfaced as
   ordinary pytest items.** A developer maintains code whose unit
@@ -67,33 +73,6 @@ will; only an in-force one may not.
   state. What the repository cannot carry — a proprietary boot
   image — stays the developer's to supply, and the declaration says
   where it goes.
-
-- **U4 — Try a suite against a guest before embedding anything.** A
-  developer has just built a DOS test executable and wants to watch
-  it run before writing a line into their project. The command is
-  pytest's own, and it is explicit: `pytest tests/suite.exe`. The
-  installed plugin claims the executable named on the command line
-  and boots the standard machine, and everything else *is* pytest —
-  the items, the ids, `-k`, `-x`, `--lf`, `--collect-only` — with
-  no wrapper to diverge from the real thing, because the trial is a
-  standard command-line pytest execution (D9). It honors the same
-  declarations embedding would — a `testaferro.ini` beside the
-  project selects the same machine (U3) — and zero configuration
-  stays the price of the first run (U2). Trying is when things go
-  wrong, so the trial does not fail blind: a suite that boots
-  nothing, or whose output no framework adapter recognizes, is
-  reported by what the guest actually showed, never by a traceback
-  into the facade, and a plugin option preserves the run home for
-  inspection. Nor does it lie by omission: enumerating inside the
-  guest can lose the head of a long list, so a trial never silently
-  shows fewer tests than exist — an enumeration that may have been
-  truncated says so, and a host-built enumerator is the faithful
-  path. What they typed to try it is what they keep: embedding is
-  the same executable collected from the tree, or a `guest_suite()`
-  call when programmatic control is wanted, and the trial command
-  stays valid forever — the step before U1 and the same surface as
-  U1, so adopting testaferro does not start with a leap of faith.
-  *(Unbuilt: F8.)*
 
 - **U5 — A whole test tree in parallel.** A project with several
   guest suites should not pay for them serially. Running under

@@ -29,7 +29,10 @@ at the pledge.
 **F1 is retired by split** (D9): the backend-resolution seam became
 F7, the command-line surface became the plugin, F8, and the `run`
 verb died with the wrapper it named — a lifecycle CLI survives
-inside F2, whose verbs are not test runs.
+inside F2, whose verbs are not test runs. Both pieces have since
+been pledged and live in
+[../pledged/FEATURES.md](../pledged/FEATURES.md), which is where
+pledged features go; a gap in the numbering here is where one went.
 
 ## F2 — Persistent machines and the lifecycle verbs
 
@@ -105,63 +108,6 @@ What it is for is worth stating plainly, because it is unusual for a
 feature: this one does not add capability, it converts claims into
 in-force ones. Until it exists, root `USE-CASES.md` stays empty of
 everything it would otherwise be ready to carry.
-
-## F7 — The backend-resolution seam
-
-Serves **U4**, **U9** — and every entry point equally. Extracted
-from retired F1, whose first work item it was:
-`facade._dispatched_backend()` — config search, platform
-validation, format classification, machine selection (project
-declarations first, then the standard catalog, D10), binding
-import, option validation — moves into the core as the single place
-where "an executable plus options" becomes a `Backend`. The facade
-and the plugin (F8) both call it. Extracting it is real work
-because today it is fused to the pytest entry point: it takes
-`search_from`, which `guest_suite()` computes from the caller's
-stack frame.
-
-## F8 — The pytest collection plugin
-
-Serves **U4**, **U1**. The command-line surface (D9): a `pytest11`
-plugin whose `pytest_collect_file` claims suite executables, so
-`pytest tests/suite.exe` is a standard pytest execution and a tree
-scan collects guest suites beside host tests. The reference
-standard is **pytest-cpp** (MIT) for the pytest-facing half —
-mask-gated scans, always-claim for files named on the command line,
-framework facades, per-test filter argv; where it probes binaries
-by running them, testaferro declares or defaults, because probing
-here means booting a guest.
-
-Settled design:
-
-- **Claiming policy.** A file named on the command line is always
-  claimed when classification or a declaration says a guest runs
-  it; tree scans claim only what masks or `testaferro.ini` opt in;
-  a host-runnable format (a plain PE) is claimed only by explicit
-  declaration — inference cannot know the nature of the situation
-  demands a VM — and headerless `.com` images are never claimed
-  from a scan.
-- **Items live under the executable's node** —
-  `tests/suite.exe::Group-Name` — extending the fifth interface's
-  id contract; the dash rule holds. The failure representation
-  carries the guest's file, line and assertion; item location may
-  point at guest source when it can be resolved, and never
-  pretends to when it cannot.
-- **Enumeration prefers the host-built twin** (`enumerator=`, in
-  its three spellings); in-guest enumeration is the fallback, and
-  a possibly-truncated result is named as such, never passed off
-  as complete (U4). Collection must be deterministic across xdist
-  workers (U5) — collection-time guest boots multiply by worker
-  count, which is the twin's whole case.
-- **Options and keys follow P16**: the plugin adds pytest options
-  and ini keys as kebab-case spellings of the declaration
-  vocabulary, exploration-only options included (preserve the run
-  home; enumerate-and-stop is pytest's own `--collect-only`).
-
-**Decide at the pledge:** entry-point auto-load versus explicit
-`-p` opt-in — installation-is-activation changes every venv the
-package lands in, and the claiming policy above is what makes
-either answer safe.
 
 ## F9 — In-guest harness prep
 

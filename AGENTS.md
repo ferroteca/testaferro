@@ -149,10 +149,13 @@ both batched and `-k`-narrowed.
   weight and are the surface every significant change is weighed
   against; when a plan of any kind disagrees with them, they govern
   and the plan is realigned. testaferro adopted this model after the
-  code was written (D7), so its whole vision is drafted in
-  [planning/proposed/](planning/proposed/) and nothing has reached
-  the root lists — root `USE-CASES.md` and `ARCHITECTURE.md` do not
-  exist. Cite a U- or P-number knowing it names a draft.
+  code was written (D7), so its vision began wholly drafted in
+  [planning/proposed/](planning/proposed/); U4 and P16 have since
+  been pledged (D13) and nothing has reached the root lists — root
+  `USE-CASES.md` and `ARCHITECTURE.md` do not exist. Cite a U- or
+  P-number knowing it names a draft, unless it sits in
+  [planning/pledged/](planning/pledged/), where it names something
+  the project owes and has not yet delivered.
 - **Interface changes are vetted** by
   [planning/INTERFACES.md](planning/INTERFACES.md), and the
   enumeration it scopes over is

@@ -83,10 +83,9 @@ A date is a promise and belongs nowhere here.
 **The lifecycle directories hold the same filenames** —
 `USE-CASES.md`, `ARCHITECTURE.md`, `FEATURES.md` — because they hold
 the same artifacts in different states. A thing in `proposed/` moves
-to `pledged/`, and **the commit that moves it is the record**.
-`pledged/` does not exist yet: nothing has been promoted into it,
-and it appears with its first pledged document rather than standing
-empty.
+to `pledged/`, and **the commit that moves it is the record**. Each
+mirrored file appears in `pledged/` with its first promoted entry
+rather than standing empty; all three are there now (D13).
 
 **The planning root holds what does not move.** The map, the rule,
 the record and the queue are machinery rather than proposals, and
@@ -116,13 +115,16 @@ statement of what testaferro is and is for.
 
 **Neither root document exists yet.** testaferro adopted this model
 after the code was written (D7), so its whole vision was drafted at
-once and sits in [proposed/](proposed/) awaiting a pledge:
+once into [proposed/](proposed/):
 [proposed/USE-CASES.md](proposed/USE-CASES.md),
 [proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md) — which carries
-the interface enumeration the vetting rule looks up — and
-[proposed/FEATURES.md](proposed/FEATURES.md). Until a use case or
-principle is pledged and then delivered, this project has no
-in-force list, and the honest answer to "what does testaferro
+the interface enumeration the vetting rule looks up, and keeps it
+whatever else moves — and
+[proposed/FEATURES.md](proposed/FEATURES.md). The first entries have
+since been pledged into [pledged/](pledged/) (D13) and none has been
+delivered, so both root documents are still unwritten: until a use
+case or principle is pledged *and then delivered*, this project has
+no in-force list, and the honest answer to "what does testaferro
 promise?" is *nothing yet stated*. Several drafted entries describe
 code that already exists; that makes their route short, not
 automatic — the pledge is still an act, and delivery still has to be

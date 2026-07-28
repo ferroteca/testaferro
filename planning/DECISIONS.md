@@ -108,6 +108,80 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D13 — U4 is pledged severed, with P16, F7 and F8; the plugin auto-loads
+
+**Decided** owner, 2026-07-28. **Supports** U4, P16 (pledged by this
+entry).
+
+The first promotion under the model D7 adopted: U4, P16, F7 and F8
+move out of [proposed/](proposed/) into [pledged/](pledged/), and
+the commit that moves them is the record of the pledge. They move
+unmodified but for the one thing F8 left open, settled below.
+
+**U4 is pledged severed.** It cites U1, U2 and U3, which stay
+drafted, and the map ([README.md](README.md)) makes a pledged item
+resting on a proposed one a flaw rather than a reference. The test
+that rule states is **completion**, not citation, and every clause
+U4 leans on names behaviour the code ships today: zero configuration
+boots a cached image, a `testaferro.ini` beside the project selects
+a declared machine, and the embedding API is the first enumerated
+interface. U1, U2 and U3 sit in `proposed/` because D7 drafted the
+whole vision at once *after* the code existed — not because the
+project is undecided about them — so U4's citations locate shipped
+behaviour rather than awaiting a second verdict. Nothing pledged
+here waits on anything proposed.
+
+Two consequences, recorded rather than left to be discovered.
+**Reshaping U2 or U3 now costs something**: both remain reshapable —
+only an in-force entry may not be — but the clauses U4 leans on
+carry a pledge now, so changing them re-opens one. And **severance
+changes the pledge, not the arming**: U4 reaches root
+`USE-CASES.md` only on full delivery, behind the same end-to-end
+proof (F6) that U1, U2 and U3 wait on, so it will most likely arm
+alongside them.
+
+**P16 is pledged, not severed**, because the argument that carried
+U4 does not transfer: P16's subject is the plugin's option surface,
+which does not exist, so no shipped behaviour stands behind it. F8's
+settled design is written against it — options and ini keys as
+kebab-case spellings of the declaration vocabulary — and a pledged
+feature's design wants a pledged rule behind it. P16 spans three
+surfaces over two interfaces, the embedding API and `testaferro.ini`
+being two spellings of one declaration, so the plugin's options join
+no new surface ([proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md)
+"The interfaces").
+
+**The plugin auto-loads**, through a `pytest11` entry point, so
+`pytest tests/suite.exe` works the moment the distribution is
+installed. That is F8's one decide-at-the-pledge item. U4 promises
+pytest's own command with no wrapper, and the `pytest-` distribution
+category (D12) means exactly this; what makes
+installation-is-activation safe is F8's claiming policy — a tree
+scan claims only what a mask or `testaferro.ini` opts in — rather
+than the plugin being off.
+
+F7 and F8 are pledged **unsplit**: each is one bounded push, the
+execution machinery they re-present already exists, and neither
+carries the "too large" flag F6 does.
+
+**Weighed and declined:** pledging U1, U2 and U3 alongside U4, which
+would have dissolved the up-reference by making it moot. They are
+built and awaiting proof rather than work, so the shelf that means
+*owed and not yet delivered* is the wrong place to park them, and
+the severance argument holds without them. Also declined: leaving
+P16 in `proposed/` to arm straight into root `ARCHITECTURE.md` when
+F8 lands honoring it — legitimate under the compression rule, but it
+leaves a pledged feature's design citing a drafted principle for the
+whole of the work. Also declined: an explicit `-p testaferro`
+opt-in, which changes no venv on installation but puts a flag in
+front of the first command U4 is about.
+
+**Folded into:** [pledged/USE-CASES.md](pledged/USE-CASES.md),
+[pledged/ARCHITECTURE.md](pledged/ARCHITECTURE.md),
+[pledged/FEATURES.md](pledged/FEATURES.md), the banners under
+[proposed/](proposed/), [README.md](README.md),
+[../AGENTS.md](../AGENTS.md).
+
 ### D12 — testaferro is a pytest plugin, distributed as pytest-testaferro
 
 **Decided** owner, 2026-07-28. **Supports** U1, U4 (drafted).

@@ -241,15 +241,9 @@ anything that looks normative is written.
   work's quality or its author. Governance authority may compress the
   steps into one PR — compressed in time, never reduced in content.
   (D7.)
-- **P16 — One vocabulary, three spellings.** Every consumer-facing
-  option is one vocabulary spelled three ways: a `guest_suite()`
-  keyword, a `testaferro.ini` key, and the plugin's option on
-  pytest's own command line — kebab-case there, underscores in
-  Python and INI. What you typed to try a suite is what you keep
-  when you embed it, because the trial and the embedded run are the
-  same execution (D9). A keyword inexpressible in the other
-  spellings is a keyword worth questioning. Exploration-only
-  options — preserving a run home, enumeration overrides — are the
-  named exception, concerning trying a suite out rather than
-  defining tests. **Arms with F8**; until the plugin exists this
-  principle has no subject.
+
+**Pledged principles have left this file** for
+[../pledged/ARCHITECTURE.md](../pledged/ARCHITECTURE.md); a gap in
+the numbering here is where one went. The whole-system view above and
+the interface enumeration stay here whatever moves, because the
+vetting rule looks the interfaces up in this file.
