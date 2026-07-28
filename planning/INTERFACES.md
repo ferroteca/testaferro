@@ -27,7 +27,7 @@ can be rejected by naming what it costs.
 **Almost the whole decision surface is still drafted.** The root
 lists hold only what the code delivers and honors today, so root
 `USE-CASES.md` does not exist and root
-[`ARCHITECTURE.md`](../ARCHITECTURE.md) holds exactly one entry, P16.
+[`ARCHITECTURE.md`](../ARCHITECTURE.md) holds two, P10 and P16.
 Everything else is drafted, in
 [proposed/USE-CASES.md](proposed/USE-CASES.md) and
 [proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md), or pledged, in

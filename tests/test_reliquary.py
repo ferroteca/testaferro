@@ -141,9 +141,9 @@ class _BindingFixture(unittest.TestCase):
         Machine *creation* is real: reliquary parses the blueprint
         testaferro authored, resolves its media and materializes the
         drives, all of which is cheap and hypervisor-free. Booting is
-        not — `start_machine` hands reliquary a real hypervisor to
-        launch — so the three calls that need a running machine are
-        stubbed and nothing else.
+        not — `start_machine` starts a guest for real (P10) — so the
+        three calls that need a running machine are stubbed and
+        nothing else.
 
         Creation stays cheap only while every drive's media is `use`
         (attached in place). A blueprint declaring a blank (`size`)

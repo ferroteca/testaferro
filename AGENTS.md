@@ -230,9 +230,9 @@ both batched and `-k`-narrowed.
   code was written (D7), so its vision began wholly drafted in
   [planning/proposed/](planning/proposed/); U4 and P16 were pledged
   first (D13), then P1 and P2 (D18), and nothing has reached the
-  root lists until P16 armed, which is now root
-  [ARCHITECTURE.md](ARCHITECTURE.md) and the project's one in-force
-  claim; root `USE-CASES.md` still does not exist. Cite a U- or
+  root lists until P16 armed, followed by P10; root
+  [ARCHITECTURE.md](ARCHITECTURE.md) carries both, and root
+  `USE-CASES.md` still does not exist. Cite a U- or
   P-number knowing it names a draft, unless it sits in
   [planning/pledged/](planning/pledged/), where it names something
   the project owes and has not yet delivered, or at the root, where
@@ -353,15 +353,15 @@ is a reason to push the unit tier as far as it will go, not a reason
 to relax it.
 
 Unit tests may use reliquary freely; what they must never do is
-launch a virtualization platform. The boundary is exact:
+start a guest (P10). The boundary is exact:
 
-- `create_machine()` is **cheap and hypervisor-free** — blueprint
+- `create_machine()` is **cheap and self-contained** — blueprint
   parsing, namespace and media resolution, hash verification, drive
   materialization, machine state. Unit tests run it for real, and
   should: it is the best coverage available on this side of the line.
-- `start_machine()` has reliquary launch a real hypervisor process.
-  It, `stop_machine()`, and `exec()`
-  are stubbed in the unit suite and belong to integration.
+- `start_machine()` starts a guest for real, and leaves a process
+  behind. It, `stop_machine()` and `exec()` are stubbed in the unit
+  suite and belong to integration.
 
 **The cheap half of that is conditional on the blueprint, not on the
 call.** `create_machine()` stays cheap only while every drive's media
@@ -377,8 +377,8 @@ roughly six of those are `tests/test_plugin.py`: a collection plugin's
 whole subject is what pytest does with a file, so each case runs
 pytest for real in a subprocess. Those runs stay on this side of the
 line because the tree's own `conftest.py` puts a fake binding in
-`sys.modules` before resolution imports it — no hypervisor, and no
-reliquary either. Everything else is still about one second, so a
+`sys.modules` before resolution imports it — no guest started, and
+no reliquary either. Everything else is still about one second, so a
 jump outside `test_plugin.py` means something crossed the line;
 `--durations` finds it quickly.
 

@@ -37,6 +37,36 @@ user is therefore still nothing yet stated; what it promises a
 
 ## The principles
 
+- **P10 — testaferro's own unit tier never starts a guest.** This
+  one is about *this repository's* tests of itself, and not about a
+  consumer's tests of their suite — whose whole business is starting
+  a guest, and which this project exists to make possible. The tier
+  split is by **cost**, not by coverage. testaferro's unit tests may
+  use the provider freely and should — `create_machine()` is cheap
+  and self-contained, and running it for real is the best coverage
+  available on this side of the line — but `start_machine()`, `stop_machine()` and `exec()`
+  belong to integration, because they start something real and leave
+  a process behind. The cheap half is conditional on the
+  **blueprint** rather than on the call: a drive materializing a
+  blank sends the provider out to an external image tool, so a
+  machine declaring one belongs to integration too. **Naming that
+  tool is not this principle's business** — what a provider reaches
+  for underneath is the provider's own (P2), and what testaferro can
+  see is only that the call stopped being cheap.
+
+  **The tier those calls belong to does not exist yet** (F6), and
+  this entry does not pretend otherwise: it forbids them on this side
+  of the line and promises no home on the other. That is why its
+  absence is not residue against this principle — nothing here claims
+  an integration suite, only that certain calls are not the unit
+  tier's to make. *[Amended before arming: this read
+  "never launch a hypervisor", and named the tool. Both spoke a layer
+  below the provider, which P1 and P2 put out of testaferro's
+  vocabulary. The boundary is unchanged and one step wider on
+  purpose: a provider that runs a program without booting a machine
+  starts a guest all the same, and testaferro's unit tests may
+  not.]*
+
 - **P16 — One vocabulary, three spellings.** Every consumer-facing
   option is one vocabulary spelled three ways: a `guest_suite()`
   keyword, a `testaferro.ini` key, and the plugin's option on

@@ -12,7 +12,7 @@ SPDX-License-Identifier: BSD-3-Clause
 > adopted the planning model (D7). An entry leaves for
 > [pledged/](../pledged/) when the project undertakes it and for
 > [root `ARCHITECTURE.md`](../../ARCHITECTURE.md) when the code
-> honors it — that root file exists now, holding P16, and a
+> honors it — that root file exists now, holding P10 and P16, and a
 > divergence from anything in it is a bug rather than unbuilt work.
 > Nothing in *this* file carries that weight. Numbering comes from one
 > global P-sequence, never reused, and an entry keeps its number all
@@ -205,15 +205,6 @@ anything that looks normative is written.
   source-derived rather than captured. The cost is stated plainly:
   source-derived fixtures cannot prove a real run, so a grammar
   change warrants a real end-to-end run before it is trusted.
-- **P10 — Unit tests never launch a hypervisor.** The tier split is
-  by **cost**, not by coverage. Unit tests may use reliquary freely
-  and should — `create_machine()` is cheap and hypervisor-free, and
-  running it for real is the best coverage available on this side of
-  the line — but `start_machine()`, `stop_machine()` and `exec()`
-  belong to integration. The cheap half is conditional on the
-  blueprint rather than on the call: a drive materializing a blank
-  goes through qemu-img, and a machine declaring one belongs to
-  integration.
 - **P11 — The standard library, plus two dependencies at named
   seams.** pytest and reliquary are the whole dependency list; pytest
   is imported lazily in the facade, and reliquary only in the guest
