@@ -16,86 +16,41 @@ Each feature carries an **F-number**: the handle a dependency, a
 commit or a decision points at. F-numbers are the handles of *work*,
 so they **evaporate on delivery** — the item stops existing, its
 number retires unreused, and gaps in the sequence are history rather
-than a promise. **The numbers carry no order and no date**; F1 is
-merely the first issued.
+than a promise. **The numbers carry no order and no date**; F1 was
+merely the first issued, and is already a gap.
 
 **A feature must fit in one sprint**, and the bound bites at
 **the pledge**, not here. Large, shapeless capability is welcome in
 this file; cutting it into implementable pieces is part of what
 pledging it means, and a split retires the parent's number for a
-fresh one per piece. Two entries below are flagged as too large as
-written.
+fresh one per piece. Entries flagged below as too large must be cut
+at the pledge.
 
-## F1 — The command-line entry
-
-Serves **U4**. A second entry point onto the same execution path:
-`testaferro run tests/vring16.exe` tries a suite against a guest
-without the developer first writing anything into their project.
-
-> **Too large as written** — several sprints, and it must be cut at
-> the pledge. The seam extraction, the `run` verb, and the
-> exploration flags are three separable pieces at least.
-
-Settled design:
-
-- **The CLI runs pytest; it does not report for itself.** It
-  resolves the backend, generates a one-line test module, and hands
-  it to `pytest.main()`, forwarding whatever follows `--`. So the CLI
-  exercises the embedded path rather than approximating it: `-k`,
-  `-v`, `-x`, `--tb`, `--lf` and third-party plugins all come free,
-  and there is no second reporter to drift. A hand-written
-  pytest-alike reporter is **rejected on purpose** — divergence
-  between what the CLI shows and what the consumer gets after
-  embedding would defeat the CLI's only reason to exist.
-- **The shared seam is backend resolution.**
-  `facade._dispatched_backend()` — config search, platform
-  validation, format classification, machine selection, binding
-  import, option validation — moves into the core as the single place
-  where "an executable plus options" becomes a `Backend`. Both entry
-  points call it. Extracting it is the first work item, since today
-  it is fused to the pytest entry point: it takes `search_from`,
-  which `guest_suite()` computes from the caller's stack frame.
-- Afterwards the entry points differ in three known places only:
-  **config search origin** (the caller's file when embedded, the
-  current directory from the CLI); **session lifecycle** (a consumer
-  conftest calls `start()`/`stop()`, the CLI wraps its own run); and
-  **enumeration** (embedded consumers usually pass a host-built twin
-  as `enumerator=`, while the CLI enumerates in the guest unless
-  given `--enumerate-with` — the lossier path, since agentless
-  capture returns the visible screen and a long list loses its head).
-- **Flag and keyword parity** is P16: `--machine` ↔ `machine=`,
-  `--framework` ↔ `framework=`, `--boot-image` ↔ `boot_image=`,
-  `--enumerate-with` ↔ `enumerator=`.
-- **Deliberate asymmetry: exploration-only flags.** `--list`
-  (enumerate and stop), `--keep` (leave the run home behind for
-  inspection instead of sweeping it), and `--snippet` (print the test
-  module to paste into the consumer project). `--snippet` is what
-  makes the two entry points literally one path: the CLI's output is
-  the embedded form.
-- **One CLI, subcommands.** `run` is one verb of the same executable
-  that carries F2's lifecycle verbs. A `[project.scripts]` console
-  entry is needed; there is none today. P11's lazy-pytest rule
-  becomes "confined to `facade.py` and the CLI module".
-
-**Decide first:** what a machine name resolves to — the
-zero-configuration image or a named reliquary blueprint
-([../DECISIONS.md](../DECISIONS.md), Open questions).
+**F1 is retired by split** (D9): the backend-resolution seam became
+F7, the command-line surface became the plugin, F8, and the `run`
+verb died with the wrapper it named — a lifecycle CLI survives
+inside F2, whose verbs are not test runs.
 
 ## F2 — Persistent machines and the lifecycle verbs
 
-Test machines that opt out of the sweep at `stop()`, keeping their
-guests warm for reuse across pytest runs and shut down explicitly:
-`testaferro shutdown`, plus cache management, as verbs of F1's
-executable.
-
-Depends on **F1** — the executable that would carry the verbs does
-not exist yet. Also the shape that would make a named-blueprint
-machine viable, since an install-recipe blueprint implies
-provisioning and reuse rather than a fresh machine per session.
+Serves **U8**. A test machine that opts out of the sweep: its disks
+persist when the session ends, because shutting down is not
+destroying. The cycle is the pytest session — the machine boots
+when the first suite needs it, serves every test that names it
+while up, and shuts down at session end — and the next session
+boots the same disks with the harness still in place. Destroying is
+explicit: `testaferro shutdown`, `testaferro destroy`, plus cache
+management, as verbs of a small lifecycle CLI — the one
+command-line surface D9 leaves standing, carried by a
+`[project.scripts]` console entry that does not exist today.
+Persistence is also what makes provisioned platforms viable (U7,
+F9): an install-recipe machine document implies provisioning and
+reuse rather than a fresh machine per session.
 
 Note the tension with **P5**: a machine surviving a session is state
 testaferro created and did not sweep. Pledging this feature means
-saying exactly what remains, where, and how a user gets rid of it.
+saying exactly what remains, where, and how a user gets rid of it —
+U8 already demands it be enumerable and removable.
 
 ## F3 — Intra-suite sharding
 
@@ -150,3 +105,80 @@ What it is for is worth stating plainly, because it is unusual for a
 feature: this one does not add capability, it converts claims into
 in-force ones. Until it exists, root `USE-CASES.md` stays empty of
 everything it would otherwise be ready to carry.
+
+## F7 — The backend-resolution seam
+
+Serves **U4**, **U9** — and every entry point equally. Extracted
+from retired F1, whose first work item it was:
+`facade._dispatched_backend()` — config search, platform
+validation, format classification, machine selection (project
+declarations first, then the standard catalog, D10), binding
+import, option validation — moves into the core as the single place
+where "an executable plus options" becomes a `Backend`. The facade
+and the plugin (F8) both call it. Extracting it is real work
+because today it is fused to the pytest entry point: it takes
+`search_from`, which `guest_suite()` computes from the caller's
+stack frame.
+
+## F8 — The pytest collection plugin
+
+Serves **U4**, **U1**. The command-line surface (D9): a `pytest11`
+plugin whose `pytest_collect_file` claims suite executables, so
+`pytest tests/suite.exe` is a standard pytest execution and a tree
+scan collects guest suites beside host tests. The reference
+standard is **pytest-cpp** (MIT) for the pytest-facing half —
+mask-gated scans, always-claim for files named on the command line,
+framework facades, per-test filter argv; where it probes binaries
+by running them, testaferro declares or defaults, because probing
+here means booting a guest.
+
+Settled design:
+
+- **Claiming policy.** A file named on the command line is always
+  claimed when classification or a declaration says a guest runs
+  it; tree scans claim only what masks or `testaferro.ini` opt in;
+  a host-runnable format (a plain PE) is claimed only by explicit
+  declaration — inference cannot know the nature of the situation
+  demands a VM — and headerless `.com` images are never claimed
+  from a scan.
+- **Items live under the executable's node** —
+  `tests/suite.exe::Group-Name` — extending the fifth interface's
+  id contract; the dash rule holds. The failure representation
+  carries the guest's file, line and assertion; item location may
+  point at guest source when it can be resolved, and never
+  pretends to when it cannot.
+- **Enumeration prefers the host-built twin** (`enumerator=`, in
+  its three spellings); in-guest enumeration is the fallback, and
+  a possibly-truncated result is named as such, never passed off
+  as complete (U4). Collection must be deterministic across xdist
+  workers (U5) — collection-time guest boots multiply by worker
+  count, which is the twin's whole case.
+- **Options and keys follow P16**: the plugin adds pytest options
+  and ini keys as kebab-case spellings of the declaration
+  vocabulary, exploration-only options included (preserve the run
+  home; enumerate-and-stop is pytest's own `--collect-only`).
+
+**Decide at the pledge:** entry-point auto-load versus explicit
+`-p` opt-in — installation-is-activation changes every venv the
+package lands in, and the claiming policy above is what makes
+either answer safe.
+
+## F9 — In-guest harness prep
+
+Serves **U7**. Two levels, both declared, both optional:
+
+- **Per-boot prep**: the declaration stages named host files onto
+  the work drive beside the suite — the snapshot-before-boot
+  invariant holds (D5) — and runs setup commands in the guest
+  after boot, before any test: TSRs, environment, the harness's
+  own prep tool.
+- **Boot-level support**: a device driver or installed component
+  that must exist before the guest OS finishes booting. No
+  post-boot step can add it: it rides a tester-authored boot image
+  (U3) or a provisioned platform — a full machine document whose
+  scripts bake a disk, the provider owning the in-guest install
+  work (D2), viable per-run only where the machine persists (U8,
+  F2).
+
+The prep vocabulary is new declaration surface (the second
+interface) and lands through the interface-change rule.

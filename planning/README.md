@@ -41,8 +41,8 @@ and are bitten off one at a time, in no pre-promised order.
 
 Anything here that can be depended on carries a handle, so that one
 item points at another by something stable rather than by a heading
-someone may reword. Features take numbers — `F1 — The command-line
-entry` — which is the old milestone identifier and none the worse
+someone may reword. Features take numbers — `F3 — Intra-suite
+sharding` — which is the old milestone identifier and none the worse
 for it: what a feature number does *not* carry is an order or a
 date. Designs take no number of their own; a design serves one
 feature and is identified by its path.

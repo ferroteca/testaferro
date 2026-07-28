@@ -6,7 +6,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "testaferro"
+name = "pytest-testaferro"
 version = "0.1.0.dev1"
 description = "pytest facade for DOS-based CppUTest unit testing, run via QEMU"
 readme = "README.md"

@@ -79,17 +79,6 @@ becoming a D-number, and the commit that moves it is the record.
   tolerable is two norms for one surface. Settle this before writing
   any document that looks normative, and before pointing any
   doc-sync tooling at the tree.
-- **What a machine name resolves to.** `machine="freedos"` (and a
-  future `--machine freedos`) can mean the zero-configuration
-  FreeDOS boot floppy that works today, or a named reliquary
-  blueprint. The second reads better and is newly possible, but
-  reliquary's codex `freedos` blueprint is an *install recipe* — a
-  blank disk plus install and verify scripts — not a ready image, so
-  it implies provisioning and machine reuse (F2), reinstalling
-  FreeDOS per pytest run not being viable while the binding sweeps
-  its whole run home at `stop_session()`. It also means opting into
-  reliquary's home-mode asset resolution, which D6 deliberately
-  avoids. Settled before F1 is built.
 - **Whether testaferro needs a document format of its own.** A
   declaration already *is* an authored reliquary blueprint (D4), and
   `machine_config=` already accepts a whole blueprint document or a
@@ -118,6 +107,152 @@ becoming a D-number, and the commit that moves it is the record.
   rather than drifting.
 
 ## Decisions
+
+### D12 — testaferro is a pytest plugin, distributed as pytest-testaferro
+
+**Decided** owner, 2026-07-28. **Supports** U1, U4 (drafted).
+
+The self-description moves from "a pytest facade" to **a pytest
+plugin**: after D9 the plugin is how nearly every consumer meets
+the project, and the category is real — the plugin list, the
+`Framework :: Pytest` classifier, the `pytest-` distribution
+prefix. Naming is two-level, the convention pytest plugins use
+(pytest-testinfra over import `testinfra` is the exact precedent):
+the **distribution is `pytest-testaferro`**, while the import, the
+plugin name, the cache directory, the repository, and the identity
+all stay `testaferro`. The reframe sharpens the name rather than
+retiring it: a testaferro is a front man, and the plugin is
+precisely pytest presenting, under its own name, tests another
+machine ran. What exceeds a plugin is stated rather than lost: the
+embedding API is the same plugin's programmatic layer, the
+framework adapters stay usable standalone (U6), and the lifecycle
+CLI (F2) is deliberately not pytest.
+
+The bare `testaferro` name on PyPI (a few dev builds) is retired
+testinfra-style, not vacated: one final tombstone release,
+**0.1.0.dev4** (authored in `tombstone/`), whose description says
+renamed — install `pytest-testaferro` — carrying `Development
+Status :: 7 - Inactive` and a dependency on the new distribution
+so stale pins resolve to the real thing; earlier releases are
+yanked and the project archived on the web side. Deleting the name
+was declined: a freed name with install history is a supply-chain
+hazard, and what PEP 541 frowns on is speculative reservation, not
+an explicit signpost.
+
+**Weighed and declined:** keeping distribution `testaferro` with
+only the trove classifier for discoverability (the plugin list and
+the eye both key on the prefix); renaming the project outright
+(the identity is apt — sharpened by the plugin reframe — and the
+org naming coheres); deleting the PyPI name (above).
+
+**Folded into:**
+[proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md) ("What
+testaferro is"), [../README.md](../README.md),
+[../pyproject.toml](../pyproject.toml), `tombstone/`,
+[../CHANGELOG.md](../CHANGELOG.md).
+
+### D11 — Providers are testaferro's axis, named in the declaration
+
+**Decided** owner, 2026-07-28. **Supports** P1, P2, P3 (drafted, as
+amended).
+
+The vision names more guest-machine providers than reliquary —
+vagrant and kin as possibilities — and the axis is **testaferro's
+own**: reliquary and vagrant occupy the same space, so a machine
+uses one *or* the other, and a future provider is a testaferro
+binding rather than capability pushed upstream — reliquary is
+already large, and growing it into a portmanteau of runners serves
+neither project. The provider is nothing testaferro hides: the
+tester declares it (`reliquary` today, the default and the only
+supported one), and a tester who wants specific machines from a
+provider passes that provider's own configuration through —
+testaferro carries it untouched, exactly as it carries reliquary
+blueprints (P3, generalized). Suites still name platforms and
+machines only; the declaration is the one place a provider appears
+(P2).
+
+**D1 holds, read in its own vocabulary.** In D1, "runner" named
+the direct-virtualization piece itself — QEMU lifecycle, machine
+configuration, provisioning, guest control — and its refusals are
+about not building or abstracting that piece here: no structural
+runner contract, no conformance kit, no mirrored configuration
+hierarchy, no abstraction ahead of concrete need. All of that
+holds unchanged; testaferro still builds none of it (D2). What D1
+did not contemplate is more than one external provider of the
+piece it refused to build, and this entry adds that recognition:
+the "no `runner=` override" clause refused a caller-supplied
+virtualization contract, not a choice among testaferro's own
+provider bindings. The annotation at that clause points here so
+the narrower reading is the recorded one. The seam a provider
+implements is the `Backend` ABC D1 already blessed, any richer
+interface is derived from concrete implementations when one
+actually arrives, and construction still waits on a second
+concrete provider.
+
+**Weighed and declined:** placing machine-shaped providers in
+reliquary as its backends, keeping testaferro provider-blind. It
+reads clean from testaferro's side and bloats reliquary from its
+own, and the two projects' owner prefers the seam here. Also
+declined: building the provider dimension now — a seam with one
+implementation, the exact shape D1 killed.
+
+**Folded into:** [proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md)
+(P1, P2, P3), D1 (annotation).
+
+### D10 — A machine name resolves to declarations, then the standard catalog
+
+**Decided** owner, 2026-07-28. **Supports** U2, U3, U9 (drafted).
+Closes the open question "What a machine name resolves to."
+
+`machine="freedos"` resolves against the project's declared
+machines first (`config()` / `testaferro.ini`), then against a
+curated catalog of **standard environments** testaferro itself
+authors — "freedos" naming today's zero-configuration machine,
+siblings arriving as guests grow. Never the user's reliquary home:
+D6's hermeticity holds, and a test run depends only on state
+testaferro authored or the project checked in.
+
+**Weighed and declined:** resolving names from the user's reliquary
+home — re-declined on D6's unchanged ground. Also declined: reading
+"freedos" as reliquary's codex install recipe — an install per
+session is not a price a test run pays, and install recipes become
+reachable only where a machine persists (U8, F2).
+
+**Folded into:** [proposed/USE-CASES.md](proposed/USE-CASES.md)
+(U9), [proposed/FEATURES.md](proposed/FEATURES.md) (F7); the open
+question retires into this entry.
+
+### D9 — The command-line surface is a pytest plugin
+
+**Decided** owner, 2026-07-28. **Supports** U1, U4 (drafted).
+
+The way to run a guest suite from a command line is pytest itself:
+a collection plugin claims suite executables via
+`pytest_collect_file`, so `pytest tests/suite.exe` is a standard
+pytest execution — no wrapper, no second reporter, no second
+executable for running tests. **pytest-cpp** (MIT) is the reference
+standard for the pytest-facing half: mask-gated tree scans,
+always-claim for explicitly named files, framework facades,
+per-test filter argv. Its `cpp_harness` options — wrapping
+execution in qemu or wine for cross-compiled binaries — are the
+degenerate form of the problem testaferro exists for, and mark
+exactly where the reference stops transferring: a command prefix
+cannot carry a machine lifecycle. Where pytest-cpp probes binaries
+by executing them, testaferro declares or defaults — probing here
+means booting a guest.
+
+**Weighed and declined:** the wrapper CLI — retired F1's `run`
+verb, which resolved a backend, generated a one-line module and
+handed it to `pytest.main()`. Its own first principle — run pytest
+so no second reporter can diverge — argues past itself: the plugin
+removes the wrapper entirely, and `--snippet` and `--` forwarding
+with it. A small lifecycle CLI survives for machine and cache
+verbs (F2), which are not test runs.
+
+**Folded into:** [proposed/USE-CASES.md](proposed/USE-CASES.md)
+(U4), [proposed/FEATURES.md](proposed/FEATURES.md) (F7, F8),
+[proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md) (P16 and the
+interface note).
 
 ### D8 — The planning machinery realigns to the cross-project standard
 
@@ -325,9 +460,11 @@ ownership between the two projects.
 **Decided** owner, 2026-07-18. **Supports** P1 (drafted).
 
 testaferro integrates directly with reliquary's blueprint and
-machine-lifecycle interface. There is no `runner=` override, no
-structural runner contract, no conformance kit, and no mirrored
-configuration hierarchy. Reliquary owns QEMU lifecycle, machine
+machine-lifecycle interface. There is no `runner=` override
+["runner" here is the virtualization piece itself, which testaferro
+still does not build; choosing among external providers of it is
+D11's axis], no structural runner contract, no conformance kit, and
+no mirrored configuration hierarchy. Reliquary owns QEMU lifecycle, machine
 configuration and validation, provisioning, guest control,
 completion detection, and all in-guest mechanics; testaferro owns
 executable-to-platform and machine selection, durable caches,

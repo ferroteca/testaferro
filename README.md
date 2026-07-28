@@ -1,17 +1,39 @@
 # testaferro
 
-[![Python](https://img.shields.io/pypi/pyversions/testaferro.svg)](https://pypi.org/project/testaferro/)
+[![Python](https://img.shields.io/pypi/pyversions/pytest-testaferro.svg)](https://pypi.org/project/pytest-testaferro/)
 [![License](https://img.shields.io/github/license/ferroteca/testaferro.svg)](LICENSE)
 ![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)
 ![Tested on Windows](https://img.shields.io/badge/tested%20on-Windows-0078d4.svg)
 
 testaferro is a pytest facade for DOS-based CppUTest unit testing: a CppUTest suite built for DOS runs inside a QEMU
 guest via reliquary, and its tests surface as pytest tests on the host — running, selecting, and
-reporting them feels like an ordinary local pytest run.
+reporting them feels like an ordinary local pytest run. The distribution is named
+[pytest-testaferro](https://pypi.org/project/pytest-testaferro/), following the pytest plugin convention; the import —
+and everything else — is `testaferro`. (The retired `testaferro` distribution is a tombstone pointing here.)
 
 DOS and CppUTest are what it supports today. Reliquary owns the guest-machine side; testaferro owns the pytest facade and
 its test-framework adapters. Other platforms and frameworks are not built; what has been argued for them, and what the
 project has decided so far, is in [planning/](planning/).
+
+## Where it fits
+
+Every existing pytest-and-virtual-machine pairing points the same direction: the machine is a fixture, and the tests
+are Python functions you write on the host. [pytest-vagrant](https://github.com/steinwurf/pytest-vagrant) hands your
+test function a vagrant box to ssh into; [pytest-testinfra](https://github.com/pytest-dev/pytest-testinfra) asserts on
+a remote machine's state — packages, services, files — over ssh, ansible, or docker;
+[pytest-embedded](https://github.com/espressif/pytest-embedded) (including its QEMU service) drives a device under
+test from a host-side function and folds the device's unit-test output into its reports. Useful shapes, all three —
+and in all three the pytest items are host-authored Python, with the machine as scenery.
+
+testaferro points the other way: **the items are the guest's own tests.** The suite is a native binary built for the
+guest OS, each of its cases surfaces as an ordinary pytest item with its own id and its own failure, and the machine
+that ran them is machinery no test names. The nearest neighbour in that direction is
+[pytest-cpp](https://github.com/pytest-dev/pytest-cpp), which surfaces *host-runnable* test binaries as pytest items —
+its harness options can wrap the binary in qemu or wine, but that is a command prefix. testaferro begins where the
+command prefix stops sufficing: when running the suite means booting an operating system, with drives to stage, a boot
+to sequence, and state to sweep. (Go has this shape in [vmtest](https://github.com/hugelgupf/vmtest), which runs Go
+unit tests inside QEMU guests and collects their results; testaferro is that idea for pytest and native guest
+binaries.)
 
 ## Status: alpha
 

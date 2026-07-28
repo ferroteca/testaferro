@@ -11,9 +11,11 @@ decided, and how work enters is
 A pytest facade over reliquary for DOS CppUTest suites, built and
 working under its unit tier — though no guest has run since the
 migration to the blueprint model, so end-to-end proof is owed (see
-"Unit and integration" below). Reliquary is the sole guest-machine
-runner (P1); testaferro's pluggable aspect is the guest unit-test
-framework (U6).
+"Unit and integration" below). Reliquary is the only supported
+guest-machine provider (P1) — the provider is a declared choice in
+the vision (D11), and reliquary is the one binding built;
+testaferro's pluggable aspect is the guest unit-test framework
+(U6).
 
 Package layout (each module states its contract in its docstring):
 
@@ -199,8 +201,8 @@ which becomes their canonical home once in force. Until then this
 section is the operative statement.
 
 - Python code: stdlib plus two declared dependencies (P11) — pytest (the
-  facade's host surface, imported lazily) and reliquary (the sole
-  guest-machine runner, imported by `testaferro/qemu.py` for the
+  facade's host surface, imported lazily) and reliquary (the only
+  supported guest-machine provider, imported by `testaferro/qemu.py` for the
   machine lifecycle and by `testaferro/machines.py` for its JSONC
   reader alone). Support Python 3.9 and newer; keep lines near 79
   columns.

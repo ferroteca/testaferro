@@ -27,19 +27,26 @@ lifecycle beats a second list for three entries.
 
 ## What testaferro is
 
-testaferro is a **pytest facade for tests that can only run inside a
-guest machine**. A unit-test suite built for a guest OS — today a
-DOS build of a CppUTest suite — runs inside that guest, and its
-individual tests surface on the host as ordinary pytest items:
-collected, selected, batched, and reported like local tests.
+testaferro is a **pytest plugin for tests that can only run inside
+a guest machine** — distribution `pytest-testaferro`, import and
+identity `testaferro` (D12). A unit-test suite built for a guest
+OS — today a DOS build of a CppUTest suite — runs inside that
+guest, and its individual tests surface on the host as ordinary
+pytest items: collected, selected, batched, and reported like
+local tests, with `pytest tests/suite.exe` the whole first command
+(D9). The embedding API is the same plugin's programmatic layer;
+the framework adapters remain usable on their own, against output
+obtained some other way (U6); and a small lifecycle CLI (F2) is
+the one deliberately non-pytest surface.
 
-It is deliberately not a VM tool. Reliquary owns the guest machine
-entirely; testaferro owns the pytest side of the seam and the
-knowledge of what a guest test suite's output means. Two pluggable
-aspects follow from that division, and only one of them is
-testaferro's: the **guest unit-test framework** is testaferro's
-(U6), and the **guest platform** is reliquary's, testaferro adding a
-thin binding when a platform is ready to surface (D2).
+It is deliberately not a VM tool. The declared provider owns the
+guest machine entirely — reliquary today, the only supported one
+(P1, D11) — while testaferro owns the pytest side of the seam and
+the knowledge of what a guest test suite's output means. Two
+pluggable aspects follow from that division, and only one of them
+is testaferro's: the **guest unit-test framework** is testaferro's
+(U6), and the **guest platform** is the provider's, testaferro
+adding a thin binding when a platform is ready to surface (D2).
 
 ## The seams
 
@@ -107,9 +114,14 @@ named here follows that rule.
    what `stop()` and `stop(clear_downloads=True)` sweep. A durable
    on-disk footprint on the user's machine is a contract with them.
 
-A **command-line entry** joins this list when F1 lands, and it is not
-a seventh surface but a second presentation of the first: every flag
-is the kebab-case spelling of a `guest_suite()` keyword (P16).
+**Plugin options join this list when F8 lands**, and they are not a
+seventh surface but a second presentation of the first two:
+pytest's own command line grows testaferro's options, each the
+kebab-case spelling of a declaration keyword (P16, D9), and the
+items the plugin collects extend the fifth surface's id contract to
+`suite.exe::Group-Name` spellings. A **lifecycle CLI** (F2) joins
+as its own small surface when it lands: verbs over machines and
+caches, never over test runs.
 
 **testaferro currently has no norms.** Each surface above should name
 the artifact that says exactly what it *is* and that the
@@ -122,26 +134,38 @@ anything that looks normative is written.
 
 ## The principles
 
-- **P1 — Reliquary is the sole guest-machine provider.** There is no
-  `runner=` override, no structural runner contract, no conformance
-  kit, and no mirrored configuration hierarchy; testaferro integrates
-  directly with reliquary's blueprint and machine-lifecycle
-  interface. A prebuilt `Backend` is the one escape hatch. **The
-  split governs verification as much as implementation**: a property
-  of the guest machine is reliquary's to guarantee and to test, so
-  doubting one produces an upstream bug report — never a local audit
-  of its internals, and never a defensive workaround here. (D1.)
-- **P2 — Consumers name platforms and machines, never emulators.**
+- **P1 — The guest-machine provider is a declared choice, and
+  reliquary is the only supported one.** Providers occupy one
+  layer — reliquary and vagrant sit in the same space — so a
+  machine uses one *or* another, and the declaration names which
+  (D11); testaferro passes that provider's machine configuration
+  through untouched (P3). The axis is testaferro's own: a future
+  provider is a new binding here, never capability pushed upstream.
+  What D1 refused stays refused — no structural runner contract, no
+  conformance kit, no mirrored configuration hierarchy, and no
+  abstraction built ahead of a second concrete provider; a prebuilt
+  `Backend` remains the escape hatch, and the seam a provider
+  implements. **The split governs verification as much as
+  implementation**: a property of the guest machine is the
+  provider's to guarantee and to test, so doubting one produces an
+  upstream bug report — never a local audit of its internals, and
+  never a defensive workaround here. (D1, D11.)
+- **P2 — Suites name platforms and machines, never emulators.**
   QEMU is an implementation detail of a binding and appears nowhere
-  in what a consumer writes; the facade's binding table keys by
-  platform name. (D3.)
-- **P3 — testaferro mirrors none of reliquary's schema.** Authored
-  blueprint JSON passes through untouched and reliquary validates it,
-  so a new blueprint field is expressible the day reliquary ships it,
-  without a testaferro change. The single deliberate exception is
-  key spelling: hyphenated blueprint keys are written with
-  underscores in Python and INI and normalized on construction,
-  neither host spelling admitting a hyphen. (D4.)
+  in what a suite-facing consumer writes; the facade's binding
+  table keys by platform name. The machine *declaration* is the one
+  place a provider is named (P1): the tester who declares a machine
+  may say what provides it, and everything beneath the provider
+  stays invisible. (D3, D11.)
+- **P3 — testaferro mirrors no provider's schema.** An authored
+  machine document belongs to the declared provider's own
+  vocabulary — a reliquary blueprint today — and passes through
+  untouched for that provider to validate, so a new field is
+  expressible the day the provider ships it, without a testaferro
+  change. The single deliberate exception is key spelling:
+  hyphenated blueprint keys are written with underscores in Python
+  and INI and normalized on construction, neither host spelling
+  admitting a hyphen. (D4, D11.)
 - **P4 — The framework adapter is independent of the runner.** It is
   argv and grammar only; it never imports reliquary, and the guest
   binding defaults it to CppUTest while keeping it a parameter. That
@@ -217,12 +241,15 @@ anything that looks normative is written.
   work's quality or its author. Governance authority may compress the
   steps into one PR — compressed in time, never reduced in content.
   (D7.)
-- **P16 — Flag and keyword parity.** Every command-line flag is the
-  kebab-case spelling of a `guest_suite()` keyword, and every keyword
-  is expressible on the command line, so what you typed to try a
-  suite is what you write when you embed it. The rule disciplines
-  future growth in both directions: a keyword that cannot be spelled
-  on the command line is a keyword worth questioning. Exploration-only
-  flags are the named exception, concerning trying a suite out rather
-  than defining tests. **Arms with F1**; until a CLI exists this
+- **P16 — One vocabulary, three spellings.** Every consumer-facing
+  option is one vocabulary spelled three ways: a `guest_suite()`
+  keyword, a `testaferro.ini` key, and the plugin's option on
+  pytest's own command line — kebab-case there, underscores in
+  Python and INI. What you typed to try a suite is what you keep
+  when you embed it, because the trial and the embedded run are the
+  same execution (D9). A keyword inexpressible in the other
+  spellings is a keyword worth questioning. Exploration-only
+  options — preserving a run home, enumeration overrides — are the
+  named exception, concerning trying a suite out rather than
+  defining tests. **Arms with F8**; until the plugin exists this
   principle has no subject.

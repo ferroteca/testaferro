@@ -8,6 +8,10 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ### Changed
 
+- The distribution is renamed **pytest-testaferro**, following the pytest plugin naming convention; the import name,
+  and every other spelling of the project's identity, remains `testaferro`. The bare `testaferro` name on PyPI is
+  retired with a final tombstone release (0.1.0.dev4, from `tombstone/`) that points at — and depends on —
+  `pytest-testaferro`.
 - The reliquary pin moves to **0.1.0.dev3**, and the QEMU binding follows its working-directory rework. A session's
   context is now `Context(home_dir=…, cache_dir=…, blueprints_dir=…, autoseed=False)`: the retired `assets=` named a
   project asset root, and the blueprints directory names the one kind of document testaferro actually writes.

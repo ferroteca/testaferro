@@ -38,11 +38,12 @@ will; only an in-force one may not.
   in their own pytest tree, behaving like every other test there —
   `pytest` runs them, `-k` and node ids narrow them, a failure
   reports the *guest* side's file, line and assertion message rather
-  than a traceback into the facade, and an IDE's run-this-test and
-  jump-to-source resolve to the developer's own module. What it
-  takes to boot a machine, get the executable into it, run it and
-  read the results back is testaferro's business; the developer
-  names an executable.
+  than a traceback into the facade, and an IDE's run-this-test
+  resolves to the item wherever it was collected — a `guest_suite()`
+  call in the developer's own module, or the suite executable
+  itself once the plugin claims it (F8). What it takes to boot a
+  machine, get the executable into it, run it and read the results
+  back is testaferro's business; the developer names an executable.
 
 - **U2 — Nothing to configure.** The first run costs one line. A
   developer points the facade at a freshly built suite executable
@@ -69,13 +70,30 @@ will; only an in-force one may not.
 
 - **U4 — Try a suite against a guest before embedding anything.** A
   developer has just built a DOS test executable and wants to watch
-  it run before writing a line into their project: one command
-  naming the executable, and pytest's own output. What they typed to
-  try it is what they write when they embed it — the command line and
-  the call site are one surface, and the tool can print the test
-  module to paste in. This is the step before U1, and it exists so
-  that adopting testaferro does not start with a leap of faith.
-  *(Unbuilt: F1.)*
+  it run before writing a line into their project. The command is
+  pytest's own, and it is explicit: `pytest tests/suite.exe`. The
+  installed plugin claims the executable named on the command line
+  and boots the standard machine, and everything else *is* pytest —
+  the items, the ids, `-k`, `-x`, `--lf`, `--collect-only` — with
+  no wrapper to diverge from the real thing, because the trial is a
+  standard command-line pytest execution (D9). It honors the same
+  declarations embedding would — a `testaferro.ini` beside the
+  project selects the same machine (U3) — and zero configuration
+  stays the price of the first run (U2). Trying is when things go
+  wrong, so the trial does not fail blind: a suite that boots
+  nothing, or whose output no framework adapter recognizes, is
+  reported by what the guest actually showed, never by a traceback
+  into the facade, and a plugin option preserves the run home for
+  inspection. Nor does it lie by omission: enumerating inside the
+  guest can lose the head of a long list, so a trial never silently
+  shows fewer tests than exist — an enumeration that may have been
+  truncated says so, and a host-built enumerator is the faithful
+  path. What they typed to try it is what they keep: embedding is
+  the same executable collected from the tree, or a `guest_suite()`
+  call when programmatic control is wanted, and the trial command
+  stays valid forever — the step before U1 and the same surface as
+  U1, so adopting testaferro does not start with a leap of faith.
+  *(Unbuilt: F8.)*
 
 - **U5 — A whole test tree in parallel.** A project with several
   guest suites should not pay for them serially. Running under
@@ -96,3 +114,43 @@ will; only an in-force one may not.
   same pytest items. The adapter knows nothing about how the output
   was obtained, which is also why it is usable on its own, against
   output the caller captured some other way.
+
+- **U7 — Harness support prepped in the guest.** A suite needs more
+  than a bare OS: support files beside the executable, a TSR
+  loaded, an environment set — or a device driver present at boot,
+  which no post-boot step can supply. The tester declares both
+  levels. Per-boot prep: the declaration stages named host files
+  onto the work drive with the suite and runs setup commands in the
+  guest after boot, before any test. Boot-level support: the tester
+  supplies a boot image carrying it (U3), or declares a complete
+  platform — a full provider machine document (a reliquary
+  blueprint today) whose provisioning scripts bake the support into
+  a disk, the provider owning the in-guest install work (D2), and
+  the result persisting as a machine worth keeping (U8), because
+  provisioning is no price to pay per run. Optional at every level:
+  a suite with no prep declared runs exactly as before.
+  *(Unbuilt: F9.)*
+
+- **U8 — A persistent machine, up for many tests, never silently
+  destroyed.** A provisioned machine is expensive and its disk
+  state is the point, so the tester opts a machine out of the
+  sweep. The cycle is the pytest session: the machine boots when
+  the first suite needs it, serves every test that names it while
+  up, and shuts down when the session ends — but shutting down is
+  not destroying, and the next session boots the same disks with
+  the harness still in place. Destroying is explicit — a lifecycle
+  verb (F2), never a side effect of a test run. This is a stated
+  exception to U3's fresh-machine rule, and it is the tester's
+  trade, made by name: state carries across suites and cycles
+  because carrying it is what was asked for, and what persists,
+  where, is enumerable and removable (P5). *(Unbuilt: F2.)*
+
+- **U9 — A standard environment, by name.** Between nothing and a
+  declaration sits a name: `machine="freedos"` selects a standard
+  environment testaferro itself curates — an authored machine
+  document and a once-downloaded cached image, today's
+  zero-configuration machine made plural and nameable as guests
+  grow. Resolution runs project declarations first, then the
+  standard catalog (D10), and never the user's reliquary home
+  (D6): a test run depends only on state testaferro authored or
+  the project checked in. *(Unbuilt: resolution lands with F7.)*
