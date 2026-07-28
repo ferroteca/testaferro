@@ -136,10 +136,10 @@ Every approved change then lands the same way:
    single-surface change states why the others are unaffected.
 2. **Land it coherently and completely** — every affected surface,
    document, example, and test moved to the new shape, the old one
-   deleted. testaferro is pre-1.0 (`0.1.0.dev0`) and gives no
-   backward-compatibility guarantee, so the old shape is deleted
-   rather than bridged. Cheap execution does not make the decision
-   cheap; nothing downstream cushions a wrong one.
+   deleted. testaferro is pre-1.0 and gives no backward-compatibility
+   guarantee, so the old shape is deleted rather than bridged. Cheap
+   execution does not make the decision cheap; nothing downstream
+   cushions a wrong one.
 3. **Record it.** Amendments are drafted under `proposed/`, accepted
    by being moved out of it, and reach the root lists when
    delivered, keeping their numbers; settled decisions go to
