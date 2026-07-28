@@ -108,23 +108,70 @@ becoming a D-number, and the commit that moves it is the record.
   boot image and only the media type varies — floppy, hard disk, CD,
   defaulted by the platform. Whether USB joins that set is open, and
   is largely reliquary's answer to give.
-- **Whether the QEMU binding module is renamed for the platform it
-  binds.** The platform concept already keeps QEMU out of the
-  consumer's vocabulary (P2); what remains is whether the internal
-  module `testaferro/qemu.py` should be named for the platform (e.g.
-  `dos.py`), leaving QEMU and reliquary entirely to the binding's
-  implementation. Internal naming, so this touches no enumerated
-  surface — but it is a rename with citations across
-  [AGENTS.md](../AGENTS.md) and the tests, so it is worth deciding
-  rather than drifting. *An answer is now proposed, and a different
-  one: the amendments to P1 and P2 in
-  [proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md) make the
-  binding a **provider** binding rather than a platform one, which
-  names it for reliquary. If those are adjudicated, this question
-  retires into that decision rather than being settled on its own
-  terms; the work is F10.*
 
 ## Decisions
+
+### D16 — A binding is named for the provider it binds
+
+**Decided** owner, 2026-07-28. **Supports** P1, P2 (drafted, as
+amended). Closes the open question "Whether the QEMU binding module is
+renamed for the platform it binds."
+
+**It is renamed, and for neither of the things that question
+offered.** `testaferro/qemu.py` becomes `testaferro/reliquary.py` and
+`QemuSuiteBackend` becomes `ReliquarySuiteBackend`, because the module
+was named for something it never touches: every call in it is a
+reliquary call, and QEMU is what reliquary drives — a layer below the
+one testaferro talks to. The question had asked whether to name it for
+the *platform* instead (`dos.py`); that is the other thing it is not.
+A platform is what a suite is built for, while a binding is the seam
+to whoever runs it, and those are different axes — one provider will
+bind several platforms, and one platform will be served by several
+providers (D11). So `_PLATFORM_BINDINGS` becomes
+`_PLATFORM_PROVIDERS`: which provider runs a platform today, keyed
+that way until the vocabulary work makes the provider the thing a
+tester names.
+
+**testaferro names providers and never what is under them.** The
+distinction the owner drew is the operative one: reliquary, vagrant,
+dosbox and wine are things this project may know about; QEMU is
+reliquary's implementation detail and belongs in no name, docstring or
+error message here. So the rename came with a sweep — the package
+docstring, the facade's, the error a non-DOS declaration raises, the
+distribution's own description and keywords, and the guidance.
+
+**Two mentions are kept deliberately**, and neither makes QEMU
+testaferro's vocabulary: [../README.md](../README.md)'s "Where it
+fits" section, which describes what *other* projects do (pytest-cpp's
+qemu harness, pytest-embedded's QEMU service, Go's vmtest), and the
+`backend-settings` fixture in the project-config tests, which is a
+reliquary blueprint field carrying a tester's own authored value
+through untouched (P3) — a passenger, not a word this project speaks.
+
+**This did not wait for F10.** The vocabulary feature is about what a
+*tester* names, and needs its principle amendments pledged first; this
+is an internal module naming what it actually calls, which is true
+today under P1 and D11 whatever the consumer-facing vocabulary
+becomes. F10 keeps the rest — `provider=` in the declaration, the
+table keyed by provider — and no longer carries this rename.
+
+**Weighed and declined:** `testaferro/providers/reliquary.py`, a
+package anticipating siblings. With one provider it is structure built
+ahead of a second concrete implementation, which is the shape D1
+refused; the directory costs nothing to introduce the day a second
+binding exists. Also noted rather than declined: inside
+`testaferro/reliquary.py` the name `reliquary` refers to the provider
+distribution, absolute imports making that unambiguous to Python
+though not instantly to a reader — so the binding's own tests import
+it as `binding` and say which is which.
+
+**Folded into:** `testaferro/reliquary.py`,
+`testaferro/resolution.py`, `testaferro/__init__.py`,
+`testaferro/facade.py`, `tests/test_reliquary.py`,
+[../AGENTS.md](../AGENTS.md), [../README.md](../README.md),
+[../CONTRIBUTING.md](../CONTRIBUTING.md),
+[../pyproject.toml](../pyproject.toml),
+[proposed/FEATURES.md](proposed/FEATURES.md) (F10).
 
 ### D15 — A guest session, a run, and pytest's session are three things
 

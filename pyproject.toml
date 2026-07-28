@@ -14,7 +14,7 @@ authors = [{ name = "Paul Galbraith", email = "paul@galbraiths.ca" }]
 requires-python = ">=3.9"
 license = "BSD-3-Clause"
 license-files = ["LICENSE"]
-keywords = ["pytest", "cpputest", "qemu", "dos", "testing", "guest"]
+keywords = ["pytest", "cpputest", "reliquary", "dos", "testing", "guest"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Framework :: Pytest",
@@ -23,7 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Software Development :: Testing",
 ]
-# pytest is the facade's host surface (testaferro.facade). QemuSuiteBackend
+# pytest is the facade's host surface (testaferro.facade). The provider binding
 # requires reliquary, which is included as a dependency.
 dependencies = ["pytest", "reliquary==0.1.0.dev3"]
 

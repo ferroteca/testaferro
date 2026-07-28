@@ -38,7 +38,7 @@ binaries.)
 
 ## Status: alpha
 
-The architecture is built and works for its first target pair: a DOS-built CppUTest suite run inside a QEMU guest,
+The architecture is built and works for its first target pair: a DOS-built CppUTest suite run inside a reliquary guest,
 surfacing as ordinary pytest items on the host. It was verified end to end before the move onto reliquary's blueprint
 model; since that move the unit suite passes but no guest has actually run, so treat a first run here as unproven
 ground and expect to report what you find. testaferro is pre-1.0 and makes no compatibility promise: interfaces change
@@ -116,7 +116,7 @@ test_guest_case = testaferro.guest_suite(Path(__file__).parent / "TESTS.EXE")
 ```
 
 testaferro interrogates the referenced file and selects the matching guest backend: a DOS executable runs inside a
-QEMU guest through reliquary (a dependency of testaferro), while a provably non-DOS binary — say, the host
+guest provided by reliquary (a dependency of testaferro), while a provably non-DOS binary — say, the host
 build of the suite passed by mistake — is rejected with a clear error before any guest boots, naming the format and
 architecture it found (Windows PE, Linux/BSD ELF, macOS Mach-O, 16-bit NE/LX/LE; x86 through ARM64). Headerless
 images (`.com`-style raw code) carry nothing to prove, so they pass through for the guest itself to judge. The framework adapter

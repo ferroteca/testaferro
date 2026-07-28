@@ -8,7 +8,7 @@ executable (public entry point: testaferro.guest_suite):
     test_guest_case = testaferro.guest_suite(HERE / "SUITE.EXE")
 
 The executable is interrogated to select the matching platform binding
-(currently: DOS programs, run under QEMU); a provably unsupported
+(currently: DOS programs, run by reliquary); a provably unsupported
 binary is rejected with a clear error. That resolution is the core's
 and is shared with every other entry point (testaferro.resolution);
 what this module adds is what only a call from a test module can

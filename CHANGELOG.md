@@ -37,6 +37,12 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ### Changed
 
+- **testaferro names providers, not what is under them.** The guest binding was called `testaferro/qemu.py` and
+  `QemuSuiteBackend`, named for something it never touches: every call in it is a reliquary call, and QEMU is what
+  reliquary drives. It is now `testaferro/reliquary.py` and `ReliquarySuiteBackend`, and the sweep took QEMU out of the
+  package's docstrings, its error messages, the distribution description and keywords — reliquary, vagrant, dosbox and
+  wine are the layer this project may name; what any of them drives underneath is theirs. Nothing about behaviour
+  changed. The mentions that remain describe *other* projects, in the README's comparison section.
 - **One word stopped meaning three things.** pytest owns "session" for the whole run, and testaferro was using it for
   two more: one guest being up, and the shared area `start()` opens. The `Backend` ABC's `start_session()` /
   `stop_session()` are now **`start_guest()` / `stop_guest()`** — a *guest session* is one guest up and able to answer

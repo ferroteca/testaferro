@@ -32,11 +32,11 @@ import os
 
 from . import binfmt
 
-# platform name -> binding module (a sibling of this one), imported
-# only when resolution selects it. Platform names, never emulators:
-# QEMU is the binding's business and appears in no consumer's
-# vocabulary (P2, D3).
-_PLATFORM_BINDINGS = {"dos": "qemu"}
+# platform name -> the provider binding that runs it (a sibling
+# module, imported only when resolution selects it). A binding is
+# named for its provider, never for what that provider drives
+# underneath (D16); reliquary is the only one built (P1, D11).
+_PLATFORM_PROVIDERS = {"dos": "reliquary"}
 
 
 def resolve_backend(target, platform=None, machine=None,
@@ -60,10 +60,10 @@ def resolve_backend(target, platform=None, machine=None,
     machines.load_config(search_from=search_from)
     if platform is not None:
         platform = str(platform).lower()
-        if platform not in _PLATFORM_BINDINGS:
+        if platform not in _PLATFORM_PROVIDERS:
             raise ValueError(f"unsupported platform {platform!r}; "
                              "supported: "
-                             + ", ".join(sorted(_PLATFORM_BINDINGS)))
+                             + ", ".join(sorted(_PLATFORM_PROVIDERS)))
     fmt = binfmt.classify(target)
     if fmt.platform is None and platform is None and machine is None:
         raise ValueError(
@@ -79,12 +79,12 @@ def resolve_backend(target, platform=None, machine=None,
         options["machine_config"] = machine_config
     else:
         selected_platform = platform if platform is not None else fmt.platform
-    if selected_platform not in _PLATFORM_BINDINGS:
+    if selected_platform not in _PLATFORM_PROVIDERS:
         raise ValueError(f"unsupported platform {selected_platform!r}; "
                          "supported: "
-                         + ", ".join(sorted(_PLATFORM_BINDINGS)))
+                         + ", ".join(sorted(_PLATFORM_PROVIDERS)))
     binding = importlib.import_module(
-        "." + _PLATFORM_BINDINGS[selected_platform], __package__)
+        "." + _PLATFORM_PROVIDERS[selected_platform], __package__)
     try:
         return binding.suite_backend(target, **options)
     except TypeError as error:

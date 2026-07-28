@@ -1,7 +1,11 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: BSD-3-Clause
-"""Unit tests for the QEMU backend: executable interrogation and the
-testaferro-managed reliquary home."""
+"""Unit tests for the reliquary provider binding: executable
+interrogation and the testaferro-managed reliquary home.
+
+`binding` is testaferro.reliquary; the bare "reliquary." strings
+patched below are the provider distribution it drives.
+"""
 
 import contextlib
 import importlib.util
@@ -21,7 +25,8 @@ from test_binfmt import new_format_exe_bytes, plain_dos_exe_bytes
 RELIQUARY_AVAILABLE = importlib.util.find_spec("reliquary") is not None
 
 if RELIQUARY_AVAILABLE:
-    from testaferro import machines, qemu
+    from testaferro import machines
+    from testaferro import reliquary as binding
 
 EMPTY_RUN_OUTPUT = (
     "OK (2 tests, 0 ran, 0 checks, 0 ignored, 2 filtered out, 0 ms)\n")
@@ -43,7 +48,7 @@ def _patched(*patches):
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
 class SuiteBackendDispatchTests(unittest.TestCase):
-    """The guard on qemu.suite_backend; the per-format naming matrix
+    """The guard on suite_backend(); the per-format naming matrix
     lives with the classifier in test_binfmt."""
 
     def setUp(self):
@@ -59,29 +64,29 @@ class SuiteBackendDispatchTests(unittest.TestCase):
         exe = self._exe(new_format_exe_bytes(b"PE\0\0"))
 
         with self.assertRaisesRegex(ValueError, r"Windows \(PE\)"):
-            qemu.suite_backend(exe)
+            binding.suite_backend(exe)
 
     def test_rejects_pe_x86_naming_the_architecture(self):
         machine = (0x014C).to_bytes(2, "little")
         exe = self._exe(new_format_exe_bytes(b"PE\0\0" + machine))
 
         with self.assertRaisesRegex(ValueError, r"Windows x86 \(PE\)"):
-            qemu.suite_backend(exe)
+            binding.suite_backend(exe)
 
     def test_accepts_headerless_image_like_a_com_program(self):
         # .com-style raw 8086 code has no magic at all — nothing to
         # prove, so it must pass through for the guest to judge
         exe = self._exe(b"\xb4\x09\xba\x00\x01\xcd\x21\xc3")
 
-        self.assertIsNotNone(qemu.suite_backend(exe))
+        self.assertIsNotNone(binding.suite_backend(exe))
 
     def test_missing_executable_raises_at_dispatch(self):
         with self.assertRaises(FileNotFoundError):
-            qemu.suite_backend(
+            binding.suite_backend(
                 pathlib.Path(self.tempdir.name) / "MISSING.EXE")
 
 
-class _QemuFixture(unittest.TestCase):
+class _BindingFixture(unittest.TestCase):
     """Shared setup: a DOS exe, a custom image, and a private cache."""
 
     def setUp(self):
@@ -133,13 +138,14 @@ class _QemuFixture(unittest.TestCase):
         Machine *creation* is real: reliquary parses the blueprint
         testaferro authored, resolves its media and materializes the
         drives, all of which is cheap and hypervisor-free. Booting is
-        not — `start_machine` launches QEMU — so the three calls that
-        need a running machine are stubbed and nothing else.
+        not — `start_machine` hands reliquary a real hypervisor to
+        launch — so the three calls that need a running machine are
+        stubbed and nothing else.
 
         Creation stays cheap only while every drive's media is `use`
         (attached in place). A blueprint declaring a blank (`size`)
-        builds a qcow2 through qemu-img and belongs in an integration
-        test instead.
+        makes reliquary reach for an external image tool, which belongs
+        in an integration test instead.
         """
         return _patched(
             mock.patch("reliquary.start_machine"),
@@ -148,13 +154,13 @@ class _QemuFixture(unittest.TestCase):
                        **exec_kwargs))
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
-class QemuSuiteBackendTests(_QemuFixture):
+class ReliquarySuiteBackendTests(_BindingFixture):
     """Backend behavior within one guest session."""
 
     def test_a_guest_runs_in_a_fresh_home_with_the_caller_boot_image(self):
         # No run open, so the guest home sits at the cache root rather
         # than inside a run's area (D15).
-        backend = qemu.suite_backend(self.exe, boot_image=self.image)
+        backend = binding.suite_backend(self.exe, boot_image=self.image)
 
         [(home, image)] = self._guest_homes_seen(backend)
 
@@ -164,7 +170,7 @@ class QemuSuiteBackendTests(_QemuFixture):
         self.assertFalse(os.path.exists(home))
 
     def test_each_guest_session_gets_its_own_home(self):
-        backend = qemu.suite_backend(self.exe, boot_image=self.image)
+        backend = binding.suite_backend(self.exe, boot_image=self.image)
 
         homes = [self._guest_homes_seen(backend)[0][0] for _ in range(2)]
 
@@ -176,7 +182,7 @@ class QemuSuiteBackendTests(_QemuFixture):
         template = machines.MachineSpec({
             "drives": {"floppy0": {"name": "msdos",
                                    "location": {"local": str(source)}}}})
-        backend = qemu.suite_backend(self.exe, machine_config=template)
+        backend = binding.suite_backend(self.exe, machine_config=template)
 
         with self._fake_machine():
             backend.start_guest()
@@ -192,7 +198,7 @@ class QemuSuiteBackendTests(_QemuFixture):
                 backend.stop_guest()
 
     def test_the_suite_executable_is_staged_on_a_work_drive(self):
-        backend = qemu.suite_backend(self.exe, boot_image=self.image)
+        backend = binding.suite_backend(self.exe, boot_image=self.image)
 
         with self._fake_machine():
             backend.start_guest()
@@ -214,7 +220,7 @@ class QemuSuiteBackendTests(_QemuFixture):
                 image.write(b"freedos")
             return payload
 
-        backend = qemu.suite_backend(self.exe)
+        backend = binding.suite_backend(self.exe)
         with mock.patch("reliquary.fetch_media",
                         side_effect=fake_fetch_media) as fetch_media:
             images = [self._guest_homes_seen(backend)[0][1]
@@ -225,7 +231,7 @@ class QemuSuiteBackendTests(_QemuFixture):
     def test_runs_suite_through_reliquary(self):
         expected = tuple(EMPTY_RUN_OUTPUT.splitlines())
         with self._fake_machine(return_value=expected) as guest_exec:
-            backend = qemu.suite_backend(self.exe, boot_image=self.image)
+            backend = binding.suite_backend(self.exe, boot_image=self.image)
             backend.start_guest()
             try:
                 self.assertEqual(backend.run_all(), [])
@@ -237,7 +243,7 @@ class QemuSuiteBackendTests(_QemuFixture):
 
     def test_enumerator_forwards_to_suite_backend(self):
         with self._fake_machine() as guest_exec:
-            backend = qemu.suite_backend(
+            backend = binding.suite_backend(
                 self.exe,
                 enumerator=lambda: cpputest.parse_list("Vring.Wraps"))
             ids = backend.list_tests()
@@ -248,7 +254,7 @@ class QemuSuiteBackendTests(_QemuFixture):
     def test_reliquary_materializes_the_authored_blueprint(self):
         """The blueprint is reliquary's to validate, so let it: every
         test here creates the machine for real, and this one says so."""
-        backend = qemu.suite_backend(self.exe, boot_image=self.image)
+        backend = binding.suite_backend(self.exe, boot_image=self.image)
 
         with self._fake_machine() as guest_exec:
             backend.start_guest()
@@ -265,36 +271,36 @@ class WorkDrivePlacementTests(unittest.TestCase):
     declaration arithmetic, so every case is worth stating."""
 
     def test_takes_the_first_disk_of_an_empty_machine(self):
-        self.assertEqual(qemu._work_drive({}), ("hdd0", "C"))
+        self.assertEqual(binding._work_drive({}), ("hdd0", "C"))
 
     def test_a_floppy_does_not_occupy_a_disk_slot(self):
-        self.assertEqual(qemu._work_drive({"floppy0": {}}), ("hdd0", "C"))
+        self.assertEqual(binding._work_drive({"floppy0": {}}), ("hdd0", "C"))
 
     def test_a_cdrom_does_not_shift_the_letter(self):
         # CD-ROMs take the letters after the last disk, so a declared
         # cdrom leaves the work drive at C:.
-        self.assertEqual(qemu._work_drive({"cdrom0": {}}), ("hdd0", "C"))
+        self.assertEqual(binding._work_drive({"cdrom0": {}}), ("hdd0", "C"))
 
     def test_follows_a_declared_system_disk(self):
-        self.assertEqual(qemu._work_drive({"hdd0": {}}), ("hdd1", "D"))
+        self.assertEqual(binding._work_drive({"hdd0": {}}), ("hdd1", "D"))
 
     def test_follows_several_declared_disks(self):
-        self.assertEqual(qemu._work_drive({"hdd0": {}, "hdd1": {}}),
+        self.assertEqual(binding._work_drive({"hdd0": {}, "hdd1": {}}),
                          ("hdd2", "E"))
 
     def test_fills_a_gap_and_letters_it_by_position(self):
         # hdd1 declared, hdd0 free: the work drive lands first and is
         # therefore C:, pushing the declared disk to D:.
-        self.assertEqual(qemu._work_drive({"hdd1": {}}), ("hdd0", "C"))
+        self.assertEqual(binding._work_drive({"hdd1": {}}), ("hdd0", "C"))
 
     def test_undigited_disk_key_counts_as_slot_zero(self):
-        self.assertEqual(qemu._work_drive({"hdd": {}}), ("hdd1", "D"))
+        self.assertEqual(binding._work_drive({"hdd": {}}), ("hdd1", "D"))
 
     def test_a_full_machine_fails_closed_naming_the_reason(self):
         drives = {f"hdd{slot}": {} for slot in range(4)}
 
         with self.assertRaisesRegex(ValueError, "free slot"):
-            qemu._work_drive(drives)
+            binding._work_drive(drives)
 
     def test_the_letter_agrees_with_reliquarys_own_assignment(self):
         """Guard the duplication, as far as reliquary will vouch for it.
@@ -316,7 +322,7 @@ class WorkDrivePlacementTests(unittest.TestCase):
                          {"hdd0": {}}, {"hdd1": {}}, {"hdd0": {}, "hdd1": {}},
                          {"cdrom0": {}}, {"hdd0": {}, "cdrom0": {}}):
             with self.subTest(declared=sorted(declared)):
-                key, letter = qemu._work_drive(declared)
+                key, letter = binding._work_drive(declared)
                 state = {name: _drive_state(name)
                          for name in (*declared, key)}
                 determined = platform_dos.drive_letters(state)
@@ -327,7 +333,7 @@ class WorkDrivePlacementTests(unittest.TestCase):
 
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
-class BlueprintAuthoringTests(_QemuFixture):
+class BlueprintAuthoringTests(_BindingFixture):
     """The document testaferro composes, without materializing it."""
 
     def _document(self, backend):
@@ -335,7 +341,7 @@ class BlueprintAuthoringTests(_QemuFixture):
         return document[0], document[1:], letter
 
     def test_zero_configuration_boots_the_chosen_image(self):
-        backend = qemu.suite_backend(self.exe, boot_image=self.image)
+        backend = binding.suite_backend(self.exe, boot_image=self.image)
 
         machine, media, letter = self._document(backend)
 
@@ -354,7 +360,7 @@ class BlueprintAuthoringTests(_QemuFixture):
             "drives": {"hdd0": {"name": "system",
                                 "location": {"local": str(self.image)}}},
             "boot": ["hdd0"]})
-        backend = qemu.suite_backend(self.exe, machine_config=template)
+        backend = binding.suite_backend(self.exe, machine_config=template)
 
         machine, _, letter = self._document(backend)
 
@@ -370,7 +376,7 @@ class BlueprintAuthoringTests(_QemuFixture):
         spec = {"type": "media", "name": "extra", "location": "x.img"}
         template = machines.MachineSpec(
             {"drives": {"floppy0": {"media": "extra"}}}, [spec])
-        backend = qemu.suite_backend(self.exe, machine_config=template)
+        backend = binding.suite_backend(self.exe, machine_config=template)
 
         _, media, _ = self._document(backend)
 
@@ -378,41 +384,41 @@ class BlueprintAuthoringTests(_QemuFixture):
 
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
-class SessionLifecycleTests(_QemuFixture):
+class SessionLifecycleTests(_BindingFixture):
     """testaferro.start()/stop(): one image choice shared by many
     suites, swept away together."""
 
     def setUp(self):
         super().setUp()
-        self.addCleanup(qemu.stop)
+        self.addCleanup(binding.stop)
 
     def _run_suite(self, backend):
         return self._guest_homes_seen(backend)[0]
 
     def test_the_runs_image_is_staged_once_and_shared_by_suites(self):
-        qemu.start(boot_image=self.image)
-        with mock.patch.object(qemu, "_cached_default_image") as cached:
-            first = self._run_suite(qemu.suite_backend(self.exe))
-            second = self._run_suite(qemu.suite_backend(self.exe))
+        binding.start(boot_image=self.image)
+        with mock.patch.object(binding, "_cached_default_image") as cached:
+            first = self._run_suite(binding.suite_backend(self.exe))
+            second = self._run_suite(binding.suite_backend(self.exe))
         cached.assert_not_called()
         self.assertEqual((first[1], second[1]),
                          (b"custom dos", b"custom dos"))
         self.assertNotEqual(first[0], second[0])
 
     def test_start_does_not_stage_or_download_by_itself(self):
-        with mock.patch.object(qemu, "_cached_default_image") as cached:
-            qemu.start()
+        with mock.patch.object(binding, "_cached_default_image") as cached:
+            binding.start()
         cached.assert_not_called()
 
     def test_stop_sweeps_run_homes_but_keeps_download_cache(self):
         cached = pathlib.Path(cache.cache_root()) / "boot.img"
         cached.parent.mkdir(parents=True, exist_ok=True)
         cached.write_bytes(b"freedos")
-        qemu.start()
-        home, image = self._run_suite(qemu.suite_backend(self.exe))
+        binding.start()
+        home, image = self._run_suite(binding.suite_backend(self.exe))
         self.assertEqual(image, b"freedos")
 
-        qemu.stop()
+        binding.stop()
         self.assertFalse(os.path.exists(os.path.dirname(home)))
         self.assertTrue(cached.exists())
 
@@ -422,10 +428,10 @@ class SessionLifecycleTests(_QemuFixture):
         cache.keep_guest_homes(True)
         self.addCleanup(cache.keep_guest_homes, False)
         self.addCleanup(cache._kept.clear)
-        qemu.start(boot_image=self.image)
-        home, _ = self._run_suite(qemu.suite_backend(self.exe))
+        binding.start(boot_image=self.image)
+        home, _ = self._run_suite(binding.suite_backend(self.exe))
 
-        qemu.stop()
+        binding.stop()
 
         self.assertTrue(os.path.exists(home))
         self.assertIn(home, cache.kept_guest_homes())
@@ -435,50 +441,50 @@ class SessionLifecycleTests(_QemuFixture):
         cached.parent.mkdir(parents=True, exist_ok=True)
         cached.write_bytes(b"freedos")
 
-        qemu.stop(clear_downloads=True)
+        binding.stop(clear_downloads=True)
         self.assertFalse(cached.exists())
 
     def test_suite_boot_image_overrides_the_runs_image(self):
         other = pathlib.Path(self.tempdir.name) / "other.img"
         other.write_bytes(b"other dos")
-        qemu.start(boot_image=self.image)
+        binding.start(boot_image=self.image)
 
         _, image = self._run_suite(
-            qemu.suite_backend(self.exe, boot_image=other))
+            binding.suite_backend(self.exe, boot_image=other))
         self.assertEqual(image, b"other dos")
 
     def test_stop_stops_a_machine_the_caller_left_running(self):
         # A machine outlives the call that booted it, so a run
         # closing while one is up must stop it before sweeping the
         # home it is running from.
-        qemu.start(boot_image=self.image)
-        backend = qemu.suite_backend(self.exe)
+        binding.start(boot_image=self.image)
+        backend = binding.suite_backend(self.exe)
 
         with self._fake_machine():
             backend.start_guest()
             home = backend._home
-            qemu.stop()
+            binding.stop()
 
         self.assertIsNone(backend._home)
         self.assertFalse(os.path.exists(home))
-        self.assertNotIn(backend, qemu._running)
+        self.assertNotIn(backend, binding._running)
 
     def test_a_stopped_guest_is_no_longer_tracked(self):
-        backend = qemu.suite_backend(self.exe, boot_image=self.image)
+        backend = binding.suite_backend(self.exe, boot_image=self.image)
 
         with self._fake_machine():
             backend.start_guest()
-            self.assertIn(backend, qemu._running)
+            self.assertIn(backend, binding._running)
             backend.stop_guest()
 
-        self.assertNotIn(backend, qemu._running)
+        self.assertNotIn(backend, binding._running)
 
     def test_start_twice_raises_and_stop_is_reentrant(self):
-        qemu.start()
+        binding.start()
         with self.assertRaisesRegex(RuntimeError, "already"):
-            qemu.start()
-        qemu.stop()
-        qemu.stop()
+            binding.start()
+        binding.stop()
+        binding.stop()
 
     def test_forgotten_stop_is_swept_at_interpreter_exit(self):
         env = dict(os.environ,
@@ -487,9 +493,9 @@ class SessionLifecycleTests(_QemuFixture):
         result = subprocess.run(
             [sys.executable, "-c",
              "import testaferro\n"
-             "from testaferro import qemu\n"
+             "from testaferro import reliquary as binding\n"
              "testaferro.start()\n"
-             "print(qemu._run_area['dir'])\n"],
+             "print(binding._run_area['dir'])\n"],
             env=env, capture_output=True, text=True, check=True)
         run_dir = result.stdout.strip().splitlines()[-1]
 
@@ -498,8 +504,8 @@ class SessionLifecycleTests(_QemuFixture):
 
     def test_package_level_start_stop_delegate(self):
         import testaferro
-        with mock.patch.object(qemu, "start") as start, \
-                mock.patch.object(qemu, "stop") as stop:
+        with mock.patch.object(binding, "start") as start, \
+                mock.patch.object(binding, "stop") as stop:
             testaferro.start(boot_image=self.image)
             testaferro.stop(clear_downloads=True)
         start.assert_called_once_with(boot_image=self.image)

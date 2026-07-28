@@ -1,14 +1,22 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: BSD-3-Clause
-"""The QEMU/DOS guest binding.
+"""The reliquary provider binding, for DOS guests.
+
+Named for the provider it binds, which is the layer testaferro
+actually talks to: everything in this module is a reliquary call, and
+whatever the provider drives underneath is the provider's own
+business — it has no name anywhere in this package (D16, P1, P2). The
+module imported below is the provider distribution; this module is
+`testaferro.reliquary`.
 
 `suite_backend()` guards the door with `binfmt.classify()`: a DOS
 program — plain MZ or a headerless/.com image — yields a
-QemuSuiteBackend; anything else is rejected before any guest work,
-with the format and architecture named. The framework adapter
+ReliquarySuiteBackend; anything else is rejected before any guest
+work, with the format and architecture named. The framework adapter
 defaults to testaferro.cpputest.
 
-QemuSuiteBackend drives a reliquary machine on the caller's behalf.
+ReliquarySuiteBackend drives a reliquary machine on the caller's
+behalf.
 Each **guest session** — one guest up, from `start_guest()` to
 `stop_guest()` — gets a fresh, disposable reliquary home under
 testaferro's cache directory (LOCALAPPDATA or XDG_CACHE_HOME): the
@@ -78,7 +86,7 @@ _FREEDOS_FLOPPY_MEDIA_DEFINITION = [
 def suite_backend(exe_path, framework=cpputest, enumerator=None,
                   boot_image=None, machine_config=None):
     """Interrogate the referenced suite executable and return the
-    backend matching its format — a QemuSuiteBackend for a DOS
+    backend matching its format — a ReliquarySuiteBackend for a DOS
     program. Raises FileNotFoundError for a missing file and
     ValueError for a provably non-DOS executable (e.g. the suite's
     host build passed by mistake)."""
@@ -94,11 +102,11 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
         machine_config = _coerce_machine_config(machine_config)
         if machine_config.platform != "dos":
             raise ValueError(
-                "the QEMU/DOS binding requires a DOS machine config, "
-                f"not {machine_config.platform!r}")
+                "this binding runs DOS guests and needs a DOS machine "
+                f"config, not {machine_config.platform!r}")
     if boot_image is not None and machine_config is not None:
         raise TypeError("boot_image and machine_config cannot be combined")
-    return QemuSuiteBackend(exe_path, framework=framework,
+    return ReliquarySuiteBackend(exe_path, framework=framework,
                             enumerator=enumerator,
                             boot_image=boot_image,
                             machine_config=machine_config)
@@ -263,7 +271,7 @@ def _work_drive(drives):
     return f"hdd{slot}", letter
 
 
-class QemuSuiteBackend(SuiteBackend):
+class ReliquarySuiteBackend(SuiteBackend):
     def __init__(self, exe_path, framework=cpputest, enumerator=None,
                  boot_image=None, machine_config=None):
         self._boot_image = (None if boot_image is None

@@ -71,7 +71,7 @@ why.
 
 Runtime code is standard-library-only outside two seams — pytest is
 imported lazily in `testaferro/facade.py`, and reliquary in
-`testaferro/qemu.py` (the guest machine) and `testaferro/machines.py`
+`testaferro/reliquary.py` (the guest machine) and `testaferro/machines.py`
 (its JSONC reader, for the `.rlqb` dialect). Please discuss a new
 dependency before adding one.
 

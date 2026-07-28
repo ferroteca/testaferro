@@ -78,7 +78,7 @@ class GuestSuiteTargetTests(unittest.TestCase):
             return [TestId("Vring", "Wraps")]
 
         exe = self._exe(plain_dos_exe_bytes())
-        with mock.patch("testaferro.qemu.suite_backend",
+        with mock.patch("testaferro.reliquary.suite_backend",
                         return_value=FakeBackend(OUTCOMES)) as factory:
             suite = testaferro.guest_suite(exe, enumerator=enumerator)
         factory.assert_called_once_with(exe, enumerator=enumerator)
@@ -99,7 +99,7 @@ class GuestSuiteTargetTests(unittest.TestCase):
 
         exe = self._exe(plain_dos_exe_bytes())
         with mock.patch("testaferro.machines.load_config") as load:
-            with mock.patch("testaferro.qemu.suite_backend",
+            with mock.patch("testaferro.reliquary.suite_backend",
                             return_value=FakeBackend(OUTCOMES)):
                 testaferro.guest_suite(exe, enumerator=enumerator)
         load.assert_called_once()
@@ -118,7 +118,7 @@ class GuestSuiteTargetTests(unittest.TestCase):
 
         backend = FakeBackend(OUTCOMES)
         exe = self._exe(plain_dos_exe_bytes())
-        with mock.patch("testaferro.qemu.suite_backend",
+        with mock.patch("testaferro.reliquary.suite_backend",
                         return_value=backend):
             testaferro.guest_suite(
                 exe, enumerator=lambda: [TestId("Vring", "Wraps")])

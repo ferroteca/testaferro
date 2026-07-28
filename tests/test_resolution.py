@@ -42,7 +42,7 @@ class BackendResolutionTests(unittest.TestCase):
         and report the options it was handed."""
         from testaferro.resolution import resolve_backend
 
-        with mock.patch("testaferro.qemu.suite_backend",
+        with mock.patch("testaferro.reliquary.suite_backend",
                         return_value=FakeBackend(OUTCOMES)) as factory:
             backend = resolve_backend(*args, **kwargs)
         return backend, factory

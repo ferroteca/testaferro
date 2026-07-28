@@ -142,13 +142,12 @@ provider plus all the configuration that provider requires.
 `platform` goes back to being what it always was — a field in an
 authored blueprint, reliquary's word, passing through untouched
 (P3). `provider=` enters the declaration, which D11 already says the
-tester names and nothing currently spells; the binding table keys by
-provider rather than by OS family; and `testaferro/qemu.py` takes
-the name of what it actually binds, since it drives reliquary and
-never QEMU. That last part answers the open question asking whether
-the module should be named for its *platform* instead — which the
-amended vocabulary decides differently, so the question retires with
-the adjudication rather than on its own terms.
+tester names and nothing currently spells, and the binding table
+keys by provider rather than by OS family — `_PLATFORM_PROVIDERS`
+becoming a provider lookup outright. The binding module itself is
+already named for its provider (D16), which went ahead of this
+feature because naming an internal module for what it actually calls
+needs no amendment; what waits here is the *tester's* vocabulary.
 
 Reaches four of the six enumerated interfaces — the embedding API,
 the declaration, `testaferro.ini`, and the plugin's options and ini

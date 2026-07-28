@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: BSD-3-Clause
-"""testaferro: a pytest plugin for remote (e.g. QEMU-guest) unit
-tests.
+"""testaferro: a pytest plugin for tests that run inside a guest.
 
 A suite compiled for and running on a remote target surfaces as
 ordinary pytest tests on the host. There are two ways in, and they
@@ -24,7 +23,7 @@ a reference to the suite executable:
         Path(__file__).parent / "SUITE.EXE")
 
 The executable is interrogated to select its platform (DOS programs
-run in a QEMU guest; anything else is rejected), the
+run in a guest reliquary provides; anything else is rejected), the
 framework adapter defaults to testaferro.cpputest (`framework=`
 overrides), and the runner's working state lives in
 testaferro-managed disposable directories. Named test machines are
@@ -46,7 +45,7 @@ together — in pytest, from the consumer's conftest.py:
 
 # eager: the facade's own imports are stdlib-only (pytest is loaded
 # lazily inside it). start/stop delegate lazily instead, because
-# importing testaferro.qemu pulls in reliquary.
+# importing the provider binding pulls in reliquary.
 from .facade import guest_suite  # noqa: F401
 
 
@@ -80,13 +79,13 @@ def start(boot_image=None):
     downloaded default) serving every suite until stop(). Costs
     nothing until a guest actually runs; an atexit failsafe sweeps
     the run if stop() is never called."""
-    from . import qemu
-    qemu.start(boot_image=boot_image)
+    from . import reliquary
+    reliquary.start(boot_image=boot_image)
 
 
 def stop(clear_downloads=False):
     """Close the run, sweeping its staged image and every guest home
     inside it; safe without an active run. `clear_downloads=True`
     also drops the cached default boot image."""
-    from . import qemu
-    qemu.stop(clear_downloads=clear_downloads)
+    from . import reliquary
+    reliquary.stop(clear_downloads=clear_downloads)

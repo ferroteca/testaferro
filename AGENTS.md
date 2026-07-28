@@ -72,10 +72,14 @@ Package layout (each module states its contract in its docstring):
   cache root for a guest belonging to no run. That policy is testaferro's, not
   any binding's, which is what lets the plugin read the answer without
   importing a binding — or a provider.
-- [testaferro/qemu.py](testaferro/qemu.py) — the QEMU/DOS platform
-  binding: `suite_backend()` guards with `binfmt.classify()`
+- [testaferro/reliquary.py](testaferro/reliquary.py) — the reliquary
+  provider binding, for DOS guests (D16). Named for the provider it
+  binds, because that is the layer testaferro talks to: every call in
+  it is a reliquary call, and what reliquary drives underneath is its
+  own business and appears nowhere in this package.
+  `suite_backend()` guards with `binfmt.classify()`
   (rejections name the format and architecture) and returns a
-  `QemuSuiteBackend`, with `framework` defaulting to the CppUTest
+  `ReliquarySuiteBackend`, with `framework` defaulting to the CppUTest
   adapter. Each guest session writes the declaration as a blueprint
   into a disposable reliquary home under `cache_root()`, then
   `create_machine()` → `start_machine()`; every guest run is one
@@ -175,7 +179,7 @@ Package layout (each module states its contract in its docstring):
   mapping treats dots as hierarchy separators.
 
 The framework adapter stays independent of reliquary: it never imports
-the runner and `QemuSuiteBackend` defaults it to CppUTest while keeping
+the runner and `ReliquarySuiteBackend` defaults it to CppUTest while keeping
 it a parameter. Consumers see none of the backend classes: the public
 surface is `testaferro.config()` / `testaferro.load_config()` for
 named machines (including `testaferro.ini`) and
@@ -264,7 +268,7 @@ section is the operative statement.
 
 - Python code: stdlib plus two declared dependencies (P11) — pytest (the
   facade's host surface, imported lazily) and reliquary (the only
-  supported guest-machine provider, imported by `testaferro/qemu.py` for the
+  supported guest-machine provider, imported by `testaferro/reliquary.py` for the
   machine lifecycle and by `testaferro/machines.py` for its JSONC
   reader alone). Support Python 3.9 and newer; keep lines near 79
   columns.
@@ -337,15 +341,16 @@ launch a virtualization platform. The boundary is exact:
   parsing, namespace and media resolution, hash verification, drive
   materialization, machine state. Unit tests run it for real, and
   should: it is the best coverage available on this side of the line.
-- `start_machine()` launches QEMU. It, `stop_machine()`, and `exec()`
+- `start_machine()` has reliquary launch a real hypervisor process.
+  It, `stop_machine()`, and `exec()`
   are stubbed in the unit suite and belong to integration.
 
 **The cheap half of that is conditional on the blueprint, not on the
 call.** `create_machine()` stays cheap only while every drive's media
 is `use` (attached in place), which is what testaferro authors. A
 blueprint declaring a blank (`{"size": ...}`) materializes it through
-**qemu-img** — the same external toolchain, so such a machine belongs
-in an integration test. Reliquary's own codex `freedos` blueprint
+an **external image tool** — the same uncontrolled toolchain, so such
+a machine belongs in an integration test. Reliquary's own codex `freedos` blueprint
 declares exactly such a blank, so this is easy to walk into.
 
 Six tests once launched real VMs while appearing mocked, costing ~10s

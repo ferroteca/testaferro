@@ -23,7 +23,7 @@ from test_binfmt import new_format_exe_bytes, plain_dos_exe_bytes
 
 PYTEST_AVAILABLE = importlib.util.find_spec("pytest") is not None
 
-# Stands in for testaferro.qemu, recording what it was asked for.
+# Stands in for the provider binding, recording what it was asked for.
 CONFTEST = '''
 import os
 import sys
@@ -86,10 +86,10 @@ def suite_backend(exe_path, **options):
     return RecordingBackend(exe_path, **options)
 
 
-fake = types.ModuleType("testaferro.qemu")
+fake = types.ModuleType("testaferro.reliquary")
 fake.suite_backend = suite_backend
-sys.modules["testaferro.qemu"] = fake
-testaferro.qemu = fake
+sys.modules["testaferro.reliquary"] = fake
+testaferro.reliquary = fake
 '''
 
 
