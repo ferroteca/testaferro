@@ -111,6 +111,81 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D18 — A suite names a test environment; D3's pair is retired
+
+**Decided** owner, 2026-07-28. **Supports** P1, P2 (pledged by this
+entry). Overrules D3.
+
+**The amendment is the argument** ([INTERFACES.md](INTERFACES.md)),
+and this is the hard case that rule exists for: the vocabulary
+testaferro speaks was settled by D3, so nothing about it could be
+argued as a feature on its own merits. P1 and P2, amended and argued
+in [proposed/](proposed/), have won and move to
+[pledged/ARCHITECTURE.md](pledged/ARCHITECTURE.md).
+
+**P1 — the provider is an *execution* provider.** D3-era wording said
+"guest-machine provider", which excludes half of what the axis is for:
+wine and dosbox run a program without booting a machine at all. The
+layer is named for what it does. Everything D1 refused it still
+refuses, verbatim.
+
+**P2 — a suite names a test environment.** One noun replaces D3's
+pair. A **test environment** is what a suite runs in: a standard one
+testaferro authors and names, or a custom one the tester declares as a
+choice of provider plus that provider's configuration. `platform` goes
+back to being what it always was — a field in an authored blueprint,
+the provider's word, passing through untouched (P3, D4) — rather than
+a concept a consumer writes in.
+
+**What this does not do is ration precision.** A custom environment
+goes as deep as the provider does: a complete blueprint, its drives,
+its provisioning scripts, its `backend-settings`, carried through for
+the provider to validate. The boundary is vocabulary, not reach —
+testaferro names providers and never what one drives, interpreting no
+field below the provider's own. An earlier draft of P2 said "and
+nothing underneath one", which read as a limit on the tester rather
+than on testaferro, and was struck before this pledge.
+
+**D3 retires** to the retired section, its text intact. Note what
+survives it: its *weighed and declined* clause refused emulator names
+in the consumer-facing surface, and that refusal is not loosened here
+— it is strengthened, since D16 has since taken the emulator out of
+testaferro's own naming too.
+
+**Pledged severed**, on the reading D13 used for U4. Both entries cite
+drafted material — P3, P8, P17, U9 — and the map's rule against a
+pledged item resting on a proposed one tests **completion**, not
+citation. Each of those names behaviour the code ships today:
+pass-through is honored by `machines.py`, zero configuration by the
+inference path, the authored catalog by `catalog.py` and its guard
+test, and `machine="freedos"` resolves since F7. U7 is cited only to
+illustrate how deep a provider document may go, which blueprint
+pass-through already allows — `scripts` is expressible in
+`testaferro.ini` today.
+
+**Two consequences, recorded rather than left to be discovered.**
+Neither principle is *honored* yet: the code still says `platform=`
+and `machine=`, so both sit pledged and unarmed, and arming waits on
+F10 with every residue filed in the same change. And this reaches a
+**pledged use case**: U4 leans on U3's "selects the same machine", so
+that clause moves when the vocabulary does — the cost D13 recorded for
+reshaping what U4 rests on, now incurred deliberately.
+
+**Weighed and declined:** keeping D3 and adding *environment* beside
+*platform* and *machine*, so nothing already written would need
+changing. It buys compatibility with a vocabulary the project has
+decided is wrong, and leaves two names for one thing — which is the
+condition D15 was just spent removing elsewhere. Also declined:
+pledging F10 in the same act. The bound bites at the pledge and F10 is
+flagged too large; cutting it is its own decision, and this one is
+about the vocabulary rather than the work.
+
+**Folded into:** [pledged/ARCHITECTURE.md](pledged/ARCHITECTURE.md)
+(P1, P2), [proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md) (the
+seams, the interface enumeration's note),
+[proposed/FEATURES.md](proposed/FEATURES.md) (F10),
+[../AGENTS.md](../AGENTS.md), D3 (retired).
+
 ### D17 — Argv crosses the framework seam as tokens
 
 **Decided** owner, 2026-07-28. **Supports** P4, U6 (drafted).
@@ -708,29 +783,6 @@ moving the pin is a deliberate task rather than a chore.
 **Folded into:** `testaferro/machines.py`, `testaferro/qemu.py`,
 `pyproject.toml`, [AGENTS.md](../AGENTS.md), [README.md](../README.md).
 
-### D3 — Platforms and test machines are the consumer's vocabulary
-
-**Decided** owner, 2026-07-18. **Supports** U1, U2, U3, P2 (drafted).
-
-Two separated concepts carry everything guest-related to the
-consumer. A **platform** is a type — the OS family a suite is built
-for ("dos", and later names as reliquary grows them) — knowing which
-binary formats it can run and its default boot-media type. A **test
-machine** is one named declaration carrying a platform. Several
-machines may share a platform; an MZ executable maps to its *native*
-candidate platforms and a unique configured machine wins, an
-ambiguous or empty result raising and listing the choices. Zero
-configuration keeps working: a platform offers an implicit machine
-only when it can self-provision without options.
-
-**Weighed and declined:** naming emulators in the consumer-facing
-surface. QEMU is an implementation detail of a binding and never
-appears in what a consumer writes; the facade's binding table keys
-by platform name for that reason.
-
-**Folded into:** `testaferro/machines.py`, `testaferro/facade.py`,
-`testaferro/binfmt.py` (`Format.platform`), [README.md](../README.md).
-
 ### D2 — Guest-side mechanics belong to reliquary, never to testaferro
 
 **Decided** owner, 2026-07-18. **Supports** P1 (drafted).
@@ -793,3 +845,26 @@ Overruled or no longer relevant, kept intact for the record. A
 retired decision binds nothing.
 
 <!-- ### D<n> — <title>  *(retired: overruled by D<m>)* -->
+
+### D3 — Platforms and test machines are the consumer's vocabulary  *(retired: overruled by D18)*
+
+**Decided** owner, 2026-07-18. **Supports** U1, U2, U3, P2 (drafted).
+
+Two separated concepts carry everything guest-related to the
+consumer. A **platform** is a type — the OS family a suite is built
+for ("dos", and later names as reliquary grows them) — knowing which
+binary formats it can run and its default boot-media type. A **test
+machine** is one named declaration carrying a platform. Several
+machines may share a platform; an MZ executable maps to its *native*
+candidate platforms and a unique configured machine wins, an
+ambiguous or empty result raising and listing the choices. Zero
+configuration keeps working: a platform offers an implicit machine
+only when it can self-provision without options.
+
+**Weighed and declined:** naming emulators in the consumer-facing
+surface. QEMU is an implementation detail of a binding and never
+appears in what a consumer writes; the facade's binding table keys
+by platform name for that reason.
+
+**Folded into:** `testaferro/machines.py`, `testaferro/facade.py`,
+`testaferro/binfmt.py` (`Format.platform`), [README.md](../README.md).

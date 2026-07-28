@@ -80,11 +80,12 @@ A **test environment** is what a suite runs in, and it is the whole
 consumer-facing vocabulary for guest matters: **standard**
 environments testaferro authors and names (U9, D10), and **custom**
 ones a tester declares — a choice of provider plus everything that
-provider needs. *[Amended. This said **platform** and **test
-machine**, the pair D3 made the consumer's vocabulary; `platform` is
-reliquary's own word, reaching testaferro as configuration passing
-through (P3) rather than as something a suite says. D3 stands until
-this amendment is adjudicated, and the work is F10.]*
+provider needs, as deep as that provider goes (P2). *[Amended. This
+said **platform** and **test machine**, the pair D3 made the
+consumer's vocabulary; `platform` is reliquary's own word, reaching
+testaferro as configuration passing through (P3) rather than as
+something a suite says. D3 was retired by D18, which pledged the
+amendment; the work that makes the code speak this way is F10.]*
 
 ## The interfaces
 
@@ -139,12 +140,12 @@ joins as its own small surface when it lands: verbs over machines
 and caches, never over test runs.
 
 **The second and third surfaces are named for today's spelling**,
-deliberately. The amendments to P1 and P2 make a declaration a *test
-environment* rather than a machine, and F10 is the work that renames
-it — but this enumeration is looked up to answer "does this change an
-interface?", so it names the surfaces as they exist rather than as
-they are argued to become. It is renamed by the work, not ahead of
-it.
+deliberately. P1 and P2 — now pledged (D18) — make a declaration a
+*test environment* rather than a machine, and F10 is the work that
+renames it; but this enumeration is looked up to answer "does this
+change an interface?", so it names the surfaces as they exist rather
+than as they are owed to become. It is renamed by the work, not by
+the pledge.
 
 **testaferro currently has no norms.** Each surface above should name
 the artifact that says exactly what it *is* and that the
@@ -157,61 +158,6 @@ anything that looks normative is written.
 
 ## The principles
 
-- **P1 — The execution provider is a declared choice, and
-  reliquary is the only supported one.** A **provider** is whatever
-  actually runs a guest suite — reliquary today, with vagrant,
-  dosbox and wine the shape of the others. They occupy one layer —
-  a test environment uses one *or* another, and the environment
-  names which (D11); testaferro passes that provider's own
-  configuration through untouched (P3). *[Amended: "guest-machine
-  provider". Not every provider boots a machine — wine and dosbox
-  run a program without one — so the layer is named for what it
-  does, which is also why a suite names an environment rather than
-  a machine (P2).]* The axis is testaferro's own: a future
-  provider is a new binding here, never capability pushed upstream.
-  What D1 refused stays refused — no structural runner contract, no
-  conformance kit, no mirrored configuration hierarchy, and no
-  abstraction built ahead of a second concrete provider; a prebuilt
-  `Backend` remains the escape hatch, and the seam a provider
-  implements. **The split governs verification as much as
-  implementation**: a property of the guest machine is the
-  provider's to guarantee and to test, so doubting one produces an
-  upstream bug report — never a local audit of its internals, and
-  never a defensive workaround here. (D1, D11.)
-- **P2 — Suites name test environments.** A **test environment** is
-  what a suite runs in, and naming one is the whole of what a
-  suite-facing consumer writes: a **standard** environment
-  testaferro authors and names (U9, D10, P17), or a **custom** one
-  the tester declares. The environment is the one place a provider
-  is named (P1, D11).
-
-  **How deep a custom environment goes is the tester's to choose,
-  and it goes as deep as the provider does.** A name and nothing
-  else, or a complete provider document — a reliquary blueprint
-  with its drives, its provisioning scripts, its
-  `backend-settings` — carried through untouched for the provider
-  to validate (P3, D4, U7). Precision is never rationed here, and a
-  tester who needs the provider's most specific knob reaches it by
-  writing the provider's own document.
-
-  What testaferro declines is not depth but **vocabulary**: it
-  names providers and never what a provider drives underneath. It
-  asks no consumer for an emulator, keys no table by one, and
-  interprets no field below the provider's own — `platform`
-  included, which is a blueprint field passing through (P3) rather
-  than a word testaferro speaks. A `backend-settings` block naming
-  QEMU is the tester configuring *reliquary*, and testaferro
-  carries it without opinion or comprehension.
-
-  Inference must still pick something when a tester declares
-  nothing, so the executable's own format selects a standard
-  environment (P8) — testaferro reading a binary, not a vocabulary
-  the consumer writes in. *[Amended twice. First: this made
-  **platform** and **machine** the consumer's pair, per D3 — D3
-  stands until that amendment is adjudicated, and the work is F10.
-  Then "and nothing underneath one" was struck, having read as a
-  limit on what a tester may configure when it was only ever about
-  what testaferro says.]*
 - **P3 — testaferro mirrors no provider's schema.** An authored
   machine document belongs to the declared provider's own
   vocabulary — a reliquary blueprint today — and passes through

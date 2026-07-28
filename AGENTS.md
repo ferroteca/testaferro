@@ -15,8 +15,8 @@ which is its programmatic layer. Both resolve through the same seam.
 Built and working under its unit tier — though no guest has run since
 the migration to the blueprint model, so end-to-end proof is owed
 (see "Unit and integration" below). Reliquary is the only supported
-guest-machine provider (P1) — the provider is a declared choice in
-the vision (D11), and reliquary is the one binding built;
+execution provider (P1, pledged) — the provider is a declared choice
+in the vision (D11), and reliquary is the one binding built;
 testaferro's pluggable aspect is the guest unit-test framework
 (U6).
 
@@ -228,8 +228,9 @@ both batched and `-k`-narrowed.
   against; when a plan of any kind disagrees with them, they govern
   and the plan is realigned. testaferro adopted this model after the
   code was written (D7), so its vision began wholly drafted in
-  [planning/proposed/](planning/proposed/); U4 and P16 have since
-  been pledged (D13) and nothing has reached the root lists — root
+  [planning/proposed/](planning/proposed/); U4 and P16 were pledged
+  first (D13), then P1 and P2 (D18), and nothing has reached the
+  root lists — root
   `USE-CASES.md` and `ARCHITECTURE.md` do not exist. Cite a U- or
   P-number knowing it names a draft, unless it sits in
   [planning/pledged/](planning/pledged/), where it names something

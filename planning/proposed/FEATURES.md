@@ -157,8 +157,10 @@ use case leans on: U4 cites U3's "selects the same machine", so the
 wording travels with the vocabulary, which is the cost D13 recorded
 for reshaping what U4 rests on.
 
-> **Too large as written**, and it cannot be picked up first: the
-> amendment is the argument (INTERFACES.md), so P1 and P2 have to
-> win and be pledged before this is. Cut at the pledge — the first
-> sprint's worth is the noun and the resolution path it names, with
-> the provider axis and the binding rename following it.
+> **Too large as written.** What blocked it is gone — P1 and P2 won
+> their argument and are pledged (D18) — so this is now free to be
+> pledged, and the bound is the only thing left in the way: cut it at
+> the pledge, each piece taking a fresh number and this one retiring.
+> The first sprint's worth is the noun and the resolution path it
+> names, with the provider axis following it. The binding rename is
+> already done (D16).
