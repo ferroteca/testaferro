@@ -99,7 +99,7 @@ class _QemuFixture(unittest.TestCase):
 
     def _blueprint(self, home):
         """The machine spec testaferro authored for one run home."""
-        path = os.path.join(home, "assets", "testaferro.rlqb")
+        path = os.path.join(home, "blueprints", "testaferro.rlqb")
         with open(path, encoding="utf-8") as handle:
             return json.load(handle)[0]
 
@@ -111,7 +111,7 @@ class _QemuFixture(unittest.TestCase):
         seen = []
 
         def fake_exec(command, *, machine=None, context=None, timeout=None):
-            home = context.home
+            home = context.home_dir
             drives = self._blueprint(home)["drives"]
             image = drives["floppy0"]["location"]["local"]
             with open(image, "rb") as boot:
@@ -207,7 +207,7 @@ class QemuSuiteBackendTests(_QemuFixture):
 
     def test_default_boot_image_downloads_once_then_caches(self):
         def fake_fetch_media(name, context):
-            payload = os.path.join(context.home, "payload.img")
+            payload = os.path.join(context.home_dir, "payload.img")
             with open(payload, "wb") as image:
                 image.write(b"freedos")
             return payload
@@ -295,13 +295,18 @@ class WorkDrivePlacementTests(unittest.TestCase):
             qemu._work_drive(drives)
 
     def test_the_letter_agrees_with_reliquarys_own_assignment(self):
-        """Guard the duplication.
+        """Guard the duplication, as far as reliquary will vouch for it.
 
         `_work_drive` derives the guest letter from a rule reliquary
-        owns and does not expose. Check this copy against reliquary's
-        own mapping, so the day that rule changes this fails here
-        rather than by running a suite off the wrong drive. Switch to
-        the public call if reliquary ever grows one.
+        owns, and since 0.1.0.dev3 reliquary answers for fewer drives
+        than testaferro asks about: the first hard disk is C: and no
+        later disk has a determined letter, because volume count is
+        not a declared fact. Where it does answer, this copy must
+        agree — the day that rule changes this fails here rather than
+        by running a suite off the wrong drive. Where it does not,
+        testaferro is assuming one volume per declared disk, and the
+        least this can hold it to is that the assumed letter never
+        collides with one reliquary has already placed.
         """
         from reliquary import platform_dos
 
@@ -312,8 +317,11 @@ class WorkDrivePlacementTests(unittest.TestCase):
                 key, letter = qemu._work_drive(declared)
                 state = {name: _drive_state(name)
                          for name in (*declared, key)}
-                self.assertEqual(
-                    platform_dos.drive_letters(state).get(letter), key)
+                determined = platform_dos.drive_letters(state)
+                if key in platform_dos.undetermined_letters(state):
+                    self.assertNotIn(letter, determined)
+                else:
+                    self.assertEqual(determined.get(letter), key)
 
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")

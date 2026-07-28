@@ -6,6 +6,21 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [Unreleased]
 
+### Changed
+
+- The reliquary pin moves to **0.1.0.dev3**, and the QEMU binding follows its working-directory rework. A session's
+  context is now `Context(home_dir=…, cache_dir=…, blueprints_dir=…, autoseed=False)`: the retired `assets=` named a
+  project asset root, and the blueprints directory names the one kind of document testaferro actually writes.
+  Hermeticity is unchanged and now says both halves out loud — where blueprints come from, and that the built-in codex
+  is never reached — where the single `assets=` knob used to declare them together. The per-run blueprint lands in
+  `<run home>/blueprints` rather than `<run home>/assets`; that directory is testaferro's own disposable state, so
+  nothing a consumer holds moves.
+- Where the work drive's DOS letter comes from is now stated rather than assumed. reliquary 0.1.0.dev3 determines a
+  letter for the first hard disk alone — a later disk's letter depends on how many volumes the disks before it carry,
+  which a blueprint does not declare — so a zero-configuration run's `C:` is reliquary's own answer, while a machine
+  that declares its own disk gets testaferro's assumption of one volume per disk. Behavior is unchanged; the guard test
+  now holds the local rule to reliquary wherever reliquary answers, and to non-collision where it declines.
+
 ## [0.1.0.dev0] - 2026-07-27
 
 ### Added

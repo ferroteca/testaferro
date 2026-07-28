@@ -14,7 +14,8 @@ testaferro's cache directory (LOCALAPPDATA or XDG_CACHE_HOME): the
 declaration is written there as a blueprint, reliquary creates and
 boots one machine from it, and every guest run is one `reliquary.exec`
 against that machine. The suite executable reaches the guest on a
-host-directory (hostdir) work drive testaferro adds to the blueprint and
+work drive whose media is located at a host directory (vvfat is how
+such a media attaches), which testaferro adds to the blueprint and
 stages before boot. Zero configuration is seeded from the
 caller-supplied `boot_image` or a cached FreeDOS image.
 """
@@ -36,7 +37,7 @@ from .suite import SuiteBackend
 
 
 # The blueprint name testaferro writes into each session's private
-# asset root, and the machine created from it.
+# blueprints directory, and the machine created from it.
 _BLUEPRINT_NAME = "testaferro"
 # The host-directory drive carrying the suite executable to the guest.
 _WORK_MEDIA_NAME = "testaferro-work"
@@ -196,38 +197,50 @@ def _cached_default_image():
         os.makedirs(cache.cache_root(), exist_ok=True)
         with tempfile.TemporaryDirectory(
                 prefix="download-", dir=cache.cache_root()) as home:
-            assets = os.path.join(home, "assets")
-            os.makedirs(assets)
-            definition = os.path.join(assets, "freedos-floppy.rlqb")
+            blueprints = os.path.join(home, "blueprints")
+            os.makedirs(blueprints)
+            definition = os.path.join(blueprints, "freedos-floppy.rlqb")
             with open(definition, "w", encoding="utf-8") as handle:
                 json.dump(_FREEDOS_FLOPPY_MEDIA_DEFINITION, handle)
             payload = reliquary.fetch_media(
                 _FREEDOS_FLOPPY_MEDIA_NAME,
-                _context(home, assets))
+                _context(home, blueprints))
             shutil.copy(payload, cached + ".part")
         os.replace(cached + ".part", cached)
     return cached
 
 
-def _context(home, assets):
+def _context(home, blueprints):
     """A reliquary context pinned to one disposable testaferro home.
 
-    Dir-mode assets keep the resolution hermetic: only what testaferro
-    wrote for this run, never the user's own reliquary home or the
-    built-in codex.
+    The blueprints directory and `autoseed=False` keep the resolution
+    hermetic: only what testaferro wrote for this run, never the user's
+    own reliquary home or the built-in codex. Autoseeding is off by
+    default in the embedding API; pinning it says so per session, so a
+    host process that turned the process-global on cannot reach in.
     """
-    return reliquary.Context(home=home,
-                             cache=os.path.join(home, "cache"),
-                             assets=assets)
+    return reliquary.Context(home_dir=home,
+                             cache_dir=os.path.join(home, "cache"),
+                             blueprints_dir=blueprints,
+                             autoseed=False)
 
 
 def _work_drive(drives):
     """Place testaferro's work drive and name the letter DOS gives it.
 
-    reliquary assigns DOS letters from declared facts alone: floppies
-    take A:/B: by slot and hard disks C: onward in slot order. The
-    work drive takes the lowest free disk slot, so its letter is its
-    own position among the declared disks.
+    The work drive takes the lowest free disk slot, so its letter is
+    its own position among the declared disks: floppies take A:/B: by
+    slot and hard disks C: onward in slot order.
+
+    As of reliquary 0.1.0.dev3 that rule is testaferro's alone past
+    the first disk. `platform_dos.drive_letters()` determines a letter
+    for the *first* hard disk and no other, because every later one
+    depends on how many volumes the disks before it carry — a fact a
+    blueprint does not declare. Where the work drive lands first
+    (every zero-configuration run) the letter is reliquary's own; past
+    it testaferro assumes one volume per declared disk, and a machine
+    whose declared disk the guest partitioned in two would run the
+    suite off the wrong drive.
     """
     used = sorted({int(key[len("hdd"):] or 0)
                    for key in drives if key.startswith("hdd")})
@@ -263,9 +276,9 @@ class QemuSuiteBackend(SuiteBackend):
         runs = os.path.join(area, "runs")
         os.makedirs(runs, exist_ok=True)
         self._home = tempfile.mkdtemp(prefix="run-", dir=runs)
-        assets = os.path.join(self._home, "assets")
+        blueprints = os.path.join(self._home, "blueprints")
         work = os.path.join(self._home, "work")
-        os.makedirs(assets)
+        os.makedirs(blueprints)
         os.makedirs(work)
         # the backend snapshots the host directory when the drive is
         # attached, so the executable is staged before the machine
@@ -273,10 +286,10 @@ class QemuSuiteBackend(SuiteBackend):
         shutil.copy2(self._exe, os.path.join(work, self._program()))
 
         document, self._letter = self._blueprint(work)
-        with open(os.path.join(assets, _BLUEPRINT_NAME + ".rlqb"),
+        with open(os.path.join(blueprints, _BLUEPRINT_NAME + ".rlqb"),
                   "w", encoding="utf-8") as handle:
             json.dump(document, handle)
-        self._ctx = _context(self._home, assets)
+        self._ctx = _context(self._home, blueprints)
         try:
             self._machine = reliquary.create_machine(
                 _BLUEPRINT_NAME, context=self._ctx)

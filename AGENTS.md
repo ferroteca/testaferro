@@ -70,22 +70,33 @@ Package layout (each module states its contract in its docstring):
     `_stop_running_machines()`.
 
   - **The reliquary context is hermetic.** Each session pins
-    `reliquary.Context(home=…, cache=…, assets=<session dir>)`, so
-    resolution sees only what testaferro authored for that run —
-    never the user's reliquary home or the built-in codex. Reaching
-    a blueprint by name would mean opting into home mode; that is a
-    deliberate decision, not a default to drift into.
+    `reliquary.Context(home_dir=…, cache_dir=…,
+    blueprints_dir=<session dir>, autoseed=False)`, so resolution
+    sees only what testaferro authored for that run — never the
+    user's reliquary home or the built-in codex. Autoseeding is off
+    by default in reliquary's embedding API; pinning it per session
+    is what keeps a host process that turned the process-global on
+    from reaching in. Reaching a blueprint by name from the user's
+    home is a deliberate decision, not a default to drift into.
   - **The work drive is testaferro's, and it is staged before boot.**
-    The suite executable reaches the guest on a host-directory
-    (hostdir) drive added to the blueprint at the lowest free disk
-    slot. The backend snapshots a host directory when the drive is
-    attached, so staging must happen before `start_machine()`, never
-    lazily on first run.
+    The suite executable reaches the guest on a drive whose media is
+    located at a host directory, added to the blueprint at the lowest
+    free disk slot. The backend snapshots that directory when the
+    drive is attached, so staging must happen before
+    `start_machine()`, never lazily on first run.
   - **`_work_drive()` mirrors reliquary's DOS letter rule** —
     floppies take A:/B: by slot, disks C: onward in slot order — to
-    name the drive it just added. Reliquary exposes no "what letter
-    is this drive" call; if it grows one, prefer it over the local
-    copy of the rule.
+    name the drive it just added. Since reliquary 0.1.0.dev3 that
+    mirror runs past what reliquary itself will say:
+    `platform_dos.drive_letters()` places the first hard disk at C:
+    and refuses every later one, because volume count is not a
+    declared fact. Zero-configuration runs land the work drive
+    first, so their letter is reliquary's own; a machine that
+    declares its own disk gets testaferro's assumption of one volume
+    per disk instead. `test_the_letter_agrees_with_reliquarys_own_assignment`
+    holds the copy to reliquary wherever reliquary answers — keep
+    that guard, and prefer a public call over the local rule the day
+    reliquary can determine the rest.
 
   Guest output is whatever `reliquary.exec()` returns: the visible
   screen, as rows. A command that scrolls past a screenful leaves

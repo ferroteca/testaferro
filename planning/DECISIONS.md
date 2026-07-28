@@ -150,19 +150,25 @@ the same direction with nothing deciding which wins.
 
 **Decided** owner, 2026-07-27. **Supports** U1, U2, P5 (drafted).
 
-Each backend session pins `reliquary.Context(home=…, cache=…,
-assets=<session dir>)` under testaferro's own cache, so resolution
-sees only what testaferro authored for that run — never the user's
-reliquary home and never the built-in codex. The declaration is
-written into that private home as a blueprint and the machine is
-created and booted from it there.
+Each backend session pins `reliquary.Context(home_dir=…,
+cache_dir=…, blueprints_dir=<session dir>, autoseed=False)` under
+testaferro's own cache, so resolution sees only what testaferro
+authored for that run — never the user's reliquary home and never the
+built-in codex. The declaration is written into that private home as a
+blueprint and the machine is created and booted from it there.
+
+**Restated 2026-07-27** for reliquary 0.1.0.dev3, which retired
+`assets=` — the single knob this decision was originally written
+against. It had declared two things at once: where documents are read
+from, and that the codex is out of reach. Those are now two axes, so
+the pin names both. What the decision holds is unchanged; saying it
+now takes two arguments rather than one.
 
 **Weighed and declined:** resolving a blueprint by name from the
-user's reliquary home. That would opt into home-mode asset
-resolution, making a test run depend on state testaferro did not
-author and cannot sweep. It remains available as a deliberate future
-decision — it is what the `machine="freedos"` open question above
-turns on — not a default to drift into.
+user's reliquary home. That would make a test run depend on state
+testaferro did not author and cannot sweep. It remains available as a
+deliberate future decision — it is what the `machine="freedos"` open
+question above turns on — not a default to drift into.
 
 **Folded into:** `testaferro/qemu.py` (stated as an invariant in its
 module contract), [AGENTS.md](../AGENTS.md).
