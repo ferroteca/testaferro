@@ -98,7 +98,8 @@ none of them has a lifecycle state to be in:
 - [DECISIONS.md](DECISIONS.md) — the adjudication record, which cuts
   across every state by design: open questions, decisions that
   pledged something, decisions that **refused** it, and a retired
-  list binding nothing at all.
+  list binding nothing at all. Adjudications only: the lifecycle acts
+  themselves are recorded by the commits that perform them (D14).
 - [TASKS.md](TASKS.md) — the queue. Work entered there is small and
   **pre-approved**, so there is nothing to promote and no order to
   work it in.
@@ -232,6 +233,15 @@ one — from `proposed/` to `pledged/`, or from `pledged/` to the
 root standing list, *is* the pledge, and the commit that does it is
 the record. There is no separate register to keep in step, and
 nothing is pledged by being cited somewhere.
+
+**So the act earns no entry in [DECISIONS.md](DECISIONS.md)** (D14).
+Proposing, pledging, promoting and delivering are already stated by
+location and recorded by the moving commit, and delivery evidence —
+the clause-by-clause case that a use case is met in full — belongs
+in that commit's message. What earns an entry is adjudication: a
+decision that concluded in a pledge records the argument, and a
+ruling made in an act's course is recorded slim, as the ruling
+alone.
 
 Every pledged item cites what demands it: a use case (its U-number,
 in force at the root or still drafted under `proposed/`) or an

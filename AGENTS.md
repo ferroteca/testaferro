@@ -137,7 +137,9 @@ both batched and `-k`-narrowed.
   states: `planning/proposed/` is argued but not pledged, and
   nothing is worked from there; `planning/pledged/` is owed but
   not yet delivered. Promotion is by *moving* a document or an entry,
-  and the commit is the record of the pledge. The **planning root**
+  and the commit is the record of the pledge — a lifecycle act earns
+  no entry in `DECISIONS.md`, and delivery evidence goes in the
+  moving commit's message (D14). The **planning root**
   holds what never moves and so has no state — the map, the vetting
   rule (`INTERFACES.md`), the adjudication record (`DECISIONS.md`,
   which spans open, pledged, refused and retired alike), and the

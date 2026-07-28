@@ -24,6 +24,18 @@ cases (U-numbers) and principles (P-numbers) it supports, and it is
 citable downstream — design documents, specifications, and code
 commits justify choices by citing D-numbers.
 
+**A lifecycle act alone earns no entry.** Proposing, pledging,
+promoting, delivering: location already states the status and the
+commit that moves the item is the record, so an entry restating the
+act is the separate register this machinery refuses to keep, and
+delivery evidence — the clause-by-clause case that a use case is
+actually met — belongs in the moving commit's message. What earns an
+entry is **adjudication**. A decision whose conclusion pledges
+something records the argument and stands; a ruling made in an act's
+course — a contested clause reading, a scope call, a pledge found
+accidental and withdrawn — is recorded slim, as the ruling, never as
+the promotion narrative around it (D14).
+
 **The supports clause is not optional, and "none" is an answer.** A
 decision genuinely demanded by nothing — a vocabulary or naming
 choice — records `Supports (none)` and why. Prose in place of a
@@ -108,6 +120,44 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D14 — A lifecycle act earns no decision entry
+
+**Decided** owner, 2026-07-28. **Supports** P14, P15 (drafted).
+
+The cross-project standard this machinery instantiates (D7, D8) has
+amended what earns a place in this record, and the amendment is
+adopted here. **Proposing, pledging, promoting and delivering earn
+no entry**: location already states the status and the commit that
+moves the item is the record, so an entry restating the act is the
+separate register the machinery refuses to keep. Delivery evidence —
+the clause-by-clause case that a use case is actually met — belongs
+in the moving commit's message, where the act it evidences is.
+
+What still earns an entry is **adjudication**. A decision whose
+conclusion pledges something records the argument and stands. A
+ruling made in an act's course — a contested clause reading, a scope
+call, a pledge found accidental and withdrawn — is recorded slim, as
+the ruling, never as the promotion narrative around it.
+
+**D13 stands as written**, under the form in force when it was
+written earlier the same day, and is annotated rather than
+rewritten: entries keep the spellings of their time. Its rulings are
+exactly what this entry keeps — U4 severed from the drafted use
+cases it cites, P16 pledged rather than severed, the plugin's
+auto-load, F7 and F8 unsplit — while its opening paragraph, which
+narrates the promotion itself, is what this rule now leaves to
+[pledged/](pledged/) and to the commit that moved them.
+
+**Weighed and declined:** rewriting D13 slim. It would tidy away the
+one form the amended rule exists to prevent, at the cost of the
+record's fidelity to its own moment; the annotation names the form
+without erasing that it was used. Also declined: reading the rule
+back over D1–D12, none of which records a lifecycle act.
+
+**Folded into:** the record's discipline above,
+[README.md](README.md), [../AGENTS.md](../AGENTS.md), D13
+(annotation).
+
 ### D13 — U4 is pledged severed, with P16, F7 and F8; the plugin auto-loads
 
 **Decided** owner, 2026-07-28. **Supports** U4, P16 (pledged by this
@@ -115,8 +165,10 @@ entry).
 
 The first promotion under the model D7 adopted: U4, P16, F7 and F8
 move out of [proposed/](proposed/) into [pledged/](pledged/), and
-the commit that moves them is the record of the pledge. They move
-unmodified but for the one thing F8 left open, settled below.
+the commit that moves them is the record of the pledge. [Since D14 a
+promotion earns no entry of its own; what an entry records is the
+rulings below.] They move unmodified but for the one thing F8 left
+open, settled below.
 
 **U4 is pledged severed.** It cites U1, U2 and U3, which stay
 drafted, and the map ([README.md](README.md)) makes a pledged item
