@@ -104,7 +104,7 @@ class _QemuFixture(unittest.TestCase):
             return json.load(handle)[0]
 
     def _guest_homes_seen(self, backend, calls=1):
-        """Run one whole backend session, returning the reliquary home
+        """Run one whole guest session, returning the reliquary home
         (and boot image bytes) each guest run was scoped to. The fake
         reads them off the authored blueprint, so a run that stops
         declaring its own home or boot drive fails loudly."""
@@ -119,12 +119,12 @@ class _QemuFixture(unittest.TestCase):
             return tuple(EMPTY_RUN_OUTPUT.splitlines())
 
         with self._fake_machine(exec_side_effect=fake_exec):
-            backend.start_session()
+            backend.start_guest()
             try:
                 for _ in range(calls):
                     backend.run_all()
             finally:
-                backend.stop_session()
+                backend.stop_guest()
         return seen
 
     def _fake_machine(self, exec_side_effect=None, **exec_kwargs):
@@ -149,26 +149,28 @@ class _QemuFixture(unittest.TestCase):
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
 class QemuSuiteBackendTests(_QemuFixture):
-    """Backend behavior inside a provisioned facade session."""
+    """Backend behavior within one guest session."""
 
-    def test_session_runs_in_fresh_home_with_caller_boot_image(self):
+    def test_a_guest_runs_in_a_fresh_home_with_the_caller_boot_image(self):
+        # No run open, so the guest home sits at the cache root rather
+        # than inside a run's area (D15).
         backend = qemu.suite_backend(self.exe, boot_image=self.image)
 
         [(home, image)] = self._guest_homes_seen(backend)
 
         self.assertTrue(home.startswith(
-            os.path.join(cache.cache_root(), "runs")))
+            os.path.join(cache.cache_root(), "guests")))
         self.assertEqual(image, b"custom dos")
         self.assertFalse(os.path.exists(home))
 
-    def test_each_session_gets_its_own_home(self):
+    def test_each_guest_session_gets_its_own_home(self):
         backend = qemu.suite_backend(self.exe, boot_image=self.image)
 
         homes = [self._guest_homes_seen(backend)[0][0] for _ in range(2)]
 
         self.assertNotEqual(homes[0], homes[1])
 
-    def test_machine_template_becomes_this_session_s_blueprint(self):
+    def test_machine_template_becomes_this_guests_blueprint(self):
         source = pathlib.Path(self.tempdir.name) / "msdos.img"
         source.write_bytes(b"template image")
         template = machines.MachineSpec({
@@ -177,7 +179,7 @@ class QemuSuiteBackendTests(_QemuFixture):
         backend = qemu.suite_backend(self.exe, machine_config=template)
 
         with self._fake_machine():
-            backend.start_session()
+            backend.start_guest()
             try:
                 drives = self._blueprint(backend._home)["drives"]
                 # The declaration passes through untouched; reliquary
@@ -187,13 +189,13 @@ class QemuSuiteBackendTests(_QemuFixture):
                 self.assertEqual(template.drives["floppy0"]["location"],
                                  {"local": str(source)})
             finally:
-                backend.stop_session()
+                backend.stop_guest()
 
     def test_the_suite_executable_is_staged_on_a_work_drive(self):
         backend = qemu.suite_backend(self.exe, boot_image=self.image)
 
         with self._fake_machine():
-            backend.start_session()
+            backend.start_guest()
             try:
                 home = backend._home
                 drives = self._blueprint(home)["drives"]
@@ -203,7 +205,7 @@ class QemuSuiteBackendTests(_QemuFixture):
                 self.assertEqual(staged.read_bytes(), self.exe.read_bytes())
                 self.assertEqual(backend._letter, "C")
             finally:
-                backend.stop_session()
+                backend.stop_guest()
 
     def test_default_boot_image_downloads_once_then_caches(self):
         def fake_fetch_media(name, context):
@@ -224,11 +226,11 @@ class QemuSuiteBackendTests(_QemuFixture):
         expected = tuple(EMPTY_RUN_OUTPUT.splitlines())
         with self._fake_machine(return_value=expected) as guest_exec:
             backend = qemu.suite_backend(self.exe, boot_image=self.image)
-            backend.start_session()
+            backend.start_guest()
             try:
                 self.assertEqual(backend.run_all(), [])
             finally:
-                backend.stop_session()
+                backend.stop_guest()
         guest_exec.assert_called_once_with(
             "C:\\SUITE.EXE " + " ".join(cpputest.run_all_argv()),
             machine="testaferro-0", context=mock.ANY, timeout=mock.ANY)
@@ -249,11 +251,11 @@ class QemuSuiteBackendTests(_QemuFixture):
         backend = qemu.suite_backend(self.exe, boot_image=self.image)
 
         with self._fake_machine() as guest_exec:
-            backend.start_session()
+            backend.start_guest()
             try:
                 self.assertEqual(backend._machine, "testaferro-0")
             finally:
-                backend.stop_session()
+                backend.stop_guest()
         guest_exec.assert_not_called()
 
 
@@ -387,7 +389,7 @@ class SessionLifecycleTests(_QemuFixture):
     def _run_suite(self, backend):
         return self._guest_homes_seen(backend)[0]
 
-    def test_session_image_is_staged_once_and_shared_by_suites(self):
+    def test_the_runs_image_is_staged_once_and_shared_by_suites(self):
         qemu.start(boot_image=self.image)
         with mock.patch.object(qemu, "_cached_default_image") as cached:
             first = self._run_suite(qemu.suite_backend(self.exe))
@@ -414,19 +416,19 @@ class SessionLifecycleTests(_QemuFixture):
         self.assertFalse(os.path.exists(os.path.dirname(home)))
         self.assertTrue(cached.exists())
 
-    def test_kept_run_homes_survive_the_sweep_and_are_named(self):
+    def test_kept_guest_homes_survive_the_sweep_and_are_named(self):
         # The exploration option: looking at what the guest was given
         # is the whole point, so the directory has to still be there.
-        qemu.keep_run_homes(True)
-        self.addCleanup(qemu.keep_run_homes, False)
-        self.addCleanup(qemu._kept_homes.clear)
+        cache.keep_guest_homes(True)
+        self.addCleanup(cache.keep_guest_homes, False)
+        self.addCleanup(cache._kept.clear)
         qemu.start(boot_image=self.image)
         home, _ = self._run_suite(qemu.suite_backend(self.exe))
 
         qemu.stop()
 
         self.assertTrue(os.path.exists(home))
-        self.assertIn(home, qemu.kept_run_homes())
+        self.assertIn(home, cache.kept_guest_homes())
 
     def test_stop_clear_downloads_removes_cached_image(self):
         cached = pathlib.Path(cache.cache_root()) / "boot.img"
@@ -436,7 +438,7 @@ class SessionLifecycleTests(_QemuFixture):
         qemu.stop(clear_downloads=True)
         self.assertFalse(cached.exists())
 
-    def test_suite_boot_image_overrides_session_image(self):
+    def test_suite_boot_image_overrides_the_runs_image(self):
         other = pathlib.Path(self.tempdir.name) / "other.img"
         other.write_bytes(b"other dos")
         qemu.start(boot_image=self.image)
@@ -446,14 +448,14 @@ class SessionLifecycleTests(_QemuFixture):
         self.assertEqual(image, b"other dos")
 
     def test_stop_stops_a_machine_the_caller_left_running(self):
-        # A machine outlives the call that booted it, so a session
+        # A machine outlives the call that booted it, so a run
         # closing while one is up must stop it before sweeping the
         # home it is running from.
         qemu.start(boot_image=self.image)
         backend = qemu.suite_backend(self.exe)
 
         with self._fake_machine():
-            backend.start_session()
+            backend.start_guest()
             home = backend._home
             qemu.stop()
 
@@ -461,13 +463,13 @@ class SessionLifecycleTests(_QemuFixture):
         self.assertFalse(os.path.exists(home))
         self.assertNotIn(backend, qemu._running)
 
-    def test_a_stopped_session_is_no_longer_tracked(self):
+    def test_a_stopped_guest_is_no_longer_tracked(self):
         backend = qemu.suite_backend(self.exe, boot_image=self.image)
 
         with self._fake_machine():
-            backend.start_session()
+            backend.start_guest()
             self.assertIn(backend, qemu._running)
-            backend.stop_session()
+            backend.stop_guest()
 
         self.assertNotIn(backend, qemu._running)
 
@@ -487,12 +489,12 @@ class SessionLifecycleTests(_QemuFixture):
              "import testaferro\n"
              "from testaferro import qemu\n"
              "testaferro.start()\n"
-             "print(qemu._session['dir'])\n"],
+             "print(qemu._run_area['dir'])\n"],
             env=env, capture_output=True, text=True, check=True)
-        session_dir = result.stdout.strip().splitlines()[-1]
+        run_dir = result.stdout.strip().splitlines()[-1]
 
-        self.assertTrue(session_dir)
-        self.assertFalse(os.path.exists(session_dir))
+        self.assertTrue(run_dir)
+        self.assertFalse(os.path.exists(run_dir))
 
     def test_package_level_start_stop_delegate(self):
         import testaferro

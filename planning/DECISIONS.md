@@ -116,9 +116,84 @@ becoming a D-number, and the commit that moves it is the record.
   implementation. Internal naming, so this touches no enumerated
   surface — but it is a rename with citations across
   [AGENTS.md](../AGENTS.md) and the tests, so it is worth deciding
-  rather than drifting.
+  rather than drifting. *An answer is now proposed, and a different
+  one: the amendments to P1 and P2 in
+  [proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md) make the
+  binding a **provider** binding rather than a platform one, which
+  names it for reliquary. If those are adjudicated, this question
+  retires into that decision rather than being settled on its own
+  terms; the work is F10.*
 
 ## Decisions
+
+### D15 — A guest session, a run, and pytest's session are three things
+
+**Decided** owner, 2026-07-28. **Supports (none)** — a naming choice,
+demanded by no use case and no principle. Recording it anyway,
+because it renames two of the five operations on an enumerated
+interface and relabels the cache layout, and because the confusion it
+removes is the kind that returns silently if nobody wrote down why.
+
+**"Session" had three claimants**, two of them testaferro's own and
+nesting inside each other:
+
+- **pytest's session** — the whole run. Not ours, unrenameable, and
+  already in our code as the hook `pytest_sessionfinish`.
+- **The backend's per-suite lifecycle** — `start_session()` /
+  `stop_session()` on the `Backend` ABC: one guest up and able to
+  answer.
+- **The shared area opened by `testaferro.start()`** — one staged
+  image and one sweep area serving many suites, i.e. one per pytest
+  run, spelled `_session` in the binding and `sessions/` in the
+  user's cache.
+
+So a reader met the same word for the run, for the area the run
+shares, and for one guest inside it — and the vision had already
+absorbed the confusion: U8 reads "The cycle is the pytest session",
+using a third word for the middle thing in the same sentence as the
+word for the outer one.
+
+**The middle thing is a guest session**, and the ABC operations are
+`start_guest()` / `stop_guest()`. "Guest" is testaferro's established
+consumer-facing prefix — `guest_suite()` is the public entry point,
+the items are guest tests, a failure is a guest failure — so this is
+no new vocabulary, and it survives the amendments to P1 and P2, which
+retire *machine* but leave *guest* untouched. "Session" is kept
+rather than replaced because it is the right English for a span
+during which something is available for use, which is exactly what
+lies between the two calls; the ambiguity was never the word but the
+missing qualifier. It also survives U8: for a persistent machine the
+guest session simply *becomes* the whole run rather than one suite —
+same concept, wider extent.
+
+**The outer thing is a run**, and stops being called a session at
+all, because it is not one — it is shared setup for a run.
+`testaferro.start()` / `stop()` keep their names, having never
+carried the word.
+
+**The cache layout follows the vocabulary** (the sixth interface):
+`runs/run-*/` is one testaferro run, `guests/guest-*/` inside it is
+one guest session's home, and a guest belonging to no run sits in
+`guests/` at the cache root. What were called "run homes" were never
+runs' — each is one guest's — so `--testaferro-keep-run-home` becomes
+`--testaferro-keep-guest-home`, and `cache.release_run_home()` and
+friends follow. Existing caches keep an orphaned `sessions/` tree;
+that directory is disposable state by its own contract, so it is
+noted in the changelog rather than migrated.
+
+**Weighed and declined:** `machine_session` / `machine_cycle`, which
+name what the P1 and P2 amendments are retiring — wine and dosbox run
+a program without booting a machine — and would have to be re-picked
+at F10. Also declined: `guest_cycle`, "cycle" suggesting a repeating
+round rather than a span something is available for. Also declined:
+leaving the outer span a "session" and disambiguating only the inner
+one, which fixes the collision a reader hits and leaves the one a
+maintainer hits.
+
+**Folded into:** `testaferro/backend.py` (the ABC),
+`testaferro/qemu.py`, `testaferro/cache.py`, `testaferro/facade.py`,
+`testaferro/plugin.py`, [../README.md](../README.md),
+[../AGENTS.md](../AGENTS.md), [../CHANGELOG.md](../CHANGELOG.md).
 
 ### D14 — A lifecycle act earns no decision entry
 

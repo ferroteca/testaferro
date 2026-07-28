@@ -5,9 +5,14 @@ test target.
 
 Any target that can list its tests and run one or all of them plugs
 into the same facade, however it carries those operations out
-underneath. Session hooks default to no-ops because one-shot backends
-(e.g. a SuiteBackend whose runner boots per operation)
-have no session to manage.
+underneath. The guest hooks default to no-ops because one-shot
+backends (e.g. a SuiteBackend whose runner boots per operation) have
+no guest session to manage.
+
+"Guest session" rather than "session": pytest owns that word for the
+whole run, and testaferro would otherwise say it of three different
+spans (D15). Here it means one guest up and able to answer — from
+start_guest() to stop_guest().
 """
 
 from __future__ import annotations
@@ -40,7 +45,7 @@ class TestOutcome:
 
 
 class Backend(ABC):
-    def start_session(self):
+    def start_guest(self):
         """Boot or attach to the remote target. Ready to accept
         list/run calls immediately after this returns."""
 
@@ -60,6 +65,6 @@ class Backend(ABC):
         cheaper than many individual run_test() calls, however the
         backend chooses to implement that."""
 
-    def stop_session(self):
+    def stop_guest(self):
         """Tear down cleanly. Must be safe to call after a failed or
-        partial start_session()."""
+        partial start_guest()."""

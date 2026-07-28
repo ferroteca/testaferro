@@ -45,8 +45,9 @@ guest machine entirely — reliquary today, the only supported one
 the knowledge of what a guest test suite's output means. Two
 pluggable aspects follow from that division, and only one of them
 is testaferro's: the **guest unit-test framework** is testaferro's
-(U6), and the **guest platform** is the provider's, testaferro
-adding a thin binding when a platform is ready to surface (D2).
+(U6), and **everything about the guest itself** is the provider's,
+testaferro adding a thin binding when a provider is ready to
+surface (D2).
 
 ## The seams
 
@@ -59,10 +60,13 @@ compose:
    path implements, and the public escape hatch: a caller with a
    wholly different execution mechanism passes a prebuilt `Backend`
    and keeps everything above it (D1).
-2. **The platform binding** — one module per guest OS family,
-   holding everything about how that platform's machines are built,
-   booted, and driven through reliquary. QEMU lives here and nowhere
-   the consumer can see it (P2).
+2. **The provider binding** — one module per provider, holding
+   everything about how that provider is asked to build, boot and
+   drive what runs a suite. Reliquary lives here, and QEMU does not
+   live here at all: it is reliquary's own business, a layer further
+   down than testaferro can see (P1, P2). *[Amended: this said one
+   module per guest OS family, which named the layer beneath the
+   provider rather than the provider.]*
 3. **The framework adapter** — argv builders and output grammars for
    one guest unit-test framework, independent of how the output was
    obtained and of who obtained it (P4).
@@ -72,9 +76,15 @@ a framework adapter. It is internal on purpose: composing them is
 not a public contract, and its runner-callable shape must not become
 one (D1).
 
-A **platform** is a type — the OS family a suite is built for; a
-**test machine** is one named declaration carrying a platform. That
-pair is the whole consumer-facing vocabulary for guest matters (D3).
+A **test environment** is what a suite runs in, and it is the whole
+consumer-facing vocabulary for guest matters: **standard**
+environments testaferro authors and names (U9, D10), and **custom**
+ones a tester declares — a choice of provider plus everything that
+provider needs. *[Amended. This said **platform** and **test
+machine**, the pair D3 made the consumer's vocabulary; `platform` is
+reliquary's own word, reaching testaferro as configuration passing
+through (P3) rather than as something a suite says. D3 stands until
+this amendment is adjudicated, and the work is F10.]*
 
 ## The interfaces
 
@@ -128,6 +138,14 @@ project that installs the distribution. A **lifecycle CLI** (F2)
 joins as its own small surface when it lands: verbs over machines
 and caches, never over test runs.
 
+**The second and third surfaces are named for today's spelling**,
+deliberately. The amendments to P1 and P2 make a declaration a *test
+environment* rather than a machine, and F10 is the work that renames
+it — but this enumeration is looked up to answer "does this change an
+interface?", so it names the surfaces as they exist rather than as
+they are argued to become. It is renamed by the work, not ahead of
+it.
+
 **testaferro currently has no norms.** Each surface above should name
 the artifact that says exactly what it *is* and that the
 implementation answers to; none does, because no such artifact
@@ -139,12 +157,17 @@ anything that looks normative is written.
 
 ## The principles
 
-- **P1 — The guest-machine provider is a declared choice, and
-  reliquary is the only supported one.** Providers occupy one
-  layer — reliquary and vagrant sit in the same space — so a
-  machine uses one *or* another, and the declaration names which
-  (D11); testaferro passes that provider's machine configuration
-  through untouched (P3). The axis is testaferro's own: a future
+- **P1 — The execution provider is a declared choice, and
+  reliquary is the only supported one.** A **provider** is whatever
+  actually runs a guest suite — reliquary today, with vagrant,
+  dosbox and wine the shape of the others. They occupy one layer —
+  a test environment uses one *or* another, and the environment
+  names which (D11); testaferro passes that provider's own
+  configuration through untouched (P3). *[Amended: "guest-machine
+  provider". Not every provider boots a machine — wine and dosbox
+  run a program without one — so the layer is named for what it
+  does, which is also why a suite names an environment rather than
+  a machine (P2).]* The axis is testaferro's own: a future
   provider is a new binding here, never capability pushed upstream.
   What D1 refused stays refused — no structural runner contract, no
   conformance kit, no mirrored configuration hierarchy, and no
@@ -155,13 +178,22 @@ anything that looks normative is written.
   provider's to guarantee and to test, so doubting one produces an
   upstream bug report — never a local audit of its internals, and
   never a defensive workaround here. (D1, D11.)
-- **P2 — Suites name platforms and machines, never emulators.**
-  QEMU is an implementation detail of a binding and appears nowhere
-  in what a suite-facing consumer writes; the facade's binding
-  table keys by platform name. The machine *declaration* is the one
-  place a provider is named (P1): the tester who declares a machine
-  may say what provides it, and everything beneath the provider
-  stays invisible. (D3, D11.)
+- **P2 — Suites name test environments, and nothing underneath
+  one.** A **test environment** is what a suite runs in, and it is
+  the whole of what a suite-facing consumer writes: a **standard**
+  environment testaferro authors and names (U9, D10, P17), or a
+  **custom** one the tester declares — a choice of provider plus
+  all the configuration that provider requires. The environment is
+  the one place a provider is named (P1, D11), and everything below
+  the provider stays invisible: QEMU is reliquary's business, and
+  so is `platform`, which is a field in an authored blueprint
+  passing through untouched (P3) rather than a word a suite says.
+  Inference must still pick something when a tester declares
+  nothing, so the executable's own format selects a standard
+  environment (P8) — testaferro reading a binary, not a vocabulary
+  the consumer writes in. *[Amended: this made **platform** and
+  **machine** the consumer's pair, per D3. D3 stands until this
+  amendment is adjudicated; the work is F10.]*
 - **P3 — testaferro mirrors no provider's schema.** An authored
   machine document belongs to the declared provider's own
   vocabulary — a reliquary blueprint today — and passes through
@@ -248,7 +280,7 @@ anything that looks normative is written.
   (D7.)
 - **P17 — What testaferro offers, testaferro authors.** Every
   environment testaferro puts a name on — the standard catalog's
-  machines (U9, D10), and any blueprint, script or medium shipped
+  own (U9, D10), and any blueprint, script or medium shipped
   with one — is authored here and complete in itself: the document,
   the drives it declares, and the media those locate. **Nothing
   testaferro offers is a name resolved out of the provider's own

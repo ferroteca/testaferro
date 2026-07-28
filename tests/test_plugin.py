@@ -25,13 +25,17 @@ PYTEST_AVAILABLE = importlib.util.find_spec("pytest") is not None
 
 # Stands in for testaferro.qemu, recording what it was asked for.
 CONFTEST = '''
+import os
 import sys
+import tempfile
 import types
 
 import testaferro
+from testaferro import cache
 from testaferro.backend import TestId, TestOutcome
 
 EVENTS = {events!r}
+HOMES = {homes!r}
 
 
 def record(event):
@@ -43,12 +47,19 @@ class RecordingBackend:
     def __init__(self, exe_path, enumerator=None, **options):
         self.exe_path = exe_path
         self.enumerator = enumerator
+        self.home = None
 
-    def start_session(self):
+    def start_guest(self):
         record("start")
+        # A guest home is what a real binding makes here, and handing
+        # it back to the core is what decides whether it survives.
+        self.home = tempfile.mkdtemp(prefix="guest-", dir=HOMES)
 
-    def stop_session(self):
+    def stop_guest(self):
         record("stop")
+        if self.home is not None:
+            cache.release_guest_home(self.home)
+            self.home = None
 
     def list_tests(self):
         # SuiteBackend's own rule: a supplied enumerator replaces
@@ -75,18 +86,8 @@ def suite_backend(exe_path, **options):
     return RecordingBackend(exe_path, **options)
 
 
-def keep_run_homes(enabled=True):
-    record("keep_run_homes:" + str(enabled))
-
-
-def kept_run_homes():
-    return ("<kept run home>",)
-
-
 fake = types.ModuleType("testaferro.qemu")
 fake.suite_backend = suite_backend
-fake.keep_run_homes = keep_run_homes
-fake.kept_run_homes = kept_run_homes
 sys.modules["testaferro.qemu"] = fake
 testaferro.qemu = fake
 '''
@@ -102,8 +103,11 @@ class PluginTests(unittest.TestCase):
         # pytest.ini makes this tree its own rootdir, so a
         # testaferro.ini written beside it is the one found.
         self.write("pytest.ini", "[pytest]\n")
+        self.homes = self.root / "homes"
+        self.homes.mkdir()
         self.write("conftest.py",
-                   CONFTEST.format(events=str(self.events)))
+                   CONFTEST.format(events=str(self.events),
+                                   homes=str(self.homes)))
 
     def write(self, name, content):
         path = self.root / name
@@ -249,13 +253,23 @@ class PluginTests(unittest.TestCase):
         self.assertIn("run_test:Vring:Wraps", self.recorded())
         self.assertNotIn("run_all", self.recorded())
 
-    def test_the_run_home_option_reaches_the_binding_and_reports(self):
+    def test_a_guest_home_is_swept_unless_asked_for(self):
         self.suite()
 
-        result = self.pytest("SUITE.EXE", "--testaferro-keep-run-home")
+        self.pytest("SUITE.EXE")
 
-        self.assertIn("keep_run_homes:True", self.recorded())
-        self.assertIn("<kept run home>", result.stdout)
+        self.assertEqual(list(self.homes.iterdir()), [])
+
+    def test_the_keep_option_keeps_what_the_guest_was_given(self):
+        self.suite()
+
+        result = self.pytest("SUITE.EXE", "--testaferro-keep-guest-home")
+
+        kept = list(self.homes.iterdir())
+        self.assertTrue(kept)
+        self.assertIn("guest homes kept", result.stdout)
+        for home in kept:
+            self.assertIn(home.name, result.stdout)
 
     # --- enumeration --------------------------------------------
 
@@ -276,7 +290,7 @@ class PluginTests(unittest.TestCase):
 
         self.assertIn("SUITE.EXE::Vring-Wraps", result.stdout)
         self.assertNotIn("may be short", result.stdout)
-        # the twin's whole case: enumerated, with no session opened
+        # the twin's whole case: enumerated, with no guest started
         # around it, so no guest booted to be asked
         self.assertEqual(self.recorded(),
                          ["resolve:enumerator", "enumerate"])

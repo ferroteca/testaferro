@@ -5,9 +5,10 @@
 ![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)
 ![Tested on Windows](https://img.shields.io/badge/tested%20on-Windows-0078d4.svg)
 
-testaferro is a pytest facade for DOS-based CppUTest unit testing: a CppUTest suite built for DOS runs inside a QEMU
-guest via reliquary, and its tests surface as pytest tests on the host — running, selecting, and
-reporting them feels like an ordinary local pytest run. The distribution is named
+testaferro is a pytest plugin for DOS-based CppUTest unit testing: a CppUTest suite built for DOS runs inside a guest
+provided by reliquary, and its tests surface as pytest tests on the host — running, selecting, and
+reporting them feels like an ordinary local pytest run, because it is one. `pytest tests/TESTS.EXE` collects the
+executable; the embedding API is the same plugin's programmatic layer. The distribution is named
 [pytest-testaferro](https://pypi.org/project/pytest-testaferro/), following the pytest plugin convention; the import —
 and everything else — is `testaferro`. (The retired `testaferro` distribution is a tombstone pointing here.)
 
@@ -64,7 +65,7 @@ tests/TESTS.EXE::Vring-Fails FAILED
 `-k`, `-x`, `--lf`, `--collect-only` and node ids all work, because there is no wrapper for them to work through. A
 failure reports what the guest reported — its file, line and assertion — never a traceback into testaferro. Run one
 test with `pytest "tests/TESTS.EXE::Vring-Wraps"`, and keep the guest's home for inspection with
-`--testaferro-keep-run-home`.
+`--testaferro-keep-guest-home`.
 
 **The plugin activates on installation, and claims almost nothing.** A file *you name* on the command line is claimed
 when it is a DOS program (or when a declaration says a guest runs it). A directory *scan* claims only what you opted
@@ -123,7 +124,7 @@ defaults to `testaferro.cpputest`; pass `framework=` to use a different one.
 
 The guest machine's working state is testaferro's business, not the consumer's: each run happens in a fresh, disposable
 reliquary home under testaferro's cache (`%LOCALAPPDATA%\testaferro` on Windows, `$XDG_CACHE_HOME/testaferro`
-elsewhere), and the machine is created there fresh for the session and swept away with it. Zero configuration boots a
+elsewhere), and the machine is created there fresh for each guest session and swept away with it. Zero configuration boots a
 FreeDOS image that is downloaded once and cached; pass `boot_image=` to boot a caller-supplied DOS floppy image
 instead.
 
@@ -170,7 +171,7 @@ fields (`drives`, `boot`, `scripts`, `backend_settings`, `control_planes`, `para
 integer stays an integer, so `memory = 32` and `memory = 32M` are both accepted. Call `testaferro.load_config(path)` to
 load an explicit file, or `load_config()` to search upward from the current directory.
 
-A declaration is a template, never a running machine: every backend session creates a fresh machine from it, so runs do
+A declaration is a template, never a running machine: every guest session creates a fresh machine from it, so runs do
 not share guest state. What that costs per session is the blueprint's own business — reliquary's `materialize` mode on
 each drive decides whether media is attached in place, copied, or layered. Use `platform="dos"` or `machine="msdos"`
 when more than one configured DOS machine would otherwise match. With no declarations, DOS executables retain the
@@ -190,7 +191,7 @@ gets you yours. The catalog is reached by asking for it by name and never by inf
 executable still selects the implicit machine exactly as before. Nothing is ever resolved from your reliquary home — a
 test run depends only on what testaferro authored or what the project checked in.
 
-With several guest suites — or parallel pytest processes — open a *session*, so the image choice is made once and
+With several guest suites — or parallel pytest processes — open a *run*, so the image choice is made once and
 every run's state is swept together. From the consuming project's `conftest.py`:
 
 ```python
@@ -202,9 +203,9 @@ def pytest_unconfigure(config):
     testaferro.stop()
 ```
 
-`start()` costs nothing until a guest actually runs; `stop()` sweeps the session's staged image and every run home,
-keeping the once-downloaded FreeDOS image cached for the next session (`stop(clear_downloads=True)` scrubs that too).
-Forgetting `stop()` is not fatal — `start()` registers an `atexit` failsafe that sweeps the session at interpreter
+`start()` costs nothing until a guest actually runs; `stop()` sweeps the run's staged image and every guest home inside
+it, keeping the once-downloaded FreeDOS image cached for the next run (`stop(clear_downloads=True)` scrubs that too).
+Forgetting `stop()` is not fatal — `start()` registers an `atexit` failsafe that sweeps the run at interpreter
 exit — but the explicit call is still preferred: it cleans up at a deterministic point and is where
 `clear_downloads=True` can be said.
 
@@ -214,8 +215,9 @@ mutable guest state — safe to parallelize. With [pytest-xdist](https://pypi.or
 together (preserving the one-boot `run_all()` batching) while *different* suites boot their guests concurrently on
 other workers. Plain `--dist load` would scatter a suite's items across workers and degrade it to one boot per test.
 
-Backend lifecycle hooks are automatic. Enumeration runs in a short collection session; selected tests then share one
-execution session, which is cleaned up by pytest even when a test fails.
+Guest lifecycle is automatic. Enumeration runs in a short guest session of its own — skipped entirely when a
+host-built twin supplies the list — and the selected tests then share one execution guest, stopped by pytest even when
+a test fails.
 
 Every test in the guest suite becomes its own pytest item, so pytest's selection drives what actually runs remotely:
 

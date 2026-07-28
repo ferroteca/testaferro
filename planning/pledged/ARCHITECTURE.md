@@ -29,13 +29,26 @@ principle here is an undertaking rather than a claim about the code.
   spellings is a keyword worth questioning. Exploration-only
   options — preserving a run home, enumeration overrides — are the
   named exception, concerning trying a suite out rather than
-  defining tests. **Arms with F8**; until the plugin exists this
-  principle has no subject.
+  defining tests. **The subject now exists**: the plugin ships, its
+  options and ini keys are declared from one list so the two
+  spellings cannot drift, and `--testaferro-keep-guest-home` and the
+  enumerator are the named exception in the flesh. What stands
+  between that and the root list is stated below.
 
 P16 is three surfaces over two interfaces: the embedding API and
 `testaferro.ini` are two spellings of one declaration
 ([../INTERFACES.md](../INTERFACES.md)), and the plugin's options are
 a second presentation of them rather than a surface of their own.
-That is also why it is pledged rather than severed the way U4 was —
-nothing in the code stands behind it yet, and F8's option design
-cites it (D13).
+That is also why it was pledged rather than severed the way U4 was:
+when it was written nothing in the code stood behind it, and the
+plugin's option design cited it (D13).
+
+**Arming it is an open call, and there is known residue.** A
+principle reaches root `ARCHITECTURE.md` on being honored *as a
+rule*, with every known residue filed as a defect in the same
+change. Two declaration keywords have no plugin spelling today:
+`timeout`, which would need the binding to accept one, and
+`framework`, which is a Python object and may be the honest limit of
+"three spellings" rather than a gap — deciding which is part of
+arming. Until that call is made this stays pledged vision, and a
+shortfall stays unbuilt work rather than a bug.

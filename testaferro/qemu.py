@@ -9,11 +9,15 @@ with the format and architecture named. The framework adapter
 defaults to testaferro.cpputest.
 
 QemuSuiteBackend drives a reliquary machine on the caller's behalf.
-Each facade session gets a fresh, disposable reliquary home under
+Each **guest session** — one guest up, from `start_guest()` to
+`stop_guest()` — gets a fresh, disposable reliquary home under
 testaferro's cache directory (LOCALAPPDATA or XDG_CACHE_HOME): the
 declaration is written there as a blueprint, reliquary creates and
 boots one machine from it, and every guest run is one `reliquary.exec`
-against that machine. The suite executable reaches the guest on a
+against that machine. Guest homes sit inside the active **run**'s
+area when `start()` opened one (`runs/run-*/guests/guest-*`) and
+directly under the cache otherwise; the two spans and why neither is
+called a "session" on its own are D15. The suite executable reaches the guest on a
 work drive whose media is located at a host directory (vvfat is how
 such a media attaches), which testaferro adds to the blueprint and
 stages before boot. Zero configuration is seeded from the
@@ -100,38 +104,20 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
                             machine_config=machine_config)
 
 
-# The active testaferro session opened by start(), or None: its
-# disposable directory (holding the staged boot image and every run
+# The active testaferro run opened by start(), or None: its
+# disposable directory (holding the staged boot image and every guest
 # home) plus the recorded image choice, staged lazily on first use.
-_session = None
+# A *run* is the outer span — one image choice shared by many suites,
+# usually one pytest run — and it holds many guest sessions (D15).
+_run_area = None
 
 # Backends holding a booted machine right now. A machine outlives the
 # call that started it, so an interpreter that goes down between
-# start_session() and stop_session() would otherwise leave the guest
+# start_guest() and stop_guest() would otherwise leave the guest
 # running — and sweeping its home would pull the disk out from under
 # it. Every exit path stops machines before deleting anything.
 _running = set()
 _sweep_registered = False
-
-# Exploration: when set, a run home survives its session instead of
-# being swept, because looking at what the guest was given is the
-# whole point of asking. Nothing else changes — machines are still
-# stopped on every exit path (a kept home is a directory, not a
-# running guest), so this trades disk for evidence and nothing else.
-_keep_homes = False
-_kept_homes = []
-
-
-def keep_run_homes(enabled=True):
-    """Preserve run homes rather than sweeping them. Set before any
-    session starts; what is kept is reported by kept_run_homes()."""
-    global _keep_homes
-    _keep_homes = bool(enabled)
-
-
-def kept_run_homes():
-    """Every run home preserved so far, in the order they were made."""
-    return tuple(_kept_homes)
 
 
 def _machine_started(backend):
@@ -152,24 +138,24 @@ def _stop_running_machines():
     """
     for backend in list(_running):
         try:
-            backend.stop_session()
+            backend.stop_guest()
         except Exception:
             _running.discard(backend)
 
 
 def start(boot_image=None):
-    """Open a testaferro session: one boot-image choice serving every
+    """Open a testaferro run: one boot-image choice serving every
     suite until stop(). The image itself — `boot_image` or the cached
     default — is staged lazily on the first guest use, so calling
     this from a conftest costs nothing when no guest test runs. An
-    atexit failsafe sweeps the session if stop() is never called."""
-    global _session
-    if _session is not None:
-        raise RuntimeError("a testaferro session is already active")
-    root = os.path.join(cache.cache_root(), "sessions")
+    atexit failsafe sweeps the run if stop() is never called."""
+    global _run_area
+    if _run_area is not None:
+        raise RuntimeError("a testaferro run is already active")
+    root = os.path.join(cache.cache_root(), "runs")
     os.makedirs(root, exist_ok=True)
-    _session = {
-        "dir": tempfile.mkdtemp(prefix="session-", dir=root),
+    _run_area = {
+        "dir": tempfile.mkdtemp(prefix="run-", dir=root),
         "boot_image": (None if boot_image is None
                        else os.fspath(boot_image)),
     }
@@ -179,23 +165,20 @@ def start(boot_image=None):
 
 
 def stop(clear_downloads=False):
-    """Close the session opened by start(), sweeping its whole area —
-    staged image and every run home. Safe to call with no session
+    """Close the run opened by start(), sweeping its whole area —
+    staged image and every guest home. Safe to call with no run
     active. `clear_downloads=True` also removes the cached default
     boot image, forcing a fresh download next time."""
-    global _session
+    global _run_area
     atexit.unregister(stop)
-    # Machines first: the run homes about to be swept are the disks
+    # Machines first: the guest homes about to be swept are the disks
     # those guests are running from.
     _stop_running_machines()
-    if _session is not None:
-        if _keep_homes:
-            # The run homes being kept live inside this directory,
-            # so sweeping it would take them with it.
-            _kept_homes.append(_session["dir"])
-        else:
-            shutil.rmtree(_session["dir"], ignore_errors=True)
-        _session = None
+    if _run_area is not None:
+        # The guest homes live inside this directory, so the same
+        # sweep-or-keep answer has to govern it.
+        cache.release_guest_home(_run_area["dir"])
+        _run_area = None
     if clear_downloads:
         cached = os.path.join(cache.cache_root(), "boot.img")
         for path in (cached, cached + ".part"):
@@ -203,12 +186,12 @@ def stop(clear_downloads=False):
                 os.remove(path)
 
 
-def _session_image():
-    """The active session's staged boot image, staging it on first
-    use from the recorded choice or the cached default."""
-    image = os.path.join(_session["dir"], "boot.img")
+def _run_image():
+    """The active run's staged boot image, staging it on first use
+    from the recorded choice or the cached default."""
+    image = os.path.join(_run_area["dir"], "boot.img")
     if not os.path.exists(image):
-        shutil.copy(_session["boot_image"] or _cached_default_image(),
+        shutil.copy(_run_area["boot_image"] or _cached_default_image(),
                     image)
     return image
 
@@ -296,11 +279,14 @@ class QemuSuiteBackend(SuiteBackend):
         super().__init__(os.fspath(exe_path), run=self._run_in_guest,
                          framework=framework, enumerator=enumerator)
 
-    def start_session(self):
-        area = _session["dir"] if _session else cache.cache_root()
-        runs = os.path.join(area, "runs")
-        os.makedirs(runs, exist_ok=True)
-        self._home = tempfile.mkdtemp(prefix="run-", dir=runs)
+    def start_guest(self):
+        # A guest home sits inside the active run's area, or directly
+        # under the cache when no run was opened: a guest belonging to
+        # no run still needs somewhere disposable to live.
+        area = _run_area["dir"] if _run_area else cache.cache_root()
+        guests = os.path.join(area, "guests")
+        os.makedirs(guests, exist_ok=True)
+        self._home = tempfile.mkdtemp(prefix="guest-", dir=guests)
         blueprints = os.path.join(self._home, "blueprints")
         work = os.path.join(self._home, "work")
         os.makedirs(blueprints)
@@ -321,10 +307,10 @@ class QemuSuiteBackend(SuiteBackend):
             _machine_started(self)
             reliquary.start_machine(self._machine, context=self._ctx)
         except BaseException:
-            self.stop_session()
+            self.stop_guest()
             raise
 
-    def stop_session(self):
+    def stop_guest(self):
         if self._home is None:
             return
         _running.discard(self)
@@ -334,11 +320,8 @@ class QemuSuiteBackend(SuiteBackend):
                                        context=self._ctx)
         finally:
             # The machine's own cache lives under this home, so the
-            # sweep takes the whole run with it.
-            if _keep_homes:
-                _kept_homes.append(self._home)
-            else:
-                shutil.rmtree(self._home, ignore_errors=True)
+            # sweep takes the whole guest session with it.
+            cache.release_guest_home(self._home)
             self._home = None
             self._ctx = None
             self._machine = None
@@ -350,8 +333,8 @@ class QemuSuiteBackend(SuiteBackend):
 
     def _run_in_guest(self, exe_path, args):
         if self._home is None:
-            raise RuntimeError("no active session: guest runs happen "
-                               "between start_session and stop_session")
+            raise RuntimeError("no guest session: guest runs happen "
+                               "between start_guest and stop_guest")
         command = f"{self._letter}:\\{self._program()}"
         if args:
             command += " " + " ".join(args)
@@ -398,8 +381,8 @@ class QemuSuiteBackend(SuiteBackend):
 
     def _boot_media_path(self):
         """The image the zero-configuration machine boots: this
-        backend's own choice, the session's staged image, or the
+        backend's own choice, the run's staged image, or the
         cached default."""
         if self._boot_image is not None:
             return self._boot_image
-        return _session_image() if _session else _cached_default_image()
+        return _run_image() if _run_area else _cached_default_image()

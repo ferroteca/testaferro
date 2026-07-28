@@ -33,7 +33,7 @@ the plugin being off:
 Options and ini keys are the declaration vocabulary in kebab-case,
 one option per key (P16). The exceptions are the exploration-only
 options, which concern trying a suite out rather than defining
-tests: `--testaferro-keep-run-home` preserves what the guest was
+tests: `--testaferro-keep-guest-home` preserves what the guest was
 given, and enumerate-and-stop is pytest's own `--collect-only`.
 
 **Enumeration prefers a host-built twin**
@@ -51,12 +51,12 @@ import os
 import pathlib
 import shlex
 import subprocess
-import sys
 import warnings
 
 import pytest
 
 from . import binfmt
+from . import cache
 from . import cpputest
 from . import machines
 from .facade import ResultBroker
@@ -100,6 +100,10 @@ _PATH_SETTINGS = frozenset({"boot-image", "machine-config"})
 # which prove nothing either, are not mistaken for guest programs.
 _EXECUTABLE_SUFFIXES = frozenset({".com", ".exe"})
 
+# Suites holding a running execution guest right now, stopped when
+# the pytest session ends (pytest_sessionfinish).
+_live = []
+
 
 def pytest_addoption(parser):
     group = parser.getgroup("testaferro", "guest test suites")
@@ -108,11 +112,11 @@ def pytest_addoption(parser):
                         default=None, metavar=name.upper(),
                         help=help_text)
         parser.addini(f"testaferro-{name}", help_text, default=None)
-    group.addoption("--testaferro-keep-run-home",
-                    dest="testaferro_keep_run_home", action="store_true",
-                    default=False,
-                    help="keep each run's guest home for inspection "
-                         "instead of sweeping it")
+    group.addoption("--testaferro-keep-guest-home",
+                    dest="testaferro_keep_guest_home",
+                    action="store_true", default=False,
+                    help="keep each guest session's home for "
+                         "inspection instead of sweeping it")
     parser.addini("testaferro-suites",
                   "file-name masks a tree scan claims as guest suites",
                   type="args", default=[])
@@ -124,10 +128,8 @@ def pytest_configure(config):
     # at the rootdir rather than at each collected file keeps every
     # xdist worker's answer the same (U5).
     machines.load_config(search_from=str(config.rootpath))
-    if config.getoption("testaferro_keep_run_home", False):
-        from . import qemu
-
-        qemu.keep_run_homes(True)
+    if config.getoption("testaferro_keep_guest_home", False):
+        cache.keep_guest_homes(True)
 
 
 def pytest_collect_file(file_path, parent):
@@ -136,14 +138,31 @@ def pytest_collect_file(file_path, parent):
     return GuestSuiteFile.from_parent(parent, path=file_path)
 
 
+def pytest_sessionfinish(session, exitstatus):
+    """Stop every execution guest this run started. (The hook's own
+    name is pytest's session, not ours — which is the collision D15
+    is about.)
+
+    At session finish rather than through `config.add_cleanup`,
+    because config cleanups run *after* the terminal summary: a guest
+    home kept for inspection would then be reported before the guest
+    that made it had even been stopped, and the most interesting one
+    would be missing from the list entirely. One backend failing to
+    stop must not strand the others; the binding's own atexit failsafe
+    is what still covers a machine left running.
+    """
+    while _live:
+        try:
+            _live.pop().backend.stop_guest()
+        except Exception:
+            pass
+
+
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
-    if ("testaferro.qemu" not in sys.modules
-            or not config.getoption("testaferro_keep_run_home", False)):
-        return
-    homes = sys.modules["testaferro.qemu"].kept_run_homes()
+    homes = cache.kept_guest_homes()
     if not homes:
         return
-    terminalreporter.write_sep("-", "testaferro guest run homes kept")
+    terminalreporter.write_sep("-", "testaferro guest homes kept")
     for home in homes:
         terminalreporter.write_line(home)
 
@@ -158,10 +177,10 @@ class GuestSuiteFile(pytest.File):
             # No twin: the list has to be read out of the guest, which
             # is a boot, and a boot is what the twin exists to avoid.
             try:
-                backend.start_session()
+                backend.start_guest()
                 ids = list(backend.list_tests())
             finally:
-                backend.stop_session()
+                backend.stop_guest()
             # Plain ASCII on purpose: this lands on a terminal, and
             # the guest side of this project is a console world.
             warnings.warn(
@@ -189,7 +208,7 @@ class GuestTestItem(pytest.Item):
         self._outcome = None
 
     def runtest(self):
-        self._suite.start_execution(self.config)
+        self._suite.start_execution()
         try:
             outcome = self._suite.broker.outcome(self._test_id,
                                                  self._selected())
@@ -226,23 +245,23 @@ class GuestTestItem(pytest.Item):
 
 class _Suite:
     """One executable's backend and broker, shared by its items, with
-    the execution session started lazily by the first item that runs
-    and closed when pytest finishes."""
+    the execution guest started lazily by the first item that runs and
+    stopped when the pytest session ends."""
 
     def __init__(self, backend, broker):
         self.backend = backend
         self.broker = broker
         self._started = False
 
-    def start_execution(self, config):
+    def start_execution(self):
         if self._started:
             return
         try:
-            self.backend.start_session()
-            config.add_cleanup(self.backend.stop_session)
+            self.backend.start_guest()
         except BaseException:
-            self.backend.stop_session()
+            self.backend.stop_guest()
             raise
+        _live.append(self)
         self._started = True
 
 

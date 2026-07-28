@@ -20,7 +20,7 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 - **Plugin options and ini keys** as kebab-case spellings of the declaration vocabulary — `--testaferro-machine`,
   `--testaferro-platform`, `--testaferro-boot-image`, `--testaferro-machine-config`, each also a pytest ini key.
   Command line wins over ini, and both win over a declaration. Exploration-only:
-  `--testaferro-keep-run-home` preserves each run's guest home (and names what it kept) instead of sweeping it.
+  `--testaferro-keep-guest-home` preserves each guest session's home (and names what it kept) instead of sweeping it.
 - **`suites` in a machine declaration** — the masks saying which executables are that machine's guest suites, in
   `config()` and in `testaferro.ini` alike. Written as a list or as one comma- or space-separated string, and matched
   case-insensitively on every host so a checked-in project collects the same suites wherever it is cloned.
@@ -37,6 +37,15 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ### Changed
 
+- **One word stopped meaning three things.** pytest owns "session" for the whole run, and testaferro was using it for
+  two more: one guest being up, and the shared area `start()` opens. The `Backend` ABC's `start_session()` /
+  `stop_session()` are now **`start_guest()` / `stop_guest()`** — a *guest session* is one guest up and able to answer
+  — and what `testaferro.start()`/`stop()` open is a **run**, which holds many guest sessions. `start()` and `stop()`
+  keep their names. The cache layout follows: `runs/run-*/guests/guest-*/`, with `guests/` at the cache root for a
+  guest belonging to no run, replacing `sessions/session-*/runs/run-*`. Those directories were never runs' homes —
+  each is one guest's — so `--testaferro-keep-run-home` is now `--testaferro-keep-guest-home`. Anyone implementing a
+  custom `Backend` renames two methods; an existing cache keeps a stale `sessions/` tree, which is disposable state and
+  can be deleted.
 - Resolving an executable and its options to a backend moved out of the pytest facade into the core
   (`testaferro.resolution.resolve_backend`): config search, platform validation, format classification, machine
   selection, binding import and option validation now answer the same way for every entry point rather than only for

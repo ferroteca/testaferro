@@ -20,6 +20,12 @@ class FakeBackend(Backend):
         self._outcomes = outcomes
         self.calls = []
 
+    def start_guest(self):
+        self.calls.append(("start_guest",))
+
+    def stop_guest(self):
+        self.calls.append(("stop_guest",))
+
     def list_tests(self):
         return [TestId(o.group, o.name) for o in self._outcomes]
 
@@ -100,6 +106,35 @@ class GuestSuiteTargetTests(unittest.TestCase):
         self.assertEqual(
             Path(load.call_args.kwargs["search_from"]).resolve(),
             Path(__file__).resolve().parent)
+
+    @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+    def test_a_host_side_enumerator_starts_no_guest(self):
+        # The list comes from the host, so starting a guest here would
+        # boot a machine and ask it nothing — the cost the twin exists
+        # to avoid, and what the collection plugin already avoids.
+        from unittest import mock
+
+        import testaferro
+
+        backend = FakeBackend(OUTCOMES)
+        exe = self._exe(plain_dos_exe_bytes())
+        with mock.patch("testaferro.qemu.suite_backend",
+                        return_value=backend):
+            testaferro.guest_suite(
+                exe, enumerator=lambda: [TestId("Vring", "Wraps")])
+
+        self.assertEqual(backend.calls, [])
+
+    def test_a_prebuilt_backend_still_gets_its_guest(self):
+        # It may be what makes list_tests() work, and a prebuilt
+        # backend cannot carry an enumerator to say otherwise.
+        import testaferro
+
+        backend = FakeBackend(OUTCOMES)
+        testaferro.guest_suite(backend)
+
+        self.assertEqual(backend.calls,
+                         [("start_guest",), ("stop_guest",)])
 
     def test_backend_target_rejects_path_only_options(self):
         import testaferro
@@ -191,10 +226,10 @@ class GuestSuiteTests(unittest.TestCase):
                 "        with open(events, 'a') as stream:\n"
                 "            stream.write(event + '\\n')\n"
                 "\n"
-                "    def start_session(self):\n"
+                "    def start_guest(self):\n"
                 "        self.record('start')\n"
                 "\n"
-                "    def stop_session(self):\n"
+                "    def stop_guest(self):\n"
                 "        self.record('stop')\n"
                 "\n"
                 "    def list_tests(self):\n"
@@ -235,7 +270,7 @@ class GuestSuiteTests(unittest.TestCase):
                       result.stdout)
         self.assertIn("test_guest_case[Group-Fails]", result.stdout)
 
-    def test_full_suite_batches_and_balances_backend_sessions(self):
+    def test_full_suite_batches_and_balances_guest_sessions(self):
         result, events = self._run_pytest()
 
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
@@ -246,7 +281,7 @@ class GuestSuiteTests(unittest.TestCase):
             "start", "list", "stop", "start", "run_all", "stop",
         ])
 
-    def test_narrowed_selection_preserves_id_and_balances_sessions(self):
+    def test_narrowed_selection_preserves_id_and_balances_guests(self):
         result, events = self._run_pytest("-k", "Passes")
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

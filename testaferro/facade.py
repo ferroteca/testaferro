@@ -83,9 +83,12 @@ def guest_suite(target, framework=None, enumerator=None,
     machine-specific and validated by the selected binding: today,
     `boot_image=` or `machine_config=` for DOS.
 
-    Enumeration (backend.list_tests()) happens in its own session at
-    import/collection time. A second session starts lazily when the
-    first selected item runs and is cleaned up when pytest finishes.
+    Enumeration (backend.list_tests()) happens at import/collection
+    time, in a guest session of its own — unless `enumerator` supplies
+    the list from the host, in which case no guest is started, because
+    none is needed. A second guest session, for execution, starts
+    lazily when the first selected item runs and is stopped when
+    pytest finishes.
 
     The returned function is re-homed to the caller's file and call
     line, so IDE per-item actions that key on source location (run
@@ -126,29 +129,37 @@ def guest_suite(target, framework=None, enumerator=None,
                 "configuration: " + ", ".join(given))
         backend = target
 
-    try:
-        backend.start_session()
+    if enumerator is None:
+        try:
+            backend.start_guest()
+            ids = list(backend.list_tests())
+        finally:
+            backend.stop_guest()
+    else:
+        # A host-side enumerator answers without the guest, so starting
+        # one here would boot a machine and ask it nothing. Safe to
+        # skip only because `enumerator` reaches this point on the path
+        # form alone — a prebuilt Backend rejects it above, and its own
+        # start_guest() may well be what makes list_tests() work.
         ids = list(backend.list_tests())
-    finally:
-        backend.stop_session()
     broker = ResultBroker(backend, ids)
-    execution_session_started = False
+    execution_guest_started = False
 
-    def start_execution_session(config):
-        nonlocal execution_session_started
-        if execution_session_started:
+    def start_execution_guest(config):
+        nonlocal execution_guest_started
+        if execution_guest_started:
             return
         try:
-            backend.start_session()
-            config.add_cleanup(backend.stop_session)
+            backend.start_guest()
+            config.add_cleanup(backend.stop_guest)
         except BaseException:
-            backend.stop_session()
+            backend.stop_guest()
             raise
-        execution_session_started = True
+        execution_guest_started = True
 
     @pytest.mark.parametrize("guest_test", ids, ids=item_id)
     def run_guest_test(guest_test, request):
-        start_execution_session(request.config)
+        start_execution_guest(request.config)
         try:
             outcome = broker.outcome(guest_test,
                                      _selected_ids(request, broker))

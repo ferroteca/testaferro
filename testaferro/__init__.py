@@ -32,9 +32,9 @@ declared with config() or an optional per-project testaferro.ini; a
 prebuilt Backend remains the custom escape hatch for callers that
 need a different execution mechanism.
 
-For many suites (and future parallel runs), open a session so the
-boot image is specified once and all per-run state is swept together
-— in pytest, from the consumer's conftest.py:
+For many suites (and future parallel runs), open a *run* so the boot
+image is specified once and all the state it leaves behind is swept
+together — in pytest, from the consumer's conftest.py:
 
     import testaferro
 
@@ -76,17 +76,17 @@ def load_config(path=None):
 
 
 def start(boot_image=None):
-    """Open a guest-test session: one boot-image choice (or the
+    """Open a testaferro run: one boot-image choice (or the
     downloaded default) serving every suite until stop(). Costs
     nothing until a guest actually runs; an atexit failsafe sweeps
-    the session if stop() is never called."""
+    the run if stop() is never called."""
     from . import qemu
     qemu.start(boot_image=boot_image)
 
 
 def stop(clear_downloads=False):
-    """Close the session, sweeping its staged image and all per-run
-    state; safe without an active session. `clear_downloads=True`
+    """Close the run, sweeping its staged image and every guest home
+    inside it; safe without an active run. `clear_downloads=True`
     also drops the cached default boot image."""
     from . import qemu
     qemu.stop(clear_downloads=clear_downloads)

@@ -8,10 +8,13 @@ decided, and how work enters is
 
 ## Project state
 
-A pytest facade over reliquary for DOS CppUTest suites, built and
-working under its unit tier — though no guest has run since the
-migration to the blueprint model, so end-to-end proof is owed (see
-"Unit and integration" below). Reliquary is the only supported
+A pytest plugin over reliquary for DOS CppUTest suites (D12), with
+two entry points onto one execution: the collection plugin, which
+auto-loads and claims suite executables, and the embedding facade,
+which is its programmatic layer. Both resolve through the same seam.
+Built and working under its unit tier — though no guest has run since
+the migration to the blueprint model, so end-to-end proof is owed
+(see "Unit and integration" below). Reliquary is the only supported
 guest-machine provider (P1) — the provider is a declared choice in
 the vision (D11), and reliquary is the one binding built;
 testaferro's pluggable aspect is the guest unit-test framework
@@ -20,7 +23,13 @@ testaferro's pluggable aspect is the guest unit-test framework
 Package layout (each module states its contract in its docstring):
 
 - [testaferro/backend.py](testaferro/backend.py) — the `Backend`
-  seam (`TestId`, `TestOutcome`, the five-operation ABC).
+  seam (`TestId`, `TestOutcome`, the five-operation ABC:
+  `start_guest`, `list_tests`, `run_test`, `run_all`, `stop_guest`).
+  **Three spans, three words** (D15): pytest's *session* is the whole
+  run; a **guest session** is one guest up, between `start_guest()`
+  and `stop_guest()`; a **run** is what `testaferro.start()`/`stop()`
+  open — one staged image and one sweep area, holding many guest
+  sessions. Nothing but pytest's own is called a session unqualified.
 - [testaferro/cpputest.py](testaferro/cpputest.py) — the CppUTest
   **framework adapter**: argv builders + output grammars, derived
   from CppUTest v4.0's own source, not from observed samples.
@@ -55,20 +64,27 @@ Package layout (each module states its contract in its docstring):
   each guest binding's own guard.
 - [testaferro/cache.py](testaferro/cache.py) — `cache_root()`,
   testaferro's durable filespace (LOCALAPPDATA or XDG_CACHE_HOME),
-  shared by the guest bindings.
+  shared by the guest bindings. Also where a finished guest home is
+  handed back: `release_guest_home()` is the single place that sweeps
+  or keeps one, and `keep_guest_homes()`/`kept_guest_homes()` are the
+  exploration switch and its report. The layout is the vocabulary made
+  physical (D15): `runs/run-*/guests/guest-*/`, and `guests/` at the
+  cache root for a guest belonging to no run. That policy is testaferro's, not
+  any binding's, which is what lets the plugin read the answer without
+  importing a binding — or a provider.
 - [testaferro/qemu.py](testaferro/qemu.py) — the QEMU/DOS platform
   binding: `suite_backend()` guards with `binfmt.classify()`
   (rejections name the format and architecture) and returns a
   `QemuSuiteBackend`, with `framework` defaulting to the CppUTest
-  adapter. Each facade session writes the declaration as a blueprint
+  adapter. Each guest session writes the declaration as a blueprint
   into a disposable reliquary home under `cache_root()`, then
   `create_machine()` → `start_machine()`; every guest run is one
   `reliquary.exec()` against that machine, and `stop_machine()` plus
-  a sweep of the home ends the session. Zero configuration uses
+  a sweep of the home ends the guest session. Zero configuration uses
   `boot_image=` or a once-downloaded cached FreeDOS image.
   `start()`/`stop()` (re-exported as `testaferro.start`/`stop`) open
-  an optional session: one lazily-staged image choice shared by all
-  suites, whose whole area — image and run homes — is swept by
+  an optional *run*: one lazily-staged image choice shared by all
+  suites, whose whole area — image and guest homes — is swept by
   `stop()`.
 
   Four invariants live here:
@@ -81,12 +97,12 @@ Package layout (each module states its contract in its docstring):
     guest and leak the process. Any new exit path must go through
     `_stop_running_machines()`.
 
-  - **The reliquary context is hermetic.** Each session pins
+  - **The reliquary context is hermetic.** Each guest session pins
     `reliquary.Context(home_dir=…, cache_dir=…,
-    blueprints_dir=<session dir>, autoseed=False)`, so resolution
+    blueprints_dir=<guest home>, autoseed=False)`, so resolution
     sees only what testaferro authored for that run — never the
     user's reliquary home or the built-in codex. Autoseeding is off
-    by default in reliquary's embedding API; pinning it per session
+    by default in reliquary's embedding API; pinning it per guest
     is what keeps a host process that turned the process-global on
     from reaching in. Reaching a blueprint by name from the user's
     home is a deliberate decision, not a default to drift into.
@@ -135,8 +151,12 @@ Package layout (each module states its contract in its docstring):
   becomes an item under the executable's node
   (`tests/SUITE.EXE::Group-Name`). Options and ini keys are declared
   from one list (`_SETTINGS`) so the two spellings cannot drift (P16);
-  `--testaferro-keep-run-home` and the enumerator are the
-  exploration-only exceptions. The claiming policy is the load-bearing
+  `--testaferro-keep-guest-home` and the enumerator are the
+  exploration-only exceptions. Execution guests are stopped in
+  `pytest_sessionfinish`, deliberately **not** through
+  `config.add_cleanup`: config cleanups run after the terminal
+  summary, so a kept guest home would be reported before the guest
+  that made it was closed. The claiming policy is the load-bearing
   part — see the invariant below. Its module imports stay stdlib-only:
   a pytest run that claims no guest suite must not pay for reliquary,
   which is why `machines.py` imports the JSONC reader lazily.

@@ -129,3 +129,37 @@ Serves **U7**. Two levels, both declared, both optional:
 
 The prep vocabulary is new declaration surface (the second
 interface) and lands through the interface-change rule.
+
+## F10 — The test-environment vocabulary
+
+Serves **P1** and **P2** as amended in
+[ARCHITECTURE.md](ARCHITECTURE.md), and **U9**. testaferro's
+guest-facing vocabulary becomes one noun. A **test environment** is
+what a suite runs in: a standard one testaferro authors and names
+(`freedos`), or a custom one the tester declares as a choice of
+provider plus all the configuration that provider requires.
+`platform=` and `machine=` collapse into one way of naming one, and
+`platform` goes back to being what it always was — a field in an
+authored blueprint, reliquary's word, passing through untouched
+(P3). `provider=` enters the declaration, which D11 already says the
+tester names and nothing currently spells; the binding table keys by
+provider rather than by OS family; and `testaferro/qemu.py` takes
+the name of what it actually binds, since it drives reliquary and
+never QEMU. That last part answers the open question asking whether
+the module should be named for its *platform* instead — which the
+amended vocabulary decides differently, so the question retires with
+the adjudication rather than on its own terms.
+
+Reaches four of the six enumerated interfaces — the embedding API,
+the declaration, `testaferro.ini`, and the plugin's options and ini
+keys, which are a second presentation of the first two — and renames
+the second and third of them. It also moves a clause a **pledged**
+use case leans on: U4 cites U3's "selects the same machine", so the
+wording travels with the vocabulary, which is the cost D13 recorded
+for reshaping what U4 rests on.
+
+> **Too large as written**, and it cannot be picked up first: the
+> amendment is the argument (INTERFACES.md), so P1 and P2 have to
+> win and be pledged before this is. Cut at the pledge — the first
+> sprint's worth is the noun and the resolution path it names, with
+> the provider axis and the binding rename following it.

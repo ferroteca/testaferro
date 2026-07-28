@@ -85,7 +85,10 @@ A date is a promise and belongs nowhere here.
 the same artifacts in different states. A thing in `proposed/` moves
 to `pledged/`, and **the commit that moves it is the record**. Each
 mirrored file appears in `pledged/` with its first promoted entry
-rather than standing empty; all three are there now (D13).
+rather than standing empty, and leaves again when its last one
+does: `USE-CASES.md` and `ARCHITECTURE.md` are there today, and
+`FEATURES.md` returns with the next feature pledged — the two it
+held were delivered, and a delivered feature stops existing.
 
 **The planning root holds what does not move.** The map, the rule,
 the record and the queue are machinery rather than proposals, and
@@ -122,11 +125,15 @@ once into [proposed/](proposed/):
 the interface enumeration the vetting rule looks up, and keeps it
 whatever else moves — and
 [proposed/FEATURES.md](proposed/FEATURES.md). The first entries have
-since been pledged into [pledged/](pledged/) (D13) and none has been
-delivered, so both root documents are still unwritten: until a use
-case or principle is pledged *and then delivered*, this project has
-no in-force list, and the honest answer to "what does testaferro
-promise?" is *nothing yet stated*. Several drafted entries describe
+since been pledged into [pledged/](pledged/) (D13), and the two
+features among them have been delivered — **which arms nothing**.
+Features carry no vision; delivering one leaves code and retires a
+number. A use case still reaches the root list only on full
+delivery and a principle only on being honored as a rule, and
+neither has happened, so both root documents are still unwritten:
+until a use case or principle is pledged *and then* delivered, this
+project has no in-force list, and the honest answer to "what does
+testaferro promise?" is *nothing yet stated*. Several drafted entries describe
 code that already exists; that makes their route short, not
 automatic — the pledge is still an act, and delivery still has to be
 true.
