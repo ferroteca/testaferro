@@ -49,7 +49,6 @@ from __future__ import annotations
 import fnmatch
 import os
 import pathlib
-import shlex
 import subprocess
 import warnings
 
@@ -398,7 +397,7 @@ def _twin_enumerator(twin):
     """
     def enumerate_tests():
         completed = subprocess.run(
-            [str(twin), *shlex.split(cpputest.list_argv())],
+            [str(twin), *cpputest.list_argv()],
             capture_output=True, text=True, check=False)
         if completed.returncode != 0:
             raise RuntimeError(

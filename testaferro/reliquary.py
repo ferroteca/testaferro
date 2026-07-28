@@ -343,6 +343,9 @@ class ReliquarySuiteBackend(SuiteBackend):
         if self._home is None:
             raise RuntimeError("no guest session: guest runs happen "
                                "between start_guest and stop_guest")
+        # The framework hands over argv tokens; DOS takes one command
+        # line, so this is where tokens become one — the guest-OS
+        # aspect, which is why it lives here and not in the adapter.
         command = f"{self._letter}:\\{self._program()}"
         if args:
             command += " " + " ".join(args)

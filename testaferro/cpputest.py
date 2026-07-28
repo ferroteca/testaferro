@@ -9,8 +9,15 @@ deliberately not this module's business; the
 two aspects compose in a SuiteBackend (testaferro.suite) or directly
 at the call site:
 
-    log = run_guest_program(exe, args=cpputest.VERBOSE_ARGS)
+    log = run_guest_program(exe, args=cpputest.run_all_argv())
     results = cpputest.parse(log)
+
+**Every argv builder returns a sequence of tokens, never a command
+line.** Spelling one is the executing side's business — a DOS guest
+takes a single string, a host subprocess takes a list — and only
+that side knows which. Handing over a string instead would make an
+adapter that has never seen a command line decide how one is
+quoted, and leaves each caller to guess whether to split it back.
 
 Output grammars follow CppUTest v4.0's own source (TestOutput.cpp,
 TestRegistry.cpp): eclipse-style failure locations (the default),
@@ -23,11 +30,12 @@ import re
 
 from .backend import TestId, TestOutcome
 
-# Suite argv for each backend operation. VERBOSE_ARGS produces the
-# run output parse()/parse_run() understand; LIST_ARGS produces the
-# enumeration parse_list() understands.
-VERBOSE_ARGS = "-v"
-LIST_ARGS = "-ln"
+# Suite argv for each backend operation, as token sequences.
+# VERBOSE_ARGS produces the run output parse()/parse_run()
+# understand; LIST_ARGS produces the enumeration parse_list()
+# understands.
+VERBOSE_ARGS = ("-v",)
+LIST_ARGS = ("-ln",)
 
 # CppUTest verbose (-v) output. Test ids are 'Group.Name', matching
 # the executable's own -ln enumeration format.
@@ -56,7 +64,7 @@ def run_all_argv():
 def run_one_argv(group, name):
     """Suite argv that runs exactly one test in parse_run()'s
     format ('-sg'/'-sn' are CppUTest's strict-match filters)."""
-    return f"{VERBOSE_ARGS} -sg {group} -sn {name}"
+    return VERBOSE_ARGS + ("-sg", group, "-sn", name)
 
 
 def parse_list(text):

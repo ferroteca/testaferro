@@ -32,7 +32,19 @@ Package layout (each module states its contract in its docstring):
   sessions. Nothing but pytest's own is called a session unqualified.
 - [testaferro/cpputest.py](testaferro/cpputest.py) — the CppUTest
   **framework adapter**: argv builders + output grammars, derived
-  from CppUTest v4.0's own source, not from observed samples.
+  from CppUTest v4.0's own source, not from observed samples. An
+  argv builder returns a **sequence of tokens, never a command
+  line** — spelling one belongs to whoever executes, since only
+  they know whether the program is reached by a DOS command line or
+  an argv list. The two spellings live in
+  [reliquary.py](testaferro/reliquary.py) (`" ".join`) and
+  [plugin.py](testaferro/plugin.py) (a splat into `subprocess.run`).
+  A string return would satisfy every `for` loop and every join in
+  the codebase while meaning something else, which is exactly how it
+  went wrong once: the binding joined a string's characters and
+  every guest operation asked for `SUITE.EXE - v`. So an argv
+  expectation in a test is written out as a literal, never rebuilt
+  from the builder under test.
 - [testaferro/machines.py](testaferro/machines.py) — named test-machine
   declarations backed by immutable `MachineSpec` templates, plus
   platform-aware selection and loading of the optional per-project
@@ -53,7 +65,10 @@ Package layout (each module states its contract in its docstring):
   and naming nothing run the same guest. Siblings arrive as guests
   grow.
 - [testaferro/suite.py](testaferro/suite.py) — `SuiteBackend`, the
-  internal execution × framework composition.
+  internal execution × framework composition. Argv crosses it
+  untouched: it joins nothing and quotes nothing, because a
+  composition that knows neither aspect cannot know what a command
+  line looks like at the far end.
 - [testaferro/binfmt.py](testaferro/binfmt.py) — stdlib-only
   executable-format classification. `classify()` names the guest OS
   able to run a file — "dos" for plain MZ and headerless/.com

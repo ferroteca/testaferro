@@ -12,6 +12,15 @@ composition seam, not a public runner contract.
                            run=run_guest_program,
                            framework=cpputest)
 
+**Argv crosses this seam as a token sequence**, and passes through
+untouched: `run(exe_path, args)` receives what the builder returned —
+`("-v", "-sg", "Vring", "-sn", "Wraps")` — and the callable decides
+how those tokens reach the program, because only it knows what does
+the executing. This module joins nothing and quotes nothing; a
+composition that flattened the tokens on the way past would be
+guessing at a command line for a runner it deliberately knows
+nothing about.
+
 The optional `enumerator` replaces guest enumeration with a faster
 source of the same list — e.g. a host-built twin executable — without
 changing where the tests actually run.

@@ -26,7 +26,8 @@ EMPTY_RUN_OUTPUT = (
 
 class ScriptedRunner:
     """Stands in for the guest-OS aspect: returns canned suite output
-    per argv, recording each call."""
+    per argv, recording each call. Keyed by the argv token tuple the
+    framework builds, which is what a real runner receives."""
 
     def __init__(self, outputs):
         self.outputs = outputs
@@ -40,9 +41,9 @@ class ScriptedRunner:
 class SuiteBackendTests(unittest.TestCase):
     def test_operations_compose_runner_and_framework(self):
         run = ScriptedRunner({
-            "-ln": LIST_OUTPUT,
-            "-v": RUN_ALL_OUTPUT,
-            "-v -sg Vring -sn Wraps": RUN_ONE_OUTPUT,
+            ("-ln",): LIST_OUTPUT,
+            ("-v",): RUN_ALL_OUTPUT,
+            ("-v", "-sg", "Vring", "-sn", "Wraps"): RUN_ONE_OUTPUT,
         })
         backend = SuiteBackend("SUITE.EXE", run=run, framework=cpputest)
 
@@ -57,14 +58,19 @@ class SuiteBackendTests(unittest.TestCase):
 
         outcome = backend.run_test("Vring", "Wraps")
         self.assertTrue(outcome.passed)
+        # Written out rather than rebuilt from the argv builders: the
+        # seam's contract is that argv reaches the runner as the
+        # tokens the framework named, and an expectation composed the
+        # way the code composes cannot see a wrong composition.
         self.assertEqual(run.calls, [
-            ("SUITE.EXE", "-ln"),
-            ("SUITE.EXE", "-v"),
-            ("SUITE.EXE", "-v -sg Vring -sn Wraps"),
+            ("SUITE.EXE", ("-ln",)),
+            ("SUITE.EXE", ("-v",)),
+            ("SUITE.EXE", ("-v", "-sg", "Vring", "-sn", "Wraps")),
         ])
 
     def test_run_test_raises_when_target_did_not_run_it(self):
-        run = ScriptedRunner({"-v -sg Vring -sn Gone": EMPTY_RUN_OUTPUT})
+        run = ScriptedRunner(
+            {("-v", "-sg", "Vring", "-sn", "Gone"): EMPTY_RUN_OUTPUT})
         backend = SuiteBackend("SUITE.EXE", run=run, framework=cpputest)
 
         with self.assertRaisesRegex(LookupError, "Vring.Gone"):

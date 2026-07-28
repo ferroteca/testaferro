@@ -30,6 +30,9 @@ if RELIQUARY_AVAILABLE:
 
 EMPTY_RUN_OUTPUT = (
     "OK (2 tests, 0 ran, 0 checks, 0 ignored, 2 filtered out, 0 ms)\n")
+RUN_ONE_OUTPUT = (
+    "TEST(Vring, Wraps) - 0 ms\n"
+    "OK (2 tests, 1 ran, 1 checks, 0 ignored, 1 filtered out, 0 ms)\n")
 
 
 def _drive_state(key):
@@ -238,7 +241,28 @@ class ReliquarySuiteBackendTests(_BindingFixture):
             finally:
                 backend.stop_guest()
         guest_exec.assert_called_once_with(
-            "C:\\SUITE.EXE " + " ".join(cpputest.run_all_argv()),
+            "C:\\SUITE.EXE -v",
+            machine="testaferro-0", context=mock.ANY, timeout=mock.ANY)
+
+    def test_the_command_line_spells_every_argv_token(self):
+        """The framework hands over tokens and this binding spells the
+        DOS command line, so the expectation is written out rather
+        than rebuilt from the argv builder — an expectation composed
+        the way the code composes cannot see a wrong composition. A
+        string treated as a token sequence joins character by
+        character, asking the guest for '- v' instead.
+        """
+        expected = tuple(RUN_ONE_OUTPUT.splitlines())
+        with self._fake_machine(return_value=expected) as guest_exec:
+            backend = binding.suite_backend(self.exe,
+                                            boot_image=self.image)
+            backend.start_guest()
+            try:
+                self.assertTrue(backend.run_test("Vring", "Wraps").passed)
+            finally:
+                backend.stop_guest()
+        guest_exec.assert_called_once_with(
+            "C:\\SUITE.EXE -v -sg Vring -sn Wraps",
             machine="testaferro-0", context=mock.ANY, timeout=mock.ANY)
 
     def test_enumerator_forwards_to_suite_backend(self):

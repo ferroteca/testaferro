@@ -111,6 +111,53 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D17 — Argv crosses the framework seam as tokens
+
+**Decided** owner, 2026-07-28. **Supports** P4, U6 (drafted).
+
+A framework adapter's argv builders return a **sequence of tokens**,
+and whoever executes spells the command line: the reliquary binding
+joins them for its DOS guest, the host-twin enumerator splats them
+into `subprocess.run`.
+Ruled in the course of fixing the defect underneath — the binding
+joined the adapter's *string* with `" ".join(args)`, which iterates
+characters, so every guest operation asked for `SUITE.EXE - v` and a
+single-test run for `SUITE.EXE - v   - s g   V r i n g`. The contract
+had never been stated in either direction, so the fix had to state it
+before it could pick a side.
+
+The side is P4's. An adapter that is "argv and grammar only", and
+never learns how the output was obtained, cannot also know how a
+command line is quoted — a string makes it decide anyway, on behalf
+of a runner it deliberately knows nothing about, while a sequence
+leaves the spelling to the one party that knows it is DOS. The
+string had already been paying for that: `plugin.py` split one back
+apart with `shlex.split()` to run a host-built twin, a round trip
+that exists only because the wrong side had spoken first.
+
+**Recorded because the surface is enumerated.**
+[proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md) names the
+framework adapter modules "usable on their own" inside the first
+interface, the embedding API, so a change to a public return type
+there is not housekeeping whatever its diff, and takes the landing
+steps in [INTERFACES.md](INTERFACES.md). That first interface is the
+only one touched: the `Backend` ABC's five operations are unchanged,
+the run callable stays an internal composition seam rather than a
+public runner contract (D1), and no machine declaration, item id or
+cache path is involved.
+
+**Weighed and declined:** keeping the string and having the binding
+append it whole. It fixes the same defect in one line, but leaves
+`argv` naming something that is not argv, leaves each caller to guess
+whether to split it, and leaves the quoting question with the module
+least equipped to answer it.
+
+**Folded into:** [../testaferro/cpputest.py](../testaferro/cpputest.py),
+[../testaferro/suite.py](../testaferro/suite.py),
+[../testaferro/reliquary.py](../testaferro/reliquary.py),
+[../testaferro/plugin.py](../testaferro/plugin.py),
+[../AGENTS.md](../AGENTS.md), [../CHANGELOG.md](../CHANGELOG.md).
+
 ### D16 — A binding is named for the provider it binds
 
 **Decided** owner, 2026-07-28. **Supports** P1, P2 (drafted, as

@@ -57,6 +57,22 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   selection, binding import and option validation now answer the same way for every entry point rather than only for
   `guest_suite()`. The seam takes the `testaferro.ini` search directory as a parameter instead of deriving it from the
   caller's stack frame, which the facade still does for its own call site. No public surface changes.
+- A framework adapter's argv builders now return a **sequence of tokens** rather than a command-line string:
+  `cpputest.run_one_argv("Vring", "Wraps")` is `("-v", "-sg", "Vring", "-sn", "Wraps")`, and `VERBOSE_ARGS` / `LIST_ARGS`
+  are tuples. Spelling a command line is the executing side's business — the reliquary binding joins the tokens for its
+  DOS guest, a host
+  subprocess splats them — so the adapter no longer decides for a runner it deliberately knows nothing about. Anyone
+  calling a builder directly reads the return value as tokens; `" ".join(...)` around one is now correct where it was
+  the defect below.
+
+### Fixed
+
+- **Every guest operation ran with mangled argv.** The reliquary binding joined the framework's argv with `" ".join(args)`
+  while the adapter returned a string, so joining iterated its characters: the guest was asked to run `SUITE.EXE - v`,
+  and a single-test run `SUITE.EXE - v   - s g   V r i n g   - s n   W r a p s`. Enumeration, run-all and run-one were
+  all affected. The unit tier missed it because the expectation was built by the same expression it was testing; the
+  command line is now written out as a literal, and the integration tier that would have caught it in a boot is still
+  owed.
 
 ## [0.1.0.dev5] - 2026-07-28
 

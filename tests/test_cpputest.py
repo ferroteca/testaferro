@@ -93,10 +93,20 @@ class ListTests(unittest.TestCase):
 
 class ArgvTests(unittest.TestCase):
     def test_argv_builders(self):
-        self.assertEqual(cpputest.list_argv(), "-ln")
-        self.assertEqual(cpputest.run_all_argv(), "-v")
+        self.assertEqual(cpputest.list_argv(), ("-ln",))
+        self.assertEqual(cpputest.run_all_argv(), ("-v",))
         self.assertEqual(cpputest.run_one_argv("Vring", "Wraps"),
-                         "-v -sg Vring -sn Wraps")
+                         ("-v", "-sg", "Vring", "-sn", "Wraps"))
+
+    def test_argv_is_tokens_and_not_a_command_line(self):
+        """A string is a sequence too, which is what made the flaw
+        silent: every caller iterating one gets characters. So say
+        what a builder returns, not merely what it equals."""
+        for argv in (cpputest.list_argv(), cpputest.run_all_argv(),
+                     cpputest.run_one_argv("Vring", "Wraps")):
+            self.assertNotIsInstance(argv, str)
+            for token in argv:
+                self.assertNotIn(" ", token)
 
 
 if __name__ == "__main__":
