@@ -178,22 +178,40 @@ anything that looks normative is written.
   provider's to guarantee and to test, so doubting one produces an
   upstream bug report — never a local audit of its internals, and
   never a defensive workaround here. (D1, D11.)
-- **P2 — Suites name test environments, and nothing underneath
-  one.** A **test environment** is what a suite runs in, and it is
-  the whole of what a suite-facing consumer writes: a **standard**
-  environment testaferro authors and names (U9, D10, P17), or a
-  **custom** one the tester declares — a choice of provider plus
-  all the configuration that provider requires. The environment is
-  the one place a provider is named (P1, D11), and everything below
-  the provider stays invisible: QEMU is reliquary's business, and
-  so is `platform`, which is a field in an authored blueprint
-  passing through untouched (P3) rather than a word a suite says.
+- **P2 — Suites name test environments.** A **test environment** is
+  what a suite runs in, and naming one is the whole of what a
+  suite-facing consumer writes: a **standard** environment
+  testaferro authors and names (U9, D10, P17), or a **custom** one
+  the tester declares. The environment is the one place a provider
+  is named (P1, D11).
+
+  **How deep a custom environment goes is the tester's to choose,
+  and it goes as deep as the provider does.** A name and nothing
+  else, or a complete provider document — a reliquary blueprint
+  with its drives, its provisioning scripts, its
+  `backend-settings` — carried through untouched for the provider
+  to validate (P3, D4, U7). Precision is never rationed here, and a
+  tester who needs the provider's most specific knob reaches it by
+  writing the provider's own document.
+
+  What testaferro declines is not depth but **vocabulary**: it
+  names providers and never what a provider drives underneath. It
+  asks no consumer for an emulator, keys no table by one, and
+  interprets no field below the provider's own — `platform`
+  included, which is a blueprint field passing through (P3) rather
+  than a word testaferro speaks. A `backend-settings` block naming
+  QEMU is the tester configuring *reliquary*, and testaferro
+  carries it without opinion or comprehension.
+
   Inference must still pick something when a tester declares
   nothing, so the executable's own format selects a standard
   environment (P8) — testaferro reading a binary, not a vocabulary
-  the consumer writes in. *[Amended: this made **platform** and
-  **machine** the consumer's pair, per D3. D3 stands until this
-  amendment is adjudicated; the work is F10.]*
+  the consumer writes in. *[Amended twice. First: this made
+  **platform** and **machine** the consumer's pair, per D3 — D3
+  stands until that amendment is adjudicated, and the work is F10.
+  Then "and nothing underneath one" was struck, having read as a
+  limit on what a tester may configure when it was only ever about
+  what testaferro says.]*
 - **P3 — testaferro mirrors no provider's schema.** An authored
   machine document belongs to the declared provider's own
   vocabulary — a reliquary blueprint today — and passes through
