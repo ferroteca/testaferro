@@ -1,16 +1,20 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: BSD-3-Clause
-"""Named test-machine declarations backed by reliquary blueprints.
+"""Named test-environment declarations backed by reliquary blueprints.
 
-A declaration is reusable configuration, not a running machine: it is
-the authored blueprint document reliquary materializes into a fresh
-machine for every backend session. testaferro carries the authored
-JSON through untouched and mirrors none of reliquary's schema —
-validation happens when reliquary parses it.
+A **test environment** is what a suite runs in, and naming one is the
+whole of what a suite-facing consumer writes (P2): a standard
+environment testaferro authors and names, or a custom one declared
+here. A declaration is reusable configuration, not a running guest: it
+is the authored blueprint document reliquary materializes afresh for
+every backend session. testaferro carries the authored JSON through
+untouched and mirrors none of reliquary's schema — validation happens
+when reliquary parses it, and ``platform`` is one of the fields
+passing through rather than a word testaferro speaks (P3).
 
 Declarations come from ``configure()`` / ``testaferro.config()`` or
 from an optional per-project ``testaferro.ini`` — one section per
-machine, the declarative twin of ``configure()``. ``load_config()``
+environment, the declarative twin of ``configure()``. ``load_config()``
 reads that file; the entry point searches upward from wherever it was
 reached so test modules can name only the suite executable.
 
@@ -50,10 +54,10 @@ _HYPHENATED = types.MappingProxyType({
 
 # Options testaferro consumes itself rather than passing to the
 # blueprint: how long one guest command may take, and which files
-# this machine's guest suites are.
+# this environment's guest suites are.
 _TESTAFERRO_KEYS = frozenset({"timeout", "suites"})
 
-_machines = {}
+_environments = {}
 # Standard-catalog documents materialized on first use: the documents
 # are authored and immutable, so one name is always one declaration.
 _standard = {}
@@ -62,24 +66,24 @@ _standard = {}
 _loaded_config = None
 
 
-class MachineSpec:
-    """One declared test machine: an authored reliquary blueprint.
+class EnvironmentSpec:
+    """One declared test environment: an authored reliquary blueprint.
 
-    Immutable, and a template rather than a machine — the binding
-    writes it into a private reliquary home and creates a fresh
-    machine from it per session. Blueprint fields are readable as
-    attributes (``spec.platform``, ``spec.memory``, ``spec.drives``),
-    with underscores standing in for the hyphens the blueprint spells
-    (``spec.backend_settings``).
+    Immutable, and a template rather than a running guest — the
+    binding writes it into a private reliquary home and creates a
+    fresh machine from it per session. Blueprint fields are readable
+    as attributes (``spec.platform``, ``spec.memory``,
+    ``spec.drives``), with underscores standing in for the hyphens the
+    blueprint spells (``spec.backend_settings``).
 
     ``timeout`` and ``suites`` are testaferro's own rather than
     blueprint fields: how long one guest command may take, and the
-    file-name masks saying which executables are this machine's guest
-    suites — what a collection scan needs to know that a file is a
-    suite at all, and which machine runs it.
+    file-name masks saying which executables are this environment's
+    guest suites — what a collection scan needs to know that a file is
+    a suite at all, and which environment runs it.
     """
 
-    __slots__ = ("_machine", "_media", "timeout", "suites")
+    __slots__ = ("_fields", "_media", "timeout", "suites")
 
     def __init__(self, machine, media=(), timeout=None, suites=()):
         fields = {_HYPHENATED.get(key, key): value
@@ -87,7 +91,7 @@ class MachineSpec:
                   if key not in ("type", "name")}
         fields.setdefault("platform", "dos")
         fields["platform"] = str(fields["platform"]).lower()
-        object.__setattr__(self, "_machine", types.MappingProxyType(fields))
+        object.__setattr__(self, "_fields", types.MappingProxyType(fields))
         object.__setattr__(self, "_media", tuple(dict(spec)
                                                  for spec in media))
         object.__setattr__(self, "timeout", timeout)
@@ -95,21 +99,21 @@ class MachineSpec:
 
     def __getattr__(self, name):
         try:
-            return self._machine[name.replace("_", "-")]
+            return self._fields[name.replace("_", "-")]
         except KeyError:
             raise AttributeError(
                 f"{type(self).__name__!r} declares no {name!r}") from None
 
     def __setattr__(self, name, value):
-        raise AttributeError("a machine declaration is immutable")
+        raise AttributeError("an environment declaration is immutable")
 
     def __repr__(self):
-        return f"MachineSpec({dict(self._machine)!r})"
+        return f"EnvironmentSpec({dict(self._fields)!r})"
 
     @property
     def fields(self):
         """The authored machine spec, without its type/name identity."""
-        return self._machine
+        return self._fields
 
     @property
     def media(self):
@@ -118,32 +122,31 @@ class MachineSpec:
 
     def document(self, name):
         """The ``.rlqb`` document declaring this machine as ``name``."""
-        machine = dict(self._machine)
+        machine = dict(self._fields)
         machine["type"] = "machine"
         machine["name"] = name
         return [machine, *(dict(spec) for spec in self._media)]
 
 
-def configure(name, platform=None, machine_config=None, template=None,
-              boot_image=None, **options):
-    """Declare a named test machine and return its MachineSpec.
+def configure(name, machine_config=None, template=None, boot_image=None,
+              **options):
+    """Declare a named test environment and return its EnvironmentSpec.
 
-    ``machine_config`` (or its ``template`` spelling) accepts a
-    MachineSpec, a mapping (a blueprint machine spec, or a whole
+    ``machine_config`` (or its ``template`` spelling) accepts an
+    EnvironmentSpec, a mapping (a blueprint machine spec, or a whole
     blueprint document), or the path to a ``.rlqb``. Without one, the
     remaining options are the blueprint's own machine fields —
-    ``memory``, ``drives``, ``boot`` and friends. ``platform`` is an
-    optional consistency check for a supplied configuration and a
-    convenient field when constructing one here.
+    ``platform``, ``memory``, ``drives``, ``boot`` and friends — which
+    pass through untouched for reliquary to validate (P3).
 
     ``timeout`` and ``suites`` are testaferro's own rather than
     blueprint fields, so they may be said beside a complete template
     as well as beside constructed fields.
     """
     if not isinstance(name, str) or not name:
-        raise ValueError("machine name must be a non-empty string")
-    if name in _machines:
-        raise ValueError(f"test machine {name!r} is already configured")
+        raise ValueError("environment name must be a non-empty string")
+    if name in _environments:
+        raise ValueError(f"test environment {name!r} is already configured")
     if machine_config is not None and template is not None:
         raise TypeError("pass either machine_config or template, not both")
     if template is not None:
@@ -168,29 +171,22 @@ def configure(name, platform=None, machine_config=None, template=None,
         if boot_image is not None:
             fields["drives"] = {"floppy0": _boot_media(boot_image)}
             fields.setdefault("boot", ["floppy0"])
-        if platform is not None:
-            fields["platform"] = platform
-        machine_config = MachineSpec(fields, media,
-                                     timeout=options.get("timeout"),
-                                     suites=options.get("suites", ()))
+        machine_config = EnvironmentSpec(fields, media,
+                                         timeout=options.get("timeout"),
+                                         suites=options.get("suites", ()))
     else:
-        machine_config = _coerce_machine_config(machine_config, platform)
-        if (platform is not None
-                and machine_config.platform != str(platform).lower()):
-            raise ValueError(
-                f"machine {name!r} declares platform "
-                f"{machine_config.platform!r}, not {platform!r}")
+        machine_config = _coerce_machine_config(machine_config)
         if own:
             # A template says nothing about timeouts or which files
             # are suites, so those are said here — as a fresh spec
-            # rather than a mutation, a MachineSpec being immutable
-            # and often shared between names.
-            machine_config = MachineSpec(
+            # rather than a mutation, an EnvironmentSpec being
+            # immutable and often shared between names.
+            machine_config = EnvironmentSpec(
                 dict(machine_config.fields), machine_config.media,
                 timeout=own.get("timeout", machine_config.timeout),
                 suites=own.get("suites", machine_config.suites))
 
-    _machines[name] = machine_config
+    _environments[name] = machine_config
     return machine_config
 
 
@@ -213,8 +209,8 @@ def _media_specs(value):
     """Normalize a declared ``media`` option to a list of specs.
 
     One spec or several: a lone mapping is the list of one, which is
-    the natural thing to write for a machine needing a single named
-    medium.
+    the natural thing to write for an environment needing a single
+    named medium.
     """
     if isinstance(value, collections.abc.Mapping):
         return [value]
@@ -236,60 +232,57 @@ def _boot_media(boot_image):
 
 
 def configured():
-    """The declared machine names and immutable configurations."""
-    return dict(_machines)
+    """The declared environment names and immutable configurations."""
+    return dict(_environments)
 
 
-def select(name=None, platform=None, inferred=None):
-    """Select a test machine, or return None for DOS's
+def select(name=None, inferred=None):
+    """Select a test environment, or return None for DOS's
     zero-configuration default. Raises ValueError for absent or
     ambiguous choices.
 
     A **name** resolves against the project's declarations first and
     the standard catalog second (D10), so a project may declare its
-    own machine under a standard name and get its own. A **platform**
-    — given or inferred from the executable — matches declarations
-    only: the catalog is reached by asking for it, never by falling
-    into it, which is what keeps zero configuration zero (P8).
+    own environment under a standard name and get its own. With no
+    name, the platform ``inferred`` from the executable's own format
+    matches declarations only: the catalog is reached by asking for
+    it, never by falling into it, which is what keeps zero
+    configuration zero (P8).
     """
     if name is not None:
-        machine_config = _machines.get(name)
-        if machine_config is None:
-            machine_config = _standard_machine(name)
-        if machine_config is None:
+        declared = _environments.get(name)
+        if declared is None:
+            declared = _standard_environment(name)
+        if declared is None:
             raise ValueError(
-                f"unknown test machine {name!r}; configured: "
-                f"{_choices(_machines)}; standard: "
+                f"unknown test environment {name!r}; configured: "
+                f"{_choices(_environments)}; standard: "
                 f"{_choices(catalog.STANDARD)}")
-        if (platform is not None
-                and machine_config.platform != str(platform).lower()):
-            raise ValueError(
-                f"test machine {name!r} has platform "
-                f"{machine_config.platform!r}, not {platform!r}")
-        return name, machine_config
+        return name, declared
 
-    wanted = platform if platform is not None else inferred
-    if wanted is None:
+    if inferred is None:
         return None
-    wanted = str(wanted).lower()
-    matches = [(machine_name, machine_config)
-               for machine_name, machine_config in _machines.items()
-               if machine_config.platform == wanted]
+    wanted = str(inferred).lower()
+    matches = [(declared_name, declared)
+               for declared_name, declared in _environments.items()
+               if declared.platform == wanted]
     if len(matches) == 1:
         return matches[0]
     if len(matches) > 1:
         raise ValueError(
-            f"platform {wanted!r} matches multiple test machines: "
-            + ", ".join(machine_name for machine_name, _ in matches))
-    if not _machines and wanted == "dos":
+            f"more than one configured test environment runs {wanted} "
+            "executables: "
+            + ", ".join(declared_name for declared_name, _ in matches)
+            + "; name the one this suite wants")
+    if not _environments and wanted == "dos":
         return None
     raise ValueError(
-        f"no configured test machine for platform {wanted!r}; "
-        f"configured: {_choices(_machines)}")
+        f"no configured test environment runs {wanted} executables; "
+        f"configured: {_choices(_environments)}")
 
 
-def _standard_machine(name):
-    """The standard catalog's machine of that name, or None.
+def _standard_environment(name):
+    """The standard catalog's environment of that name, or None.
 
     The document is authored and never edited, so it is materialized
     once and shared: every resolution of one standard name yields the
@@ -304,14 +297,14 @@ def _standard_machine(name):
 
 
 def load_config(path=None, *, search_from=None):
-    """Load machine declarations from a local ``testaferro.ini``.
+    """Load environment declarations from a local ``testaferro.ini``.
 
     With ``path``, read that file (a missing file is an error). With
     ``path`` omitted, search upward from ``search_from`` (default:
     the current directory) for ``testaferro.ini`` and load it when
     found; a fruitless search is a no-op and returns None.
 
-    Each section is one test machine — the same options as
+    Each section is one test environment — the same options as
     ``configure()``. Relative ``boot_image``, ``machine_config``, and
     ``template`` paths resolve from the file's directory. Structured
     blueprint fields (``drives``, ``boot``, ``backend_settings`` and
@@ -370,9 +363,7 @@ def _load_ini(path):
         raise FileNotFoundError(path)
     base_dir = os.path.dirname(path)
     for name in parser.sections():
-        options = _section_options(parser[name], base_dir)
-        platform = options.pop("platform", None)
-        configure(name, platform=platform, **options)
+        configure(name, **_section_options(parser[name], base_dir))
 
 
 def _section_options(section, base_dir):
@@ -412,11 +403,11 @@ def _resolve_path(base_dir, value):
     return os.path.abspath(os.path.join(base_dir, value))
 
 
-def _coerce_machine_config(value, platform=None):
-    if isinstance(value, MachineSpec):
+def _coerce_machine_config(value):
+    if isinstance(value, EnvironmentSpec):
         return value
     if isinstance(value, collections.abc.Mapping):
-        return _from_document(value, platform)
+        return _from_document(value)
     if isinstance(value, (str, os.PathLike)):
         # The .rlqb dialect (comments, trailing commas): a declaration
         # is authored blueprint JSON, so it is read the way reliquary
@@ -429,21 +420,21 @@ def _coerce_machine_config(value, platform=None):
         path = os.fspath(value)
         with open(path, encoding="utf-8") as handle:
             document = jsonc.load(handle)
-        return _from_document(document, platform)
+        return _from_document(document)
     if isinstance(value, collections.abc.Sequence):
-        return _from_document(list(value), platform)
+        return _from_document(list(value))
     raise TypeError(
-        "machine_config must be a MachineSpec, a blueprint mapping, "
-        "a blueprint document, or a path to one")
+        "machine_config must be an EnvironmentSpec, a blueprint "
+        "mapping, a blueprint document, or a path to one")
 
 
-def _from_document(document, platform=None):
+def _from_document(document):
     """Build a declaration from an authored blueprint or machine spec.
 
     A ``.rlqb`` document is a list of specs; a lone spec object is the
     document of one, which is also how a bare machine spec arrives from
     ``configure()``. Exactly one machine must be present — a
-    declaration names one test machine.
+    declaration names one test environment.
     """
     specs = document if isinstance(document, list) else [document]
     machines = [spec for spec in specs
@@ -459,12 +450,9 @@ def _from_document(document, platform=None):
         machines, media = [specs[0]], []
     if len(machines) != 1:
         raise ValueError(
-            f"a machine declaration needs exactly one machine spec, "
-            f"found {len(machines)}")
-    fields = dict(machines[0])
-    if platform is not None and "platform" not in fields:
-        fields["platform"] = platform
-    return MachineSpec(fields, media)
+            f"an environment declaration needs exactly one machine "
+            f"spec, found {len(machines)}")
+    return EnvironmentSpec(dict(machines[0]), media)
 
 
 def _choices(values):
@@ -474,5 +462,5 @@ def _choices(values):
 def _clear_for_tests():
     """Clear declarations; private support for isolated unit tests."""
     global _loaded_config
-    _machines.clear()
+    _environments.clear()
     _loaded_config = None

@@ -210,7 +210,7 @@ class PluginTests(unittest.TestCase):
         result = self.pytest("--collect-only")
 
         self.assertIn("SUITE.EXE::Vring-Wraps", result.stdout)
-        # and it runs on the machine that claimed it
+        # and it runs in the environment that claimed it
         self.assertIn("resolve:machine_config", self.recorded())
 
     def test_a_headerless_image_is_never_claimed_from_a_scan(self):
@@ -248,12 +248,12 @@ class PluginTests(unittest.TestCase):
 
         unclaimed = self.pytest("HOST.EXE", "--collect-only")
         declared = self.pytest("HOST.EXE", "--collect-only",
-                               "--testaferro-platform=dos")
+                               "--testaferro-environment=freedos")
 
         self.assertNotIn("Vring", unclaimed.stdout)
         self.assertIn("HOST.EXE::Vring-Wraps", declared.stdout)
 
-    def test_two_machines_claiming_one_file_is_an_error(self):
+    def test_two_environments_claiming_one_file_is_an_error(self):
         self.write("testaferro.ini",
                    "[msdos]\nsuites = *.EXE\n\n"
                    "[freedos2]\nsuites = SUITE.EXE\n")
@@ -261,7 +261,7 @@ class PluginTests(unittest.TestCase):
 
         result = self.pytest("--collect-only")
 
-        self.assertIn("claimed by more than one test machine",
+        self.assertIn("claimed by more than one test environment",
                       result.stdout + result.stderr)
 
     # --- running ------------------------------------------------

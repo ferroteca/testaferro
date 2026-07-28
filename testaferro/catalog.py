@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """The standard environments testaferro curates, reachable by name.
 
-Between having nothing to declare and declaring a machine of one's
-own sits a name: ``machine="freedos"`` selects an environment
-testaferro itself authors and maintains — today's zero-configuration
-machine made nameable, with siblings arriving as guests grow. A
-machine name resolves against the project's own declarations first
-and against this catalog second (D10).
+Between having nothing to declare and declaring an environment of
+one's own sits a name: ``environment="freedos"`` selects an
+environment testaferro itself authors and maintains — today's
+zero-configuration guest made nameable, with siblings arriving as
+guests grow. An environment name resolves against the project's own
+declarations first and against this catalog second (D10).
 
 **What testaferro offers, testaferro authors** (P17, drafted). Every
 entry here is a complete document written in this file — the machine,
@@ -20,8 +20,8 @@ authored or the project checked in.
 
 ``freedos`` declares nothing but its platform, and that is the point:
 the DOS binding fills in the memory default and boots the FreeDOS
-image it downloads once and caches, so naming this machine and naming
-none run the same guest.
+image it downloads once and caches, so naming this environment and
+naming none run the same guest.
 """
 
 from __future__ import annotations

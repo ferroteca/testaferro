@@ -39,7 +39,8 @@ hierarchy is how a feature list turns into a schedule.
   in their turn.
 - **F10**, the test-environment vocabulary: too large as written, so
   pledging it meant cutting it. The noun at the consumer surface
-  became **F11** and the provider axis **F12**, both now in
+  became **F11**, since delivered and evaporated with it, and the
+  provider axis became **F12**, still in
   [../pledged/FEATURES.md](../pledged/FEATURES.md). The binding
   rename it also carried had already landed on its own (D16).
 

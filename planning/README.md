@@ -89,7 +89,8 @@ rather than standing empty, and leaves again when its last one
 does. All three are there today. `FEATURES.md` has done the whole
 round trip already: it held F7 and F8, went when both were delivered
 and their numbers evaporated, and came back with F11 and F12 — which
-is the file behaving exactly as intended rather than churn.
+is the file behaving exactly as intended rather than churn. F11 has
+since been delivered too, leaving F12 alone in it.
 
 **The planning root holds what does not move.** The map, the rule,
 the record and the queue are machinery rather than proposals, and

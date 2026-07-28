@@ -22,13 +22,13 @@ a reference to the suite executable:
     test_guest_case = testaferro.guest_suite(
         Path(__file__).parent / "SUITE.EXE")
 
-The executable is interrogated to select its platform (DOS programs
-run in a guest reliquary provides; anything else is rejected), the
-framework adapter defaults to testaferro.cpputest (`framework=`
-overrides), and the runner's working state lives in
-testaferro-managed disposable directories. Named test machines are
-declared with config() or an optional per-project testaferro.ini; a
-prebuilt Backend remains the custom escape hatch for callers that
+The executable is interrogated to select its test environment (DOS
+programs run in a guest reliquary provides; anything else is
+rejected), the framework adapter defaults to testaferro.cpputest
+(`framework=` overrides), and the runner's working state lives in
+testaferro-managed disposable directories. Named test environments
+are declared with config() or an optional per-project testaferro.ini;
+a prebuilt Backend remains the custom escape hatch for callers that
 need a different execution mechanism.
 
 For many suites (and future parallel runs), open a *run* so the boot
@@ -49,28 +49,28 @@ together — in pytest, from the consumer's conftest.py:
 from .facade import guest_suite  # noqa: F401
 
 
-def config(machine, platform=None, **options):
-    """Declare a named reliquary test machine.
+def config(name, **options):
+    """Declare a named test environment, backed by reliquary.
 
-    ``platform`` is optional when the supplied ``machine_config`` or
-    ``template`` declares it. Without a template, remaining options are
-    the blueprint's own machine fields. The declaration is reused
-    as a template; each guest session receives a fresh materialization.
-    The same declarations may be written in ``testaferro.ini`` (see
-    ``load_config``).
+    Without a ``machine_config`` / ``template``, the options are the
+    blueprint's own machine fields — ``platform``, ``memory``,
+    ``drives`` and friends — passed through untouched for reliquary to
+    validate. The declaration is reused as a template; each guest
+    session receives a fresh materialization. The same declarations
+    may be written in ``testaferro.ini`` (see ``load_config``).
     """
-    from .machines import configure
-    return configure(machine, platform=platform, **options)
+    from .environments import configure
+    return configure(name, **options)
 
 
 def load_config(path=None):
-    """Load named machines from a ``testaferro.ini``.
+    """Load named test environments from a ``testaferro.ini``.
 
     With ``path``, read that file. With ``path`` omitted, search
     upward from the current directory. ``guest_suite()`` performs the
     same search from its call site automatically.
     """
-    from .machines import load_config as load
+    from .environments import load_config as load
     return load(path)
 
 

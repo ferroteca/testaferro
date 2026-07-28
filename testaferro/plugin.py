@@ -19,9 +19,10 @@ the plugin being off:
   classification or a declaration says a guest runs it. Naming a file
   says what was meant, so nothing else has to be inferred.
 - **A tree scan claims only what was opted in** — a mask in pytest's
-  own ini (`testaferro-suites`), or the `suites` masks of a machine
-  declared in `testaferro.ini`. Landing in a venv therefore changes
-  no existing run: with nothing opted in, a scan claims nothing.
+  own ini (`testaferro-suites`), or the `suites` masks of an
+  environment declared in `testaferro.ini`. Landing in a venv
+  therefore changes no existing run: with nothing opted in, a scan
+  claims nothing.
 - **A host-runnable format is claimed only by declaration.** The host
   build of a suite is a program this machine can run; inference
   cannot know that the situation demands a VM, so only the tester
@@ -57,7 +58,7 @@ import pytest
 from . import binfmt
 from . import cache
 from . import cpputest
-from . import machines
+from . import environments
 from .facade import ResultBroker
 from .items import failure_text, item_id
 from .resolution import resolve_backend
@@ -81,10 +82,9 @@ class GuestTestFailure(Exception):
 # `--testaferro-<name>` and the ini key `testaferro-<name>`, declared
 # from one list so the two spellings cannot drift (P16).
 _SETTINGS = (
-    ("machine", "name of the test machine claimed suites run on"),
-    ("platform", "guest platform, when the executable's own format "
-                 "should not decide"),
-    ("boot-image", "boot image for the zero-configuration machine"),
+    ("environment", "name of the test environment claimed suites run "
+                    "in"),
+    ("boot-image", "boot image for the zero-configuration environment"),
     ("machine-config", "path to a machine document (.rlqb) claimed "
                        "suites run on"),
     ("enumerator", "host-built twin that enumerates a suite, as a "
@@ -132,10 +132,10 @@ def pytest_addoption(parser):
 
 def pytest_configure(config):
     # Declarations first: a testaferro.ini beside the project selects
-    # the same machine embedding would (U4), and anchoring the search
-    # at the rootdir rather than at each collected file keeps every
-    # xdist worker's answer the same (U5).
-    machines.load_config(search_from=str(config.rootpath))
+    # the same environment embedding would (U4), and anchoring the
+    # search at the rootdir rather than at each collected file keeps
+    # every xdist worker's answer the same (U5).
+    environments.load_config(search_from=str(config.rootpath))
     if config.getoption("testaferro_keep_guest_home", False):
         cache.keep_guest_homes(True)
 
@@ -308,15 +308,14 @@ def _claimed(config, path):
 def _told(config, filename):
     """Whether the tester said outright that a guest runs this file,
     rather than leaving it to be inferred."""
-    return (_declared_machine(filename) is not None
-            or _setting(config, "machine") is not None
-            or _setting(config, "platform") is not None)
+    return (_declared_environment(filename) is not None
+            or _setting(config, "environment") is not None)
 
 
 def _opted_in(config, filename):
     """Whether a tree scan was told this file is a guest suite."""
     return (_matches(filename, _suite_masks(config))
-            or _declared_machine(filename) is not None)
+            or _declared_environment(filename) is not None)
 
 
 def _suite_masks(config):
@@ -326,7 +325,7 @@ def _suite_masks(config):
     the project already declared."""
     masks = []
     for value in config.getoption("testaferro_suites", []) or []:
-        masks.extend(machines._masks(value))
+        masks.extend(environments._masks(value))
     masks.extend(config.getini("testaferro-suites") or [])
     return masks
 
@@ -349,15 +348,15 @@ def _named_on_command_line(config, path):
     return False
 
 
-def _declared_machine(filename):
-    """The declared machine whose `suites` masks claim this file name,
-    or None. Two machines claiming one file is ambiguous rather than
-    first-wins: the tester has to say which."""
-    matches = [name for name, spec in machines.configured().items()
+def _declared_environment(filename):
+    """The declared environment whose `suites` masks claim this file
+    name, or None. Two environments claiming one file is ambiguous
+    rather than first-wins: the tester has to say which."""
+    matches = [name for name, spec in environments.configured().items()
                if _matches(filename, spec.suites)]
     if len(matches) > 1:
         raise pytest.UsageError(
-            f"{filename} is claimed by more than one test machine: "
+            f"{filename} is claimed by more than one test environment: "
             + ", ".join(sorted(matches)))
     return matches[0] if matches else None
 
@@ -393,11 +392,10 @@ def _backend_for(config, path):
         options["enumerator"] = _twin_enumerator(twin)
     return resolve_backend(
         str(path),
-        platform=_setting(config, "platform"),
         # The command line beats the file it is run against: a
         # declaration claims a file, an option claims this run.
-        machine=(_setting(config, "machine")
-                 or _declared_machine(path.name)),
+        environment=(_setting(config, "environment")
+                     or _declared_environment(path.name)),
         search_from=str(config.rootpath), **options)
 
 

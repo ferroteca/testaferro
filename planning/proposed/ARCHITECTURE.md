@@ -87,8 +87,7 @@ said **platform** and **test machine**, the pair D3 made the
 consumer's vocabulary; `platform` is reliquary's own word, reaching
 testaferro as configuration passing through (P3) rather than as
 something a suite says. D3 was retired by D18, which pledged the
-amendment; the work that makes the code speak this way is F11 and
-F12.]*
+amendment; F11 delivered the noun and F12 owes the provider axis.]*
 
 ## The interfaces
 
@@ -104,16 +103,17 @@ named here follows that rule.
    and the framework adapter modules (`testaferro.cpputest`) usable
    on their own. This is the primary interface, and the one U1 is
    written against.
-2. **The machine declaration** — the vocabulary of a declaration,
-   whichever spelling carries it: blueprint machine fields passed
-   through untouched (P3), plus testaferro's own spellings around
-   them — `boot_image=`, `machine_config=`, `platform=`, `machine=`,
-   and the underscore-for-hyphen normalization of blueprint keys.
+2. **The test-environment declaration** — the vocabulary of a
+   declaration, whichever spelling carries it: blueprint machine
+   fields passed through untouched (P3), `platform` among them, plus
+   testaferro's own spellings around them — `environment=`,
+   `boot_image=`, `machine_config=`, and the underscore-for-hyphen
+   normalization of blueprint keys.
 3. **`testaferro.ini`** — the authored per-project file: its
-   section-per-machine shape, its scalar and JSON value spellings,
-   its relative-path resolution, and the upward search that finds it.
-   The declarative twin of `config()`, so a change to either is a
-   change to both.
+   section-per-environment shape, its scalar and JSON value
+   spellings, its relative-path resolution, and the upward search
+   that finds it. The declarative twin of `config()`, so a change to
+   either is a change to both.
 4. **The `Backend` ABC** — public because a prebuilt backend is a
    documented escape hatch; its five operations are a contract with
    callers who implement it.
@@ -142,13 +142,13 @@ project that installs the distribution. A **lifecycle CLI** (F2)
 joins as its own small surface when it lands: verbs over machines
 and caches, never over test runs.
 
-**The second and third surfaces are named for today's spelling**,
-deliberately. P1 and P2 — now pledged (D18) — make a declaration a
-*test environment* rather than a machine, and F11 is the work that
-renames it; but this enumeration is looked up to answer "does this
-change an interface?", so it names the surfaces as they exist rather
-than as they are owed to become. It is renamed by the work, not by
-the pledge.
+**The second and third surfaces were renamed by the work**, not by
+the pledge that owed it. P1 and P2 — pledged by D18 — make a
+declaration a *test environment* rather than a machine, and this
+enumeration went on naming a machine until the code did otherwise,
+because it is looked up to answer "does this change an interface?"
+and so must name the surfaces as they exist. `provider=` joins the
+second surface the same way, when F12 lands.
 
 **testaferro currently has no norms.** Each surface above should name
 the artifact that says exactly what it *is* and that the
@@ -208,7 +208,7 @@ anything that looks normative is written.
 - **P11 — The standard library, plus two dependencies at named
   seams.** pytest and reliquary are the whole dependency list; pytest
   is imported lazily in the facade, and reliquary only in the guest
-  binding and in `machines.py` for its JSONC reader. Python 3.9 and
+  binding and in `environments.py` for its JSONC reader. Python 3.9 and
   newer. A third dependency is argued, never added.
 - **P12 — The library never names its consumers.** No consuming
   project appears in source, tests, human documentation, or

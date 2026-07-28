@@ -7,7 +7,7 @@ executable (public entry point: testaferro.guest_suite):
 
     test_guest_case = testaferro.guest_suite(HERE / "SUITE.EXE")
 
-The executable is interrogated to select the matching platform binding
+The executable is interrogated to select the matching binding
 (currently: DOS programs, run by reliquary); a provably unsupported
 binary is rejected with a clear error. That resolution is the core's
 and is shared with every other entry point (testaferro.resolution);
@@ -64,7 +64,7 @@ class ResultBroker:
 
 
 def guest_suite(target, framework=None, enumerator=None,
-               platform=None, machine=None, **machine_options):
+               environment=None, **environment_options):
     """Return a pytest test function with one parameterized item per
     test in the referenced suite. Assign it to a test_-prefixed
     module attribute:
@@ -75,13 +75,13 @@ def guest_suite(target, framework=None, enumerator=None,
     the guest backend) or a prebuilt Backend. The keyword options
     apply to the path form only: `framework` overrides the framework
     adapter, `enumerator` supplies a faster host-side source of the
-    test list, `platform` chooses an OS platform when the executable's
-    own format should not decide, and `machine` names a test machine —
-    one declared with testaferro.config() or testaferro.ini (searched
-    upward from this call site), or one of the standard environments
-    testaferro curates, such as "freedos". Any further keyword is
-    machine-specific and validated by the selected binding: today,
-    `boot_image=` or `machine_config=` for DOS.
+    test list, and `environment` names the test environment the suite
+    runs in — one declared with testaferro.config() or testaferro.ini
+    (searched upward from this call site), or one of the standard
+    environments testaferro curates, such as "freedos". Naming none
+    lets the executable's own format select one. Any further keyword
+    is environment-specific and validated by the selected binding:
+    today, `boot_image=` or `machine_config=` for DOS.
 
     Enumeration (backend.list_tests()) happens at import/collection
     time, in a guest session of its own — unless `enumerator` supplies
@@ -109,19 +109,16 @@ def guest_suite(target, framework=None, enumerator=None,
                for name, value in (("framework", framework),
                                    ("enumerator", enumerator))
                if value is not None}
-    options.update(machine_options)
+    options.update(environment_options)
     if isinstance(target, (str, os.PathLike)):
         search_from = (None if call_site is None
                        else os.path.dirname(call_site[0]))
-        backend = resolve_backend(target, platform=platform,
-                                  machine=machine,
+        backend = resolve_backend(target, environment=environment,
                                   search_from=search_from, **options)
     else:
         given = sorted(options)
-        if platform is not None:
-            given.append("platform")
-        if machine is not None:
-            given.append("machine")
+        if environment is not None:
+            given.append("environment")
         if given:
             raise TypeError(
                 "keyword options apply only when passing an "

@@ -69,7 +69,7 @@ test with `pytest "tests/TESTS.EXE::Vring-Wraps"`, and keep the guest's home for
 
 **The plugin activates on installation, and claims almost nothing.** A file *you name* on the command line is claimed
 when it is a DOS program (or when a declaration says a guest runs it). A directory *scan* claims only what you opted
-in — a `testaferro-suites` mask in pytest's ini, or a `suites` mask on a machine in `testaferro.ini`:
+in — a `testaferro-suites` mask in pytest's ini, or a `suites` mask on an environment in `testaferro.ini`:
 
 ```ini
 # pytest.ini — a tree scan collects these beside your host tests
@@ -78,7 +78,7 @@ testaferro-suites = *_TEST.EXE
 ```
 
 ```ini
-# testaferro.ini — the same opt-in, saying which machine runs them
+# testaferro.ini — the same opt-in, saying which environment runs them
 [msdos]
 boot_image = images/msdos.img
 suites = *_TEST.EXE
@@ -88,9 +88,10 @@ So installing testaferro into an existing venv changes no existing run: with not
 nothing. A binary this host can run itself (a plain Windows PE) is never claimed by inference — only a declaration
 claims one, because nothing about the file can tell testaferro that the situation demands a VM.
 
-Every declaration keyword has a command-line and ini spelling, kebab-cased: `--testaferro-machine`,
-`--testaferro-platform`, `--testaferro-boot-image`, `--testaferro-machine-config` (and `testaferro-machine`,
-`testaferro-platform`, … in pytest's ini). The command line wins over the ini, and both win over a declaration.
+Every declaration keyword has a command-line and ini spelling, kebab-cased: `--testaferro-environment`,
+`--testaferro-boot-image`, `--testaferro-machine-config` (and `testaferro-environment`, `testaferro-boot-image`, … in
+pytest's ini). The command line wins over the ini, and both win over a declaration. Blueprint fields — `memory`,
+`drives`, `platform` — have no option of their own: they are reliquary's words in a declaration, not testaferro's.
 
 **Enumerating costs a guest boot**, once per suite — and once per xdist worker, since every worker collects. If you
 also build the suite for the host, point testaferro at that twin and collection stops booting anything:
@@ -132,13 +133,13 @@ The suite executable reaches the guest on a work drive testaferro adds to the ma
 guest as a FAT volume, with the executable staged into it before boot. The guest sees it as its first hard disk —
 normally `C:` — and testaferro runs it there by name. Nothing is written into your boot image.
 
-### Named test machines
+### Named test environments
 
-Declare a named machine once when several suites share it. A declaration is a reliquary **blueprint** — the machine's
-own description, in reliquary's vocabulary. `config()` accepts blueprint machine fields directly (`memory`, `drives`,
-`boot`, `backend_settings`, …), or a complete `machine_config=` template: a `MachineSpec`, a mapping, a whole blueprint
-document, or a path to a `.rlqb` file. The template supplies its platform when it declares one; `platform=` is optional
-and verifies an explicit choice.
+A **test environment** is what a suite runs in, and naming one is the whole of what a suite writes. Declare a named
+environment once when several suites share it. A declaration is a reliquary **blueprint** — the machine's own
+description, in reliquary's vocabulary. `config()` accepts blueprint machine fields directly (`platform`, `memory`,
+`drives`, `boot`, `backend_settings`, …), which pass through untouched for reliquary to validate, or a complete
+`machine_config=` template: an `EnvironmentSpec`, a mapping, a whole blueprint document, or a path to a `.rlqb` file.
 
 ```python
 import testaferro
@@ -146,12 +147,12 @@ import testaferro
 testaferro.config("msdos", boot_image="images/msdos.img", memory=32)
 
 test_guest_case = testaferro.guest_suite(
-    "build/TESTS.EXE", machine="msdos")
+    "build/TESTS.EXE", environment="msdos")
 ```
 
-The same declarations can live in an optional per-project `testaferro.ini` — one section per machine, the
+The same declarations can live in an optional per-project `testaferro.ini` — one section per environment, the
 declarative twin of `config()`. `guest_suite()` searches upward from the calling test module and loads the file
-automatically, so the suite can name only the executable when a unique machine matches:
+automatically, so the suite can name only the executable when a unique environment matches:
 
 ```ini
 [msdos]
@@ -173,23 +174,23 @@ load an explicit file, or `load_config()` to search upward from the current dire
 
 A declaration is a template, never a running machine: every guest session creates a fresh machine from it, so runs do
 not share guest state. What that costs per session is the blueprint's own business — reliquary's `materialize` mode on
-each drive decides whether media is attached in place, copied, or layered. Use `platform="dos"` or `machine="msdos"`
-when more than one configured DOS machine would otherwise match. With no declarations, DOS executables retain the
-implicit downloaded-FreeDOS machine.
+each drive decides whether media is attached in place, copied, or layered. Name the environment — `environment="msdos"`
+— when more than one declared DOS environment would otherwise match. With no declarations, DOS executables retain the
+implicit downloaded-FreeDOS guest.
 
-Between declaring nothing and declaring a machine of your own sits a name:
+Between declaring nothing and declaring an environment of your own sits a name:
 
 ```python
-test_guest_case = testaferro.guest_suite("build/TESTS.EXE", machine="freedos")
+test_guest_case = testaferro.guest_suite("build/TESTS.EXE", environment="freedos")
 ```
 
-`freedos` is a **standard environment** testaferro curates — the zero-configuration DOS machine, made nameable, so a
-suite can say which machine it means without the project declaring one. More arrive as guests grow.
+`freedos` is a **standard environment** testaferro curates — the zero-configuration DOS guest, made nameable, so a
+suite can say which environment it means without the project declaring one. More arrive as guests grow.
 
 A name resolves against your own declarations first and the standard catalog second, so declaring `freedos` yourself
 gets you yours. The catalog is reached by asking for it by name and never by inference: with nothing declared, an
-executable still selects the implicit machine exactly as before. Nothing is ever resolved from your reliquary home — a
-test run depends only on what testaferro authored or what the project checked in.
+executable's own format still selects an environment exactly as before. Nothing is ever resolved from your reliquary
+home — a test run depends only on what testaferro authored or what the project checked in.
 
 With several guest suites — or parallel pytest processes — open a *run*, so the image choice is made once and
 every run's state is swept together. From the consuming project's `conftest.py`:

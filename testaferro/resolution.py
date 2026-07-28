@@ -5,12 +5,17 @@ Backend.
 
 Every entry point resolves through here, so the rules are stated once
 and answer the same way whoever asked: which project declarations are
-in scope, what the executable's own format says, which named machine
-is selected — project declarations first, then the standard catalog
-(D10) — which platform binding runs it, and whether the options given
-are ones that binding accepts. What comes back is a `Backend`;
-everything above it (pytest items, batching, reporting) is the entry
-point's own business.
+in scope, what the executable's own format says, which named test
+environment is selected — project declarations first, then the
+standard catalog (D10) — which binding runs it, and whether the
+options given are ones that binding accepts. What comes back is a
+`Backend`; everything above it (pytest items, batching, reporting) is
+the entry point's own business.
+
+`platform` is nothing a consumer says (P2): it reaches here as a
+blueprint field on the selected environment, or as what the
+executable's own format inferred, and it is read only to pick the
+binding.
 
 The seam is entry-point-neutral, and `search_from` is where that
 shows. It is the directory the upward search for `testaferro.ini`
@@ -20,7 +25,7 @@ plugin from the file it collected. Nothing here can know how the
 caller was reached, so nothing here tries.
 
 Failing before a guest boots is the rule (P7): a provably foreign
-binary, an ambiguous machine selection and an option the selected
+binary, an ambiguous environment selection and an option the selected
 binding does not take are all refused here, naming what was found and
 what the choices were.
 """
@@ -39,50 +44,49 @@ from . import binfmt
 _PLATFORM_PROVIDERS = {"dos": "reliquary"}
 
 
-def resolve_backend(target, platform=None, machine=None,
-                    search_from=None, **options):
+def resolve_backend(target, environment=None, search_from=None,
+                    **options):
     """Build the suite backend for an executable path.
 
-    `target` is the suite executable. `platform` names an OS platform
-    for when the executable's own format should not decide; `machine`
-    names a test machine — one the project declared with
-    `testaferro.config()` or `testaferro.ini`, or one of the standard
-    environments testaferro curates; `search_from` is the directory
-    the search for a project `testaferro.ini` starts from (default:
-    the current directory). Every further keyword is passed to the
-    selected binding, which owns validating it: `framework` and
-    `enumerator` today, plus that platform's own options.
+    `target` is the suite executable. `environment` names a test
+    environment — one the project declared with `testaferro.config()`
+    or `testaferro.ini`, or one of the standard environments
+    testaferro curates; `search_from` is the directory the search for
+    a project `testaferro.ini` starts from (default: the current
+    directory). Every further keyword is passed to the selected
+    binding, which owns validating it: `framework` and `enumerator`
+    today, plus that environment's own options.
     """
-    # lazily: machines pulls in reliquary, and this is the first
+    # lazily: environments pulls in reliquary, and this is the first
     # point that actually needs it.
-    from . import machines
+    from . import environments
 
-    machines.load_config(search_from=search_from)
-    if platform is not None:
-        platform = str(platform).lower()
-        if platform not in _PLATFORM_PROVIDERS:
-            raise ValueError(f"unsupported platform {platform!r}; "
-                             "supported: "
-                             + ", ".join(sorted(_PLATFORM_PROVIDERS)))
+    environments.load_config(search_from=search_from)
     fmt = binfmt.classify(target)
-    if fmt.platform is None and platform is None and machine is None:
+    if fmt.platform is None and environment is None:
         raise ValueError(
             f"{os.path.basename(os.fspath(target))} is "
-            f"{fmt.kind} executable; no supported platform can run it")
-    selected = machines.select(machine, platform, fmt.platform)
+            f"{fmt.kind} executable; no test environment here runs it")
+    selected = environments.select(environment, fmt.platform)
     if selected is not None:
-        _, machine_config = selected
+        name, machine_config = selected
         if "machine_config" in options:
-            raise TypeError(
-                "machine_config cannot be combined with a named machine")
+            raise TypeError("machine_config cannot be combined with a "
+                            "named environment")
         selected_platform = machine_config.platform
         options["machine_config"] = machine_config
     else:
-        selected_platform = platform if platform is not None else fmt.platform
+        name, selected_platform = None, fmt.platform
     if selected_platform not in _PLATFORM_PROVIDERS:
-        raise ValueError(f"unsupported platform {selected_platform!r}; "
-                         "supported: "
-                         + ", ".join(sorted(_PLATFORM_PROVIDERS)))
+        # The platform is a blueprint field the tester wrote, or what
+        # the format inferred — never an option anyone typed — so the
+        # refusal names whichever it was.
+        source = (f"test environment {name!r} declares platform"
+                  if name is not None else "the executable's format is")
+        raise ValueError(
+            f"{source} {selected_platform!r}, which no binding here "
+            "runs; supported: "
+            + ", ".join(sorted(_PLATFORM_PROVIDERS)))
     binding = importlib.import_module(
         "." + _PLATFORM_PROVIDERS[selected_platform], __package__)
     try:
@@ -90,6 +94,6 @@ def resolve_backend(target, platform=None, machine=None,
     except TypeError as error:
         if "unexpected keyword argument" not in str(error):
             raise
-        raise TypeError(f"{error} — options are machine-specific; "
-                        f"the selected platform is "
+        raise TypeError(f"{error} — options are environment-specific; "
+                        f"the selected environment runs on "
                         f"{selected_platform!r}") from None

@@ -89,16 +89,16 @@ class GuestSuiteTargetTests(unittest.TestCase):
         from unittest import mock
 
         import testaferro
-        from testaferro import machines
+        from testaferro import environments
 
-        machines._clear_for_tests()
-        self.addCleanup(machines._clear_for_tests)
+        environments._clear_for_tests()
+        self.addCleanup(environments._clear_for_tests)
 
         def enumerator():
             return [TestId("Vring", "Wraps")]
 
         exe = self._exe(plain_dos_exe_bytes())
-        with mock.patch("testaferro.machines.load_config") as load:
+        with mock.patch("testaferro.environments.load_config") as load:
             with mock.patch("testaferro.reliquary.suite_backend",
                             return_value=FakeBackend(OUTCOMES)):
                 testaferro.guest_suite(exe, enumerator=enumerator)
@@ -143,12 +143,12 @@ class GuestSuiteTargetTests(unittest.TestCase):
             testaferro.guest_suite(FakeBackend(OUTCOMES),
                                   boot_image="OTHER.IMG")
 
-    def test_backend_target_rejects_a_platform_selector(self):
+    def test_backend_target_rejects_an_environment_selector(self):
         import testaferro
 
-        with self.assertRaisesRegex(TypeError, "platform"):
+        with self.assertRaisesRegex(TypeError, "environment"):
             testaferro.guest_suite(FakeBackend(OUTCOMES),
-                                  platform="dos")
+                                  environment="freedos")
 
     def test_items_report_the_guest_suite_call_site_as_source(self):
         # IDE per-item actions (run-one, jump-to-source) resolve the

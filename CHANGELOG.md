@@ -13,19 +13,19 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   node (`tests/SUITE.EXE::Vring-Wraps`), so `-k`, `-x`, `--lf`, `--collect-only` and node ids all work with no wrapper
   in between. A failure carries the guest's own file, line and assertion rather than a traceback into testaferro.
 - **A claiming policy that makes installation-is-activation safe**: a file named on the command line is claimed when a
-  guest can run it; a tree scan claims only what a `testaferro-suites` mask in pytest's ini, or a `suites` mask on a
-  machine in `testaferro.ini`, opted in; a host-runnable binary (a plain PE) is claimed only by declaration; and a file
+  guest can run it; a tree scan claims only what a `testaferro-suites` mask in pytest's ini, or a `suites` mask on an
+  environment in `testaferro.ini`, opted in; a host-runnable binary (a plain PE) is claimed only by declaration; and a file
   whose content proves nothing is never claimed from a scan. Installing into an existing venv therefore changes no
   existing run.
-- **Plugin options and ini keys** as kebab-case spellings of the declaration vocabulary — `--testaferro-machine`,
-  `--testaferro-platform`, `--testaferro-boot-image`, `--testaferro-machine-config`, each also a pytest ini key.
+- **Plugin options and ini keys** as kebab-case spellings of the declaration vocabulary —
+  `--testaferro-environment`, `--testaferro-boot-image`, `--testaferro-machine-config`, each also a pytest ini key.
   Command line wins over ini, and both win over a declaration. Exploration-only:
   `--testaferro-keep-guest-home` preserves each guest session's home (and names what it kept) instead of sweeping it.
 - **`--testaferro-suites` and `--testaferro-timeout`**, completing the command-line half of the declaration
   vocabulary (P16). Masks can now be tried before they are written down, and command-line masks *add* to what the ini
   declares rather than replacing it. A timeout given on the command line overrides what a declaration says — the call
   speaks about this run, the declaration about the environment — and the binding takes one directly.
-- **`suites` in a machine declaration** — the masks saying which executables are that machine's guest suites, in
+- **`suites` in an environment declaration** — the masks saying which executables are that environment's guest suites, in
   `config()` and in `testaferro.ini` alike. Written as a list or as one comma- or space-separated string, and matched
   case-insensitively on every host so a checked-in project collects the same suites wherever it is cloned.
 - **Host-built twin enumeration**: `--testaferro-enumerator=build/host/{stem}.exe` names where each suite's host build
@@ -33,14 +33,28 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   every worker collects. A missing twin falls back to the guest, and a list read inside the guest now warns
   (`GuestEnumerationWarning`) that it may be short rather than passing itself off as complete.
 
-- **Standard environments, by name**: `guest_suite(..., machine="freedos")` selects a machine testaferro itself
-  curates — the zero-configuration DOS machine, made nameable — so a suite can say which machine it means without the
+- **Standard environments, by name**: `guest_suite(..., environment="freedos")` selects an environment testaferro
+  itself curates — the zero-configuration DOS guest, made nameable — so a suite can say which one it means without the
   project declaring one. A name resolves against the project's own declarations first and the standard catalog second,
   so a project declaring `freedos` still gets its own; the catalog is reached by name and never by inference, leaving
   the no-declaration path exactly as it was. Nothing resolves from the user's reliquary home.
 
 ### Changed
 
+- **A suite names a test environment, and that is the whole guest-facing vocabulary.** `machine=` is now
+  `environment=` at `guest_suite()`, and `--testaferro-machine` / `testaferro-machine` are now
+  `--testaferro-environment` / `testaferro-environment`. `machines.py` is `environments.py` and `MachineSpec` is
+  `EnvironmentSpec`, because *machine* stopped being testaferro's word: what runs a suite is a **test environment** —
+  one testaferro authors and names, such as `freedos`, or one the tester declares. `config()` keeps its name, and
+  `machine_config=` keeps its own, naming the provider's machine document rather than testaferro's noun.
+- **`platform=` left the consumer surface, without leaving `testaferro.ini`.** It is gone from `guest_suite()`, from
+  `config()`'s signature, and from the plugin (`--testaferro-platform` and `testaferro-platform` are removed).
+  Naming an environment does both jobs it did — choosing among declarations, and overriding what the executable's
+  format inferred — so nothing is lost. In a declaration it stays exactly as writable as before, now as one more
+  blueprint field passing through untouched for reliquary to validate, which is whose word it always was. Format
+  inference is unchanged and internal: an executable with nothing declared still selects an environment on its own.
+  What does go is testaferro cross-checking a supplied template's `platform` against a separate argument — write it
+  in the template, where the rest of the blueprint lives.
 - **testaferro names providers, not what is under them.** The guest binding was called `testaferro/qemu.py` and
   `QemuSuiteBackend`, named for something it never touches: every call in it is a reliquary call, and QEMU is what
   reliquary drives. It is now `testaferro/reliquary.py` and `ReliquarySuiteBackend`, and the sweep took QEMU out of the
@@ -57,7 +71,7 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   custom `Backend` renames two methods; an existing cache keeps a stale `sessions/` tree, which is disposable state and
   can be deleted.
 - Resolving an executable and its options to a backend moved out of the pytest facade into the core
-  (`testaferro.resolution.resolve_backend`): config search, platform validation, format classification, machine
+  (`testaferro.resolution.resolve_backend`): config search, format classification, environment
   selection, binding import and option validation now answer the same way for every entry point rather than only for
   `guest_suite()`. The seam takes the `testaferro.ini` search directory as a parameter instead of deriving it from the
   caller's stack frame, which the facade still does for its own call site. No public surface changes.

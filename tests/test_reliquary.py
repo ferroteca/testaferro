@@ -25,7 +25,7 @@ from test_binfmt import new_format_exe_bytes, plain_dos_exe_bytes
 RELIQUARY_AVAILABLE = importlib.util.find_spec("reliquary") is not None
 
 if RELIQUARY_AVAILABLE:
-    from testaferro import machines
+    from testaferro import environments
     from testaferro import reliquary as binding
 
 EMPTY_RUN_OUTPUT = (
@@ -182,7 +182,7 @@ class ReliquarySuiteBackendTests(_BindingFixture):
     def test_machine_template_becomes_this_guests_blueprint(self):
         source = pathlib.Path(self.tempdir.name) / "msdos.img"
         source.write_bytes(b"template image")
-        template = machines.MachineSpec({
+        template = environments.EnvironmentSpec({
             "drives": {"floppy0": {"name": "msdos",
                                    "location": {"local": str(source)}}}})
         backend = binding.suite_backend(self.exe, machine_config=template)
@@ -268,7 +268,7 @@ class ReliquarySuiteBackendTests(_BindingFixture):
     def test_the_nearest_speaker_sets_the_guest_command_timeout(self):
         # The call speaks about this run and a declaration about the
         # environment, so the call wins; absent both, the default.
-        declared = machines.MachineSpec({}, timeout=7)
+        declared = environments.EnvironmentSpec({}, timeout=7)
 
         self.assertEqual(
             binding.suite_backend(self.exe, boot_image=self.image,
@@ -397,8 +397,8 @@ class BlueprintAuthoringTests(_BindingFixture):
                          {"local": "/work"})
         self.assertEqual((media, letter), ([], "C"))
 
-    def test_a_declared_machine_keeps_its_own_boot_arrangement(self):
-        template = machines.MachineSpec({
+    def test_a_declared_environment_keeps_its_own_boot_arrangement(self):
+        template = environments.EnvironmentSpec({
             "memory": "64M",
             "drives": {"hdd0": {"name": "system",
                                 "location": {"local": str(self.image)}}},
@@ -417,7 +417,7 @@ class BlueprintAuthoringTests(_BindingFixture):
 
     def test_media_declared_beside_the_machine_is_carried_through(self):
         spec = {"type": "media", "name": "extra", "location": "x.img"}
-        template = machines.MachineSpec(
+        template = environments.EnvironmentSpec(
             {"drives": {"floppy0": {"media": "extra"}}}, [spec])
         backend = binding.suite_backend(self.exe, machine_config=template)
 

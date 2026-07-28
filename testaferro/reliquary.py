@@ -101,7 +101,7 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
             f"{os.path.basename(exe_path)} is {fmt.kind} executable; "
             "only DOS guest suites are supported")
     if machine_config is not None:
-        from .machines import _coerce_machine_config
+        from .environments import _coerce_machine_config
 
         machine_config = _coerce_machine_config(machine_config)
         if machine_config.platform != "dos":

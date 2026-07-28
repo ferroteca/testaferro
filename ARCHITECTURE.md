@@ -22,8 +22,10 @@ SPDX-License-Identifier: BSD-3-Clause
 interface enumeration stay in
 [planning/proposed/ARCHITECTURE.md](planning/proposed/ARCHITECTURE.md),
 deliberately and for two different reasons. The view describes a
-system whose consumer vocabulary is pledged but unbuilt (P1, P2, D18),
-so it is not yet a claim about the code; and the enumeration is what
+system whose consumer vocabulary is pledged and only half built (P1,
+P2, D18) — a suite names an environment today, and nothing yet names
+the provider — so it is not yet a claim about the code; and the
+enumeration is what
 the interface-change rule looks up to answer "does this change an
 interface?", which keeps working best from one unmoving place. Each
 follows when it can be asserted on its own terms.
@@ -80,13 +82,14 @@ user is therefore still nothing yet stated; what it promises a
   defining tests.
 
   **A consumer-facing option is testaferro's own vocabulary, not what
-  passes through it.** `memory` and `drives` are the provider's words
-  in an authored document (P2, P3) — carried untouched, never
-  interpreted — so their having no `--testaferro-memory` is the
-  boundary working rather than a shortfall. The keywords this binds
-  are the ones testaferro itself defines: `machine`, `platform`,
-  `machine_config`, `boot_image`, `suites`, `timeout`. `template` is
-  an alias of `machine_config` rather than a keyword of its own.
+  passes through it.** `memory`, `drives` and `platform` are the
+  provider's words in an authored document (P2, P3) — carried
+  untouched, never interpreted — so their having no
+  `--testaferro-memory` is the boundary working rather than a
+  shortfall. The keywords this binds are the ones testaferro itself
+  defines: `environment`, `machine_config`, `boot_image`, `suites`,
+  `timeout`. `template` is an alias of `machine_config` rather than a
+  keyword of its own.
 
   **`framework` is the honest limit, not a gap.** It takes a Python
   module — argv builders and an output grammar — and no command line

@@ -23,13 +23,13 @@ code meets it.
   it run before writing a line into their project. The command is
   pytest's own, and it is explicit: `pytest tests/suite.exe`. The
   installed plugin claims the executable named on the command line
-  and boots the standard machine, and everything else *is* pytest —
+  and boots the standard environment, and everything else *is* pytest —
   the items, the ids, `-k`, `-x`, `--lf`, `--collect-only` — with
   no wrapper to diverge from the real thing, because the trial is a
   standard command-line pytest execution (D9). It honors the same
   declarations embedding would — a `testaferro.ini` beside the
-  project selects the same machine (U3) — and zero configuration
-  stays the price of the first run (U2). Trying is when things go
+  project selects the same test environment (U3) — and zero
+  configuration stays the price of the first run (U2). Trying is when things go
   wrong, so the trial does not fail blind: a suite that boots
   nothing, or whose output no framework adapter recognizes, is
   reported by what the guest actually showed, never by a traceback
@@ -51,3 +51,12 @@ U4 cites U1, U2 and U3, which remain drafted. That is not the
 reference flaw the map names: the rule's test is **completion**, and
 every clause U4 leans on names behaviour the code ships today rather
 than a verdict the project has yet to reach (D13).
+
+**U4 speaks D18's vocabulary and the drafts it cites do not yet.**
+The clause above moved when the code did; U1–U3, and U9 beside them,
+still say *machine* in
+[../proposed/USE-CASES.md](../proposed/USE-CASES.md), because
+rewording a draft is an amendment to argue rather than a rename to
+carry out, and each takes the new noun when it is next argued or
+pledged. Nothing below the root list is a claim about the code, so
+the mismatch costs a reader a moment and the project nothing.

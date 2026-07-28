@@ -45,21 +45,23 @@ Package layout (each module states its contract in its docstring):
   every guest operation asked for `SUITE.EXE - v`. So an argv
   expectation in a test is written out as a literal, never rebuilt
   from the builder under test.
-- [testaferro/machines.py](testaferro/machines.py) — named test-machine
-  declarations backed by immutable `MachineSpec` templates, plus
-  platform-aware selection and loading of the optional per-project
-  `testaferro.ini` (declarative twin of `config()`). A `MachineSpec`
-  holds the *authored* reliquary blueprint JSON and mirrors none of
-  reliquary's schema: fields pass through untouched and reliquary
-  validates them when it parses the document. Keys hyphenated in the
-  blueprint (`backend-settings`, `control-planes`) are written with
-  underscores in Python and INI and normalized on construction.
-  `select()` resolves a *name* against those declarations first and
-  the standard catalog second (D10); an inferred *platform* matches
-  declarations only, so zero configuration stays zero (P8).
+- [testaferro/environments.py](testaferro/environments.py) — named
+  test-environment declarations backed by immutable
+  `EnvironmentSpec` templates, plus selection and loading of the
+  optional per-project `testaferro.ini` (declarative twin of
+  `config()`). An `EnvironmentSpec` holds the *authored* reliquary
+  blueprint JSON and mirrors none of reliquary's schema: fields pass
+  through untouched — `platform` among them, which is the provider's
+  word rather than testaferro's (P2) — and reliquary validates them
+  when it parses the document. Keys hyphenated in the blueprint
+  (`backend-settings`, `control-planes`) are written with underscores
+  in Python and INI and normalized on construction. `select()`
+  resolves a *name* against those declarations first and the standard
+  catalog second (D10); the platform *inferred* from the executable
+  matches declarations only, so zero configuration stays zero (P8).
 - [testaferro/catalog.py](testaferro/catalog.py) — the standard
   environments testaferro curates, reachable by name
-  (`machine="freedos"`). Each entry is an authored provider document
+  (`environment="freedos"`). Each entry is an authored provider document
   carried through untouched, exactly as a declaration is (P3);
   `freedos` declares only its platform, which is what makes naming it
   and naming nothing run the same guest. Siblings arrive as guests
@@ -91,7 +93,10 @@ Package layout (each module states its contract in its docstring):
   provider binding, for DOS guests (D16). Named for the provider it
   binds, because that is the layer testaferro talks to: every call in
   it is a reliquary call, and what reliquary drives underneath is its
-  own business and appears nowhere in this package.
+  own business and appears nowhere in this package. What it drives is
+  still a reliquary *machine*, which is why `machine_config=` keeps
+  that word while the noun a suite writes is an environment: it names
+  the provider's own document, passing through as `platform` does.
   `suite_backend()` guards with `binfmt.classify()`
   (rejections name the format and architecture) and returns a
   `ReliquarySuiteBackend`, with `framework` defaulting to the CppUTest
@@ -151,14 +156,16 @@ Package layout (each module states its contract in its docstring):
 - [testaferro/resolution.py](testaferro/resolution.py) — the
   backend-resolution seam: `resolve_backend()` is the single place
   where an executable plus options becomes a `Backend`, and every
-  entry point calls it. Config search, platform validation, format
-  classification, machine selection, binding import
-  (`_PLATFORM_PROVIDERS`) and option validation live here, so they
-  answer the same way whoever asked. It is deliberately
+  entry point calls it. Config search, format classification,
+  environment selection, binding import (`_PLATFORM_PROVIDERS`) and
+  option validation live here, so they answer the same way whoever
+  asked. `platform` reaches it only as a field on the selected
+  environment or as what the format inferred, and is read to pick the
+  binding — nothing a consumer says (P2). It is deliberately
   entry-point-neutral: `search_from` — where the `testaferro.ini`
   search begins — is a parameter, because nothing here can know how
-  the caller was reached. Its imports stay stdlib-only; `machines`
-  (and so reliquary) is imported inside the call.
+  the caller was reached. Its imports stay stdlib-only;
+  `environments` (and so reliquary) is imported inside the call.
 - [testaferro/items.py](testaferro/items.py) — the pytest items
   testaferro produces, which is the fifth interface: `item_id()` (the
   dash rule) and `failure_text()` (the guest's own file, line and
@@ -178,7 +185,7 @@ Package layout (each module states its contract in its docstring):
   that made it was closed. The claiming policy is the load-bearing
   part — see the invariant below. Its module imports stay stdlib-only:
   a pytest run that claims no guest suite must not pay for reliquary,
-  which is why `machines.py` imports the JSONC reader lazily.
+  which is why `environments.py` imports the JSONC reader lazily.
 - [testaferro/facade.py](testaferro/facade.py) — the pytest facade
   and public entry point: `guest_suite(path_or_backend, ...)` items
   (re-exported as `testaferro.guest_suite`), selection-aware batching
@@ -197,8 +204,8 @@ The framework adapter stays independent of reliquary: it never imports
 the runner and `ReliquarySuiteBackend` defaults it to CppUTest while keeping
 it a parameter. Consumers see none of the backend classes: the public
 surface is `testaferro.config()` / `testaferro.load_config()` for
-named machines (including `testaferro.ini`) and
-`testaferro.guest_suite()` for platform/machine selection. A prebuilt
+named test environments (including `testaferro.ini`) and
+`testaferro.guest_suite()` for `environment=` selection. A prebuilt
 `Backend` remains the custom escape hatch. End-to-end proof belongs in
 a consuming project that runs real guest tests through the facade,
 both batched and `-k`-narrowed.
@@ -287,7 +294,7 @@ section is the operative statement.
 - Python code: stdlib plus two declared dependencies (P11) — pytest (the
   facade's host surface, imported lazily) and reliquary (the only
   supported guest-machine provider, imported by `testaferro/reliquary.py` for the
-  machine lifecycle and by `testaferro/machines.py` for its JSONC
+  machine lifecycle and by `testaferro/environments.py` for its JSONC
   reader alone). Support Python 3.9 and newer; keep lines near 79
   columns.
 - Reliquary is pinned to an exact version in

@@ -24,10 +24,10 @@ RELIQUARY_AVAILABLE = importlib.util.find_spec("reliquary") is not None
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
 class BackendResolutionTests(unittest.TestCase):
     def setUp(self):
-        from testaferro import machines
+        from testaferro import environments
 
-        machines._clear_for_tests()
-        self.addCleanup(machines._clear_for_tests)
+        environments._clear_for_tests()
+        self.addCleanup(environments._clear_for_tests)
         self.tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(self.tempdir.cleanup)
 
@@ -58,7 +58,7 @@ class BackendResolutionTests(unittest.TestCase):
         factory.assert_called_once_with(exe, enumerator=enumerator)
         self.assertIsInstance(backend, FakeBackend)
 
-    def test_declared_machine_supplies_its_configuration(self):
+    def test_declared_environment_supplies_its_configuration(self):
         import testaferro
 
         image = Path(self.tempdir.name) / "msdos.img"
@@ -66,7 +66,7 @@ class BackendResolutionTests(unittest.TestCase):
         machine_config = testaferro.config("msdos", boot_image=image)
         exe = self._exe()
 
-        _, factory = self._resolved(exe, machine="msdos")
+        _, factory = self._resolved(exe, environment="msdos")
 
         factory.assert_called_once_with(exe, machine_config=machine_config)
 
@@ -78,7 +78,7 @@ class BackendResolutionTests(unittest.TestCase):
 
         exe = self._exe()
 
-        _, factory = self._resolved(exe, machine="freedos")
+        _, factory = self._resolved(exe, environment="freedos")
 
         machine_config = factory.call_args.kwargs["machine_config"]
         self.assertEqual(machine_config.platform, "dos")
@@ -91,31 +91,31 @@ class BackendResolutionTests(unittest.TestCase):
         declared = testaferro.config("freedos", memory=64)
         exe = self._exe()
 
-        _, factory = self._resolved(exe, machine="freedos")
+        _, factory = self._resolved(exe, environment="freedos")
 
         factory.assert_called_once_with(exe, machine_config=declared)
 
-    def test_unknown_machine_names_both_sources(self):
+    def test_unknown_environment_names_both_sources(self):
         from testaferro.resolution import resolve_backend
 
         exe = self._exe()
 
         with self.assertRaisesRegex(
                 ValueError,
-                r"unknown test machine 'msdos'.*standard: freedos"):
-            resolve_backend(exe, machine="msdos")
+                r"unknown test environment 'msdos'.*standard: freedos"):
+            resolve_backend(exe, environment="msdos")
 
-    def test_a_named_machine_rejects_a_second_template(self):
+    def test_a_named_environment_rejects_a_second_template(self):
         import testaferro
-        from testaferro import machines
+        from testaferro import environments
         from testaferro.resolution import resolve_backend
 
         testaferro.config("freedos")
         exe = self._exe()
 
         with self.assertRaisesRegex(TypeError, "cannot be combined"):
-            resolve_backend(exe, machine="freedos",
-                            machine_config=machines.MachineSpec({}))
+            resolve_backend(exe, environment="freedos",
+                            machine_config=environments.EnvironmentSpec({}))
 
     def test_the_ini_search_starts_where_the_caller_says(self):
         # The seam knows nothing about how it was reached: an entry
@@ -123,7 +123,7 @@ class BackendResolutionTests(unittest.TestCase):
         # only one way to arrive at one.
         exe = self._exe()
 
-        with mock.patch("testaferro.machines.load_config") as load:
+        with mock.patch("testaferro.environments.load_config") as load:
             self._resolved(exe, search_from=self.tempdir.name)
 
         self.assertEqual(load.call_args.kwargs["search_from"],
@@ -139,7 +139,7 @@ class BackendResolutionTests(unittest.TestCase):
         header[0x12:0x14] = (0x3E).to_bytes(2, "little")
 
         with self.assertRaisesRegex(
-                ValueError, r"ELF x86-64.*no supported platform"):
+                ValueError, r"ELF x86-64.*no test environment here runs"):
             resolve_backend(self._exe(bytes(header)))
 
     def test_pe_is_rejected_naming_format_and_architecture(self):
@@ -149,20 +149,29 @@ class BackendResolutionTests(unittest.TestCase):
         exe = self._exe(new_format_exe_bytes(b"PE\0\0" + machine))
 
         with self.assertRaisesRegex(
-                ValueError, r"Windows x86 \(PE\).*no supported platform"):
+                ValueError,
+                r"Windows x86 \(PE\).*no test environment here runs"):
             resolve_backend(exe)
 
-    def test_unknown_platform_name_is_rejected(self):
+    def test_an_environment_no_binding_runs_is_rejected(self):
+        # The platform reaching here is a blueprint field the tester
+        # wrote (P3), so the refusal names the environment that
+        # declared it rather than an option nobody typed.
+        import testaferro
         from testaferro.resolution import resolve_backend
 
-        with self.assertRaisesRegex(ValueError, "unsupported platform"):
-            resolve_backend(self._exe(), platform="os2")
+        testaferro.config("warp", platform="os2")
 
-    def test_wrong_machine_option_names_the_selected_platform(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r"test environment 'warp' declares platform 'os2'"):
+            resolve_backend(self._exe(), environment="warp")
+
+    def test_a_wrong_option_names_what_the_environment_runs_on(self):
         from testaferro.resolution import resolve_backend
 
-        with self.assertRaisesRegex(TypeError,
-                                    "selected platform is 'dos'"):
+        with self.assertRaisesRegex(
+                TypeError, "selected environment runs on 'dos'"):
             resolve_backend(self._exe(), guest_image="OTHER.IMG")
 
 
