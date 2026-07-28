@@ -5,19 +5,19 @@ SPDX-License-Identifier: BSD-3-Clause
 
 # Proposed use cases
 
-> **Status:** drafted, not accepted. **Nothing is worked from here.**
+> **Status:** drafted, not pledged. **Nothing is worked from here.**
 > These are the use cases as reconstructed from the project's own
 > prose — [README.md](../../README.md), [AGENTS.md](../../AGENTS.md)
 > and the retired `ROADMAP.md` — when testaferro adopted the planning
-> model (D7). They are the decision surface *once accepted*; until
+> model (D7). They are the decision surface *once pledged*; until
 > then a citation of a U-number here names a draft, and should be
 > read as weaker than citing an in-force entry. Numbering comes from
 > one global U-sequence, never reused, and an entry keeps its number
-> when it moves to `accepted/` and again when it reaches root
+> when it moves to `pledged/` and again when it reaches root
 > `USE-CASES.md`.
 
-**Acceptance and delivery are different events.** An entry moves to
-`accepted/` when the direction is agreed, and to root `USE-CASES.md`
+**Pledging and delivery are different events.** An entry moves to
+`pledged/` when the project undertakes it, and to root `USE-CASES.md`
 only when the code meets it in full. Several entries below already
 describe working code, which makes their route short but not
 automatic: root is an implementation claim, and this project cannot

@@ -132,13 +132,13 @@ both batched and `-k`-narrowed.
   directories are the classification, and the lifecycle ones hold the
   **same filenames** — `USE-CASES.md`, `ARCHITECTURE.md`,
   `FEATURES.md` — because they hold the same artifacts in different
-  states: `planning/proposed/` is argued but not accepted, and
-  nothing is worked from there; `planning/accepted/` is approved but
+  states: `planning/proposed/` is argued but not pledged, and
+  nothing is worked from there; `planning/pledged/` is owed but
   not yet delivered. Promotion is by *moving* a document or an entry,
-  and the commit is the acceptance record. The **planning root**
+  and the commit is the record of the pledge. The **planning root**
   holds what never moves and so has no state — the map, the vetting
   rule (`INTERFACES.md`), the adjudication record (`DECISIONS.md`,
-  which spans open, accepted, refused and retired alike), and the
+  which spans open, pledged, refused and retired alike), and the
   task queue. Design sits with what it serves. Once an interface
   ships, its normative specification leaves `planning/` for good —
   current truth does not live there.
@@ -161,22 +161,22 @@ both batched and `-k`-narrowed.
   interface?" **first**, and answer it by lookup against that list
   rather than from intuition about the diff. A yes is never
   housekeeping, however small the diff.
-- **There is no roadmap** (D7): `accepted/` says the direction is
-  agreed and nothing about when, so the absence of order in
-  `TASKS.md` holds equally for accepted features, the only binding
+- **There is no roadmap** (D7): `pledged/` says the work is owed
+  and nothing about when, so the absence of order in
+  `TASKS.md` holds equally for pledged features, the only binding
   order running inside a feature. **Features carry F-numbers** — the
   handle a dependency, commit or decision points at — which unlike
   U-, P- and D-numbers **evaporate on delivery**, retiring unreused,
   gaps being history rather than a promise. Designs take no number.
-  **A feature must fit in one sprint**, here hours, so an accepted
+  **A feature must fit in one sprint**, here hours, so a pledged
   feature is far smaller than "milestone" suggests; the bound bites
-  at acceptance. References between items run **down the lifecycle or
+  at the pledge. References between items run **down the lifecycle or
   sideways, never up**. Do not produce a roadmap, a schedule, or a
   delivery estimate, and do not sort the backlog into one when asked
-  where to start: what is coming is what has been accepted, and the
+  where to start: what is coming is what has been pledged, and the
   project does not say when.
 - **Search the record before a governed act.** Before drafting a
-  proposal, accepting one, or changing a norm, search
+  proposal, pledging one, or changing a norm, search
   [planning/DECISIONS.md](planning/DECISIONS.md) for what bears on it
   and report what you found — including finding nothing. Anything
   recorded as killed, declined or superseded is not revisited without
@@ -184,7 +184,7 @@ both batched and `-k`-narrowed.
   entry that *supports* the change is worth citing.
 - **Writing anywhere under `planning/` is a governed act**, and
   authority is the owner alone. One gate covers entering a document
-  in `proposed/`, promoting one to `accepted/`, and entering work in
+  in `proposed/`, promoting one to `pledged/`, and entering work in
   `TASKS.md`; the issue tracker is the one open door. **Agents do not
   add tasks on their own initiative and ask before editing
   `TASKS.md` at all.** The gate sits at entry only, so anyone may
@@ -195,7 +195,7 @@ both batched and `-k`-narrowed.
 These are the standing engineering constraints, and most of them are
 also drafted principles — the P-numbers point at
 [planning/proposed/ARCHITECTURE.md](planning/proposed/ARCHITECTURE.md),
-which becomes their canonical home once accepted. Until then this
+which becomes their canonical home once in force. Until then this
 section is the operative statement.
 
 - Python code: stdlib plus two declared dependencies (P11) — pytest (the

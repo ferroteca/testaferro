@@ -5,12 +5,12 @@ SPDX-License-Identifier: BSD-3-Clause
 
 # Proposed features
 
-> **Status:** drafted, not accepted. **Nothing is worked from here.**
+> **Status:** drafted, not pledged. **Nothing is worked from here.**
 > Large capability the project may want, each carrying whatever
 > design is already settled about it — migrated from the retired
 > `ROADMAP.md` when testaferro adopted the planning model (D7). A
-> feature arrives in `accepted/FEATURES.md` by being moved there, and
-> the commit that moves it is the acceptance record.
+> feature arrives in `pledged/FEATURES.md` by being moved there, and
+> the commit that moves it is the record of the pledge.
 
 Each feature carries an **F-number**: the handle a dependency, a
 commit or a decision points at. F-numbers are the handles of *work*,
@@ -20,9 +20,9 @@ than a promise. **The numbers carry no order and no date**; F1 is
 merely the first issued.
 
 **A feature must fit in one sprint**, and the bound bites at
-**acceptance**, not here. Large, shapeless capability is welcome in
+**the pledge**, not here. Large, shapeless capability is welcome in
 this file; cutting it into implementable pieces is part of what
-accepting it means, and a split retires the parent's number for a
+pledging it means, and a split retires the parent's number for a
 fresh one per piece. Two entries below are flagged as too large as
 written.
 
@@ -32,8 +32,8 @@ Serves **U4**. A second entry point onto the same execution path:
 `testaferro run tests/vring16.exe` tries a suite against a guest
 without the developer first writing anything into their project.
 
-> **Too large as written** — several sprints, and it must be cut on
-> acceptance. The seam extraction, the `run` verb, and the
+> **Too large as written** — several sprints, and it must be cut at
+> the pledge. The seam extraction, the `run` verb, and the
 > exploration flags are three separable pieces at least.
 
 Settled design:
@@ -94,7 +94,7 @@ machine viable, since an install-recipe blueprint implies
 provisioning and reuse rather than a fresh machine per session.
 
 Note the tension with **P5**: a machine surviving a session is state
-testaferro created and did not sweep. Accepting this feature means
+testaferro created and did not sweep. Pledging this feature means
 saying exactly what remains, where, and how a user gets rid of it.
 
 ## F3 — Intra-suite sharding
@@ -142,8 +142,8 @@ unit tests alone (P10 says why: nearly all of this project's
 behaviour can only be proved by booting a guest).
 
 > **Too large as written**, and it grows a dependency the project
-> does not have: an actual guest test suite to run. Cut on
-> acceptance — the first sprint's worth is one real suite booting one
+> does not have: an actual guest test suite to run. Cut at the
+> pledge — the first sprint's worth is one real suite booting one
 > real machine and reporting one real failure.
 
 What it is for is worth stating plainly, because it is unusual for a

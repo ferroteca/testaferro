@@ -5,11 +5,11 @@ SPDX-License-Identifier: BSD-3-Clause
 
 # Proposed architecture
 
-> **Status:** drafted, not accepted. **Nothing is worked from here.**
+> **Status:** drafted, not pledged. **Nothing is worked from here.**
 > The whole-system view and the itemized architectural principles,
 > P-numbered so use cases, decisions, designs and commits can cite
 > them — reconstructed from the project's own prose when testaferro
-> adopted the planning model (D7). When accepted and honored, this
+> adopted the planning model (D7). When pledged and honored, this
 > becomes root `ARCHITECTURE.md`, the in-force claim: *the model is
 > the shipped system's and every principle is honored as the code
 > stands today*. It is not that yet. Numbering comes from one global

@@ -9,7 +9,7 @@ SPDX-License-Identifier: BSD-3-Clause
 > world-facing interfaces. The interfaces themselves are enumerated
 > in [proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md) "The
 > interfaces" — that enumeration is this rule's scope, answered by
-> lookup — and moves to root `ARCHITECTURE.md` when accepted. This
+> lookup — and moves to root `ARCHITECTURE.md` when in force. This
 > document says how an interface-changing decision is weighed:
 > against the use cases and the architectural principles, which
 > carry equal weight. When a design document and those lists
@@ -26,7 +26,7 @@ can be rejected by naming what it costs.
 
 **testaferro has no in-force lists yet.** Root `USE-CASES.md` and
 `ARCHITECTURE.md` hold only what the code delivers and honors today,
-and nothing has been accepted and delivered under this model, so
+and nothing has been pledged and delivered under this model, so
 neither file exists (see [README.md](README.md) "Where the vision
 stands today"). Until then the whole decision surface is drafted, in
 [proposed/USE-CASES.md](proposed/USE-CASES.md) and
@@ -40,7 +40,7 @@ That state has one practical consequence worth naming: the
 housekeeping test below is a lookup against an enumeration that is
 itself only proposed. Use it anyway — an enumeration that has been
 written down is what makes the test a checklist rather than a
-judgement, and its being unaccepted affects what testaferro
+judgement, and its being unpledged affects what testaferro
 *promises* about those surfaces, not which surfaces exist.
 
 ## The housekeeping boundary
@@ -66,6 +66,19 @@ housekeeping's other two tests ("tiny", "clearly a problem") are
 judged by whoever wants to do the work, and the smallest-looking
 change is the one most likely to be a contract change wearing a
 small diff.
+
+**The boundary is housekeeping's alone** (D8). It exists *because*
+housekeeping is ungoverned — approved as a class in advance, its
+remaining two tests judged by whoever wants the work — so the
+interface exclusion is the whole of what stands between that class
+and an unreviewed contract change. It does **not** reach the
+pledged task queue ([TASKS.md](TASKS.md)), where the gate sits at
+entry and only authority may enter anything: **a small interface
+change may be a task**, admitted on size and kind and never refused
+for the surface it touches. Read across, the boundary counts the
+same protection twice and turns away work authority has already
+approved. What this rule governs is how a change *lands* — the
+steps below — not which queue it waited in.
 
 ## The rule
 
@@ -98,12 +111,13 @@ someone has already decided to build.
   the amendment — not the feature — is what gets argued. The
   workflow is strict: draft the amendment under `proposed/` and make
   the argument; if the argument wins, the amendment moves to
-  `accepted/` — the move is the acceptance and the commit is its
+  `pledged/` — the move is the pledge and the commit is its
   record ([README.md](README.md)); only then does work start.
-  Accepted use cases move into root `USE-CASES.md` when their
-  delivery lands, accepted principles into root `ARCHITECTURE.md`
-  when the project honors them, anything superseded retiring
-  stubless — its number never reused,
+  Pledged use cases move into root `USE-CASES.md` when their
+  delivery lands in full, pledged principles into root
+  `ARCHITECTURE.md` when the project honors them as a rule — every
+  known residue filed as a defect in the same change — anything
+  superseded retiring stubless — its number never reused,
   [DECISIONS.md](DECISIONS.md) the record. A misaligned change that
   can propose no amendment has nothing to argue and is rejected,
   regardless of its elegance.
@@ -140,7 +154,7 @@ Every approved change then lands the same way:
    guarantee, so the old shape is deleted rather than bridged. Cheap
    execution does not make the decision cheap; nothing downstream
    cushions a wrong one.
-3. **Record it.** Amendments are drafted under `proposed/`, accepted
+3. **Record it.** Amendments are drafted under `proposed/`, pledged
    by being moved out of it, and reach the root lists when
    delivered, keeping their numbers; settled decisions go to
    [DECISIONS.md](DECISIONS.md) and to their normative homes;

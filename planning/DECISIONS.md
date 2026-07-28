@@ -24,6 +24,13 @@ cases (U-numbers) and principles (P-numbers) it supports, and it is
 citable downstream — design documents, specifications, and code
 commits justify choices by citing D-numbers.
 
+**The supports clause is not optional, and "none" is an answer.** A
+decision genuinely demanded by nothing — a vocabulary or naming
+choice — records `Supports (none)` and why. Prose in place of a
+handle is the same gap wearing a sentence: a citation that resolves
+to no number is not a citation, and only a numbered one can be
+audited.
+
 An overruled or no-longer-relevant decision moves, number and text
 intact, to the Retired decisions section at the bottom, its note
 naming what overruled it — a retired decision binds nothing but
@@ -112,6 +119,52 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D8 — The planning machinery realigns to the cross-project standard
+
+**Decided** owner, 2026-07-28. **Supports** P14, P15 (drafted).
+
+The governance model this project adopted (D7) is the one in force
+across the owner's projects, and that standard moved after
+testaferro instantiated it. Three changes, taken together:
+
+- **The second shelf is `pledged/`, and the lifecycle word with
+  it**: *proposed, pledged, completed, rejected*. `accepted/` named
+  an act, and both gates perform approvals — admitting a document to
+  `proposed/` is one too — so a shelf named for an act claims a word
+  the other gate still has to borrow. Both names now state what an
+  item *is*: argued and binding nothing, or owed with no date
+  attached. A pledge can therefore be wrong where bare agreement
+  could not: an item nobody intends to deliver is withdrawn to
+  `proposed/` or rejected outright, never left sitting. No directory
+  moved on disk — `accepted/` had not been created yet — so the
+  rename lands in prose alone.
+- **The task queue is guarded by authority, not by the interface
+  test.** [TASKS.md](TASKS.md) had read "work that changes an
+  interface never belongs here", importing housekeeping's boundary.
+  That boundary compensates for a class nobody with authority ever
+  reviews; the task queue has its own guard — only authority writes
+  to it, and entering an item *is* approving it — so reading the
+  test across counts the same protection twice and turns away work
+  authority has already approved. A small interface change may be a
+  task, admitted on size and kind; the landing rules
+  ([INTERFACES.md](INTERFACES.md)) bind it exactly as they bind a
+  feature.
+- **Promotion to the root runs on two bars.** A use case moves on
+  *full* delivery. A principle moves on being honored *as a rule*,
+  with every known residue filed as a defect in the same change —
+  filing the residue is what converts a shortfall from unbuilt work
+  into a bug, which is what arming means.
+
+**Weighed and declined:** keeping the stricter task rule as a
+deliberate local divergence. It would preserve a protection the
+queue already has at its door, at the price of diverging from a
+standard whose whole value is that an agent or contributor arriving
+here already knows the rules (D7).
+
+**Folded into:** [README.md](README.md), [TASKS.md](TASKS.md),
+[INTERFACES.md](INTERFACES.md), the banners under
+[proposed/](proposed/), [AGENTS.md](../AGENTS.md).
+
 ### D7 — testaferro adopts the planning governance model, and keeps no roadmap
 
 **Decided** owner, 2026-07-27. **Supports** P14, P15 (drafted).
@@ -122,8 +175,9 @@ design decisions, open questions, and small work items — with a
 "milestone (low priority)" heading asserting an order the project
 never actually committed to. It is replaced by this `planning/`
 machinery, in which **location is the classification**: `proposed/`
-is argued but not accepted, `accepted/` is approved and undelivered,
-and the repository root carries what the code delivers today. The
+is argued but not accepted, `accepted/` is approved and undelivered
+[the second shelf is now `pledged/`, and the vocabulary with it —
+D8], and the repository root carries what the code delivers today. The
 same model is in force across the projects this owner controls, so
 an agent or contributor arriving here already knows where to look.
 
