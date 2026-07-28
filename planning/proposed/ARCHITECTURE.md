@@ -241,6 +241,25 @@ anything that looks normative is written.
   work's quality or its author. Governance authority may compress the
   steps into one PR — compressed in time, never reduced in content.
   (D7.)
+- **P17 — What testaferro offers, testaferro authors.** Every
+  environment testaferro puts a name on — the standard catalog's
+  machines (U9, D10), and any blueprint, script or medium shipped
+  with one — is authored here and complete in itself: the document,
+  the drives it declares, and the media those locate. **Nothing
+  testaferro offers is a name resolved out of the provider's own
+  shipped content**: reliquary's codex is not an input to a test
+  run, at resolution or at materialization, and neither is the
+  user's reliquary home (D6). This is P5's hermeticity read forward
+  from the session to the catalog — P5 governs what a run may
+  *reach*, this governs what testaferro may *offer* — and the reason
+  is the same twice: a test run depends only on state testaferro
+  authored or the project checked in, and a curated environment
+  leaning on a provider's catalog inherits that catalog's
+  versioning, availability and install cost while owning none of
+  them (D10: an install per session is not a price a test run pays).
+  Provider content stays reachable the way everything else does —
+  the tester declares it (P1, P3), which is their choice to make and
+  never testaferro's default to drift into.
 
 **Pledged principles have left this file** for
 [../pledged/ARCHITECTURE.md](../pledged/ARCHITECTURE.md); a gap in
