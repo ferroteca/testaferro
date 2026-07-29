@@ -141,13 +141,17 @@ defaults to `testaferro.cpputest`; pass `framework=` to use a different one.
 
 The guest machine's working state is testaferro's business, not the consumer's: each run happens in a fresh, disposable
 reliquary home under testaferro's cache (`%LOCALAPPDATA%\testaferro` on Windows, `$XDG_CACHE_HOME/testaferro`
-elsewhere), and the machine is created there fresh for each guest session and swept away with it. Zero configuration boots a
-FreeDOS image that is downloaded once and cached; pass `boot_image=` to boot a caller-supplied DOS floppy image
-instead.
+elsewhere), and the machine is created there fresh for each guest session and swept away with it.
+
+**Zero configuration installs a FreeDOS system, once.** The first run with nothing declared downloads the FreeDOS LiveCD
+and installs from it — a few minutes, once, into the cache. Every run after that attaches the result and starts in
+seconds, layering its own copy-on-write overlay so no run can disturb the system the others share. Pass `boot_image=`
+to boot a DOS floppy image of your own instead, which skips all of that.
 
 The suite executable reaches the guest on a work drive testaferro adds to the machine: a host directory served into the
-guest as a FAT volume, with the executable staged into it before boot. The guest sees it as its first hard disk —
-normally `C:` — and testaferro runs it there by name. Nothing is written into your boot image.
+guest as a FAT volume, with the executable staged into it before boot. It takes the lowest free disk slot, so the guest
+calls it `D:` beside the installed FreeDOS system, or `C:` when you booted a floppy of your own — and testaferro runs it
+there by name. Nothing is written into your boot image.
 
 ### Named test environments
 

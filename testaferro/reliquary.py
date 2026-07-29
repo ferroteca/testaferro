@@ -63,33 +63,31 @@ _BLUEPRINT_NAME = "testaferro"
 # The host-directory drive carrying the suite executable to the guest.
 _WORK_MEDIA_NAME = "testaferro-work"
 _BOOT_MEDIA_NAME = "testaferro-boot"
+# testaferro's installed FreeDOS system, shared by every guest session
+# that declared nothing of its own.
+_SYSTEM_MEDIA_NAME = "testaferro-freedos"
 _DEFAULT_MEMORY = "32M"
 # Seconds one guest command may take before reliquary gives up.
 _DEFAULT_TIMEOUT = 120
 _HDD_SLOTS = 4
 
-# FreeDOS 1.4's FloppyEdition, from which x86BOOT.img (a ready-to-boot
-# 1.44M floppy image) is extracted; a reliquary media definition,
-# fetched and hash-verified through reliquary.fetch_media().
-_FREEDOS_FLOPPY_MEDIA_NAME = "freedos-boot-floppy"
-_FREEDOS_FLOPPY_MEDIA_DEFINITION = [
-    {
-        "type": "media",
-        "name": "freedos-floppy-edition",
-        "location": "https://download.freedos.org/1.4/FD14-FloppyEdition.zip",
-        "sha256": ("45b1fa7c52dd996c3bfa5e352ffcd410781b952a6ad629f"
-                  "15a4c9ec4bbaefc5a"),
-        "children": [
-            {
-                "type": "media",
-                "name": _FREEDOS_FLOPPY_MEDIA_NAME,
-                "path": "144m/x86BOOT.img",
-                "sha256": ("552f7cbb0625960c050a3e682a4d2121cc2ffdfa9dc9d59"
-                          "2ccd49edf179333dc"),
-            },
-        ],
-    },
-]
+# testaferro's own FreeDOS system, and the recipe that makes it.
+#
+# The recipe is authored here (P17): `assets/` holds the blueprint and
+# the install script, so nothing about the environment testaferro
+# offers by name is resolved out of the provider's own codex at run
+# time. What the recipe *produces* is a plain installed FreeDOS system
+# on a disk, kept in the cache and reused — an install is a price paid
+# once, and never a price a test run pays (D10).
+#
+# The image this replaced was FreeDOS 1.4's FloppyEdition boot floppy,
+# which boots its *installer* and never reaches a DOS prompt: zero
+# configuration could not have worked, and nothing had looked until an
+# integration run did.
+_ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                       "assets")
+_FREEDOS_BLUEPRINT = "freedos"
+_FREEDOS_IMAGE_NAME = "freedos.qcow2"
 
 
 def suite_backend(exe_path, framework=cpputest, enumerator=None,
@@ -189,8 +187,10 @@ def start(boot_image=None):
 def stop(clear_downloads=False):
     """Close the run opened by start(), sweeping its whole area —
     staged image and every guest home. Safe to call with no run
-    active. `clear_downloads=True` also removes the cached default
-    boot image, forcing a fresh download next time."""
+    active. `clear_downloads=True` also removes testaferro's built
+    FreeDOS system, so the next zero-configuration run installs a
+    fresh one — which is minutes rather than the seconds the name
+    suggests, this being an install and no longer a download."""
     global _run_area
     atexit.unregister(stop)
     # Machines first: the guest homes about to be swept are the disks
@@ -202,45 +202,75 @@ def stop(clear_downloads=False):
         cache.release_guest_home(_run_area["dir"])
         _run_area = None
     if clear_downloads:
-        cached = os.path.join(cache.cache_root(), "boot.img")
+        cached = os.path.join(cache.cache_root(), _FREEDOS_IMAGE_NAME)
         for path in (cached, cached + ".part"):
             if os.path.exists(path):
                 os.remove(path)
 
 
 def _run_image():
-    """The active run's staged boot image, staging it on first use
-    from the recorded choice or the cached default."""
+    """The run's staged copy of the boot image it was opened with.
+
+    Only reached when `start(boot_image=…)` named one: a run staging
+    the default system disk would be copying a file no guest session
+    writes to anyway, each of them layering its own overlay instead.
+    """
     image = os.path.join(_run_area["dir"], "boot.img")
     if not os.path.exists(image):
-        shutil.copy(_run_area["boot_image"] or _cached_default_image(),
-                    image)
+        shutil.copy(_run_area["boot_image"], image)
     return image
 
 
 def _cached_default_image():
-    """testaferro's cached copy of the default boot image: FreeDOS
-    1.4's floppy-edition boot floppy, fetched and hash-verified
-    through reliquary.fetch_media() on first use."""
-    cached = os.path.join(cache.cache_root(), "boot.img")
+    """testaferro's own FreeDOS system, built once and kept.
+
+    The first call installs FreeDOS from the recipe in `assets/` and
+    keeps the resulting disk under the cache; every call after that is
+    a path lookup. A guest session never installs anything — it
+    layers a fresh overlay over this disk and leaves it as it found
+    it.
+    """
+    cached = os.path.join(cache.cache_root(), _FREEDOS_IMAGE_NAME)
     if not os.path.exists(cached):
-        os.makedirs(cache.cache_root(), exist_ok=True)
-        with tempfile.TemporaryDirectory(
-                prefix="download-", dir=cache.cache_root()) as home:
-            blueprints = os.path.join(home, "blueprints")
-            os.makedirs(blueprints)
-            definition = os.path.join(blueprints, "freedos-floppy.rlqb")
-            with open(definition, "w", encoding="utf-8") as handle:
-                json.dump(_FREEDOS_FLOPPY_MEDIA_DEFINITION, handle)
-            payload = reliquary.fetch_media(
-                _FREEDOS_FLOPPY_MEDIA_NAME,
-                _context(home, blueprints))
-            shutil.copy(payload, cached + ".part")
-        os.replace(cached + ".part", cached)
+        _build_default_image(cached)
     return cached
 
 
-def _context(home, blueprints):
+def _build_default_image(destination):
+    """Install FreeDOS once, from testaferro's own authored recipe.
+
+    Everything happens inside a disposable home under the cache and
+    against a context pinned to `assets/`, so the codex is no more an
+    input here than it is anywhere else (P17, D6). The machine is
+    destroyed afterwards and only its disk survives, moved into place
+    atomically so a killed build leaves no half-installed system to be
+    mistaken for a finished one.
+    """
+    os.makedirs(cache.cache_root(), exist_ok=True)
+    partial = destination + ".part"
+    with tempfile.TemporaryDirectory(
+            prefix="build-", dir=cache.cache_root()) as home:
+        context = _context(home, _ASSETS, scripts=_ASSETS)
+        machine = reliquary.create_machine(_FREEDOS_BLUEPRINT,
+                                           context=context)
+        try:
+            reliquary.run_script("install", machine=machine,
+                                 context=context)
+            state = reliquary.load_machine_state(machine, context)
+            installed = state["drives"]["hdd0"]["path"]
+            shutil.copy(installed, partial)
+        finally:
+            try:
+                reliquary.destroy_machine(machine, context=context)
+            except Exception:
+                # The whole home goes with this block regardless; a
+                # machine that will not tear down must not also cost
+                # us the image we just spent an install on.
+                pass
+    os.replace(partial, destination)
+
+
+def _context(home, blueprints, scripts=None):
     """A reliquary context pinned to one disposable testaferro home.
 
     The blueprints directory and `autoseed=False` keep the resolution
@@ -248,10 +278,15 @@ def _context(home, blueprints):
     own reliquary home or the built-in codex. Autoseeding is off by
     default in the embedding API; pinning it says so per session, so a
     host process that turned the process-global on cannot reach in.
+
+    `scripts` is pinned only where one is actually run — building the
+    default image — and points at testaferro's own `assets/` for the
+    same reason the blueprints directory does.
     """
     return reliquary.Context(home_dir=home,
                              cache_dir=os.path.join(home, "cache"),
                              blueprints_dir=blueprints,
+                             scripts_dir=scripts,
                              autoseed=False)
 
 
@@ -388,13 +423,31 @@ class ReliquarySuiteBackend(SuiteBackend):
         fields.setdefault("memory", _DEFAULT_MEMORY)
         drives = dict(fields.get("drives") or {})
         if not drives:
-            drives["floppy0"] = {
-                "type": "media",
-                "name": _BOOT_MEDIA_NAME,
-                "location": {"local": self._boot_media_path()},
-                "materialize": "use",
-            }
-            fields.setdefault("boot", ["floppy0"])
+            image = self._declared_boot_image()
+            if image is not None:
+                # A tester's own boot floppy (U3), booted as given.
+                drives["floppy0"] = {
+                    "type": "media",
+                    "name": _BOOT_MEDIA_NAME,
+                    "location": {"local": image},
+                    "materialize": "use",
+                }
+                fields.setdefault("boot", ["floppy0"])
+            else:
+                # Zero configuration: testaferro's own installed
+                # FreeDOS system. **Layered, never used in place** —
+                # every guest session gets its own overlay, so a guest
+                # writing to C: cannot reach the one copy each of them
+                # shares. The work drive lands beside it and the guest
+                # calls it D:, which is the first time testaferro's
+                # one-volume-per-disk assumption is worth anything.
+                drives["hdd0"] = {
+                    "type": "media",
+                    "name": _SYSTEM_MEDIA_NAME,
+                    "location": {"local": _cached_default_image()},
+                    "materialize": "difference",
+                }
+                fields.setdefault("boot", ["hdd0"])
         key, letter = _work_drive(drives)
         drives[key] = {
             "type": "media",
@@ -408,10 +461,17 @@ class ReliquarySuiteBackend(SuiteBackend):
         media = list(spec.media) if spec is not None else []
         return [fields, *media], letter
 
-    def _boot_media_path(self):
-        """The image the zero-configuration machine boots: this
-        backend's own choice, the run's staged image, or the
-        cached default."""
+    def _declared_boot_image(self):
+        """A boot image somebody actually asked for, or None.
+
+        This call's own first, then the one the run was opened with —
+        staged into the run's area so every suite boots the same
+        bytes. None means nobody said, which is the zero-configuration
+        path and not a defaulted floppy: what runs then is
+        testaferro's own installed system, and it is a disk.
+        """
         if self._boot_image is not None:
             return self._boot_image
-        return _run_image() if _run_area else _cached_default_image()
+        if _run_area is not None and _run_area["boot_image"]:
+            return _run_image()
+        return None

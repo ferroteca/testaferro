@@ -91,6 +91,35 @@ built elsewhere and only the binary lands, is a question about this
 repository's weight rather than about the run, and it is answered when
 the work is picked up. Neither answer changes anything above.
 
+## What is built, and what this is waiting on
+
+Most of it exists. `tests/integration/guest/` holds the suite — a real
+CppUTest build for 16-bit DOS, its source and its Open Watcom makefile
+beside it — and `tests/integration/` holds the tier, stdlib `unittest`
+and skipped unless `TESTAFERRO_INTEGRATION` says otherwise. **A guest
+has run it**: it boots, the executable arrives on the work drive at
+`D:`, enumeration comes back and parses, a batched run and a single
+run both come back, and the failure carries the guest's own file and
+line to the host.
+
+Two defects fell out of that, which is the feature doing its job:
+
+- **Ours, and fixed.** A failure's message ran on past its end,
+  because the grammar ended one at a blank line and the transport
+  drops blank rows. Exactly the cost P9 states against itself.
+- **The provider's, and not ours to work around.** The first command
+  after boot returns the boot banner rather than its own output —
+  `exec()` matches a prompt that was already on screen. Reported as
+  `ferroteca/reliquary#6`. A `sleep` before the first command would
+  close this today and is precisely the defensive workaround **P1**
+  forbids, so the tier waits instead.
+
+**That race is the whole of what stands between this and delivery.**
+Until it lands upstream the tier's cases need a throwaway first
+command to pass, which is not something to check in — so the feature
+stays pledged, and the evidence for its delivery goes in the commit
+that finally moves it.
+
 **What the run must show** is the whole point, so it is enumerated:
 the guest boots from the cached image, the work drive carries the
 executable in at the letter testaferro named, `-ln` comes back and

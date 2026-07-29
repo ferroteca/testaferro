@@ -111,6 +111,83 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D20 — testaferro installs its own FreeDOS, once
+
+**Decided** owner, 2026-07-28. **Supports** U2, U4 (pledged), P17, P8.
+
+**Zero configuration had never worked, and nothing had ever looked.**
+The image it downloaded was FreeDOS 1.4's FloppyEdition boot floppy,
+which boots the *installer*: a language menu, then "Do you want to
+proceed [Y,N]?", and never a DOS prompt. Every guest command therefore
+waited for a prompt that was not coming and timed out. U2 and U4 both
+promise that a suite executable and nothing else runs; the first
+integration run ever made found that it could not have.
+
+**The image is now testaferro's own, installed rather than
+downloaded.** The recipe — reliquary's codex `freedos` blueprint and
+its install script — is **vendored into `testaferro/assets/`** and
+read from there, so nothing about the environment testaferro offers by
+name resolves out of the provider's codex at run time (P17). The
+install runs **once**, into the cache; every guest session afterwards
+layers a `difference` overlay over the result, so no session can write
+into the copy they all share. It took 326 seconds and produced 13MB.
+
+**D10 is not overruled.** What it declined was reading `freedos` as
+the codex install recipe *per session* — "an install per session is
+not a price a test run pays" — and that stands unchanged: a run
+attaches a disk that already exists. What is new is only that the
+disk is one testaferro built rather than one it fetched.
+
+**The consequence is recorded rather than left to be discovered: zero
+configuration has left the cheap half of P10's line.** A layered
+system drive materializes through an external image tool and the
+system itself materializes through a guest install, so the
+zero-configuration path is no longer something the unit tier may walk.
+Cases that were about testaferro's own bookkeeping now declare a boot
+image and stay cheap. This is not a shortfall against P10 — that
+entry forbids the unit tier starting a guest and this is the boundary
+moving, not the rule.
+
+**The blast radius grew, so it is guarded.** The old default was a
+download and the case exercising it mocked `reliquary.fetch_media`;
+the day the default became an install, that stopped being the seam and
+nothing failed — a unit run simply installed an operating system.
+`tests/test_reliquary.py` now refuses `_build_default_image` at module
+scope, so the next such slip fails on the spot instead of taking five
+minutes quietly. AGENTS.md already recorded one incident of this exact
+shape; this is the second.
+
+**The work drive is D:.** With the system on `hdd0`, the work drive
+takes the next slot, and `_work_drive()`'s one-volume-per-disk
+assumption — flagged in AGENTS.md as unverified past the first disk —
+is now exercised by a real guest and correct.
+
+**Recorded because the surface is enumerated.** The **cache location
+and layout** is the sixth interface, and what testaferro puts there
+changed: `boot.img` becomes `freedos.qcow2`, and
+`stop(clear_downloads=True)` now discards an install rather than a
+download — minutes to replace, not seconds. The **embedding API**'s
+`boot_image=` is untouched and still boots a tester's own floppy
+(U3); what changed is only what happens when nobody says.
+
+**Weighed and declined:** answering the installer's prompt with `N`,
+which does reach `A:\>` — I tried it. It works today and makes the
+curated environment depend on an installer's wording, which a FreeDOS
+release can move under us; P17 says what testaferro offers,
+testaferro authors, and "boots an installer and declines it" is not
+that. Also declined: publishing a prebuilt image for consumers to
+download, which is faster on first use and costs a hosting decision
+and an artifact to keep in step; it stays available if the install
+proves slow in practice.
+
+**Folded into:** [../testaferro/assets/](../testaferro/assets/),
+[../testaferro/reliquary.py](../testaferro/reliquary.py),
+[../tests/test_reliquary.py](../tests/test_reliquary.py),
+[../pyproject.toml](../pyproject.toml), [../README.md](../README.md),
+[../AGENTS.md](../AGENTS.md), [../CHANGELOG.md](../CHANGELOG.md),
+[proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md) (the sixth
+surface).
+
 ### D19 — A guest's own words, never a traceback through the courier
 
 **Decided** owner, 2026-07-28. **Supports** U4 (pledged), P4.

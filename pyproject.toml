@@ -39,3 +39,9 @@ testaferro = "testaferro.plugin"
 
 [tool.setuptools]
 packages = ["testaferro"]
+
+# The FreeDOS recipe testaferro authors and installs from (P17). It is
+# data the package reads at run time, so it ships inside the package
+# rather than sitting beside it in the repository.
+[tool.setuptools.package-data]
+testaferro = ["assets/*.rlqb", "assets/*.rlqs"]

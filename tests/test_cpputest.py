@@ -24,6 +24,26 @@ FAILING_RUN = (
     "Errors (1 failures, 3 tests, 3 ran, 4 checks, 1 ignored, "
     "0 filtered out, 1 ms)\n")
 
+# The same run as a *guest transport* delivers it, and authored from
+# what that transport does rather than pasted out of one (P9). Two
+# things change on the way back from a guest screen, and neither is
+# CppUTest behaving differently: blank rows are dropped, so the blank
+# line after the message is gone; and the message's leading tab is
+# rendered as spaces, so there is no tab left to strip. Both once made
+# a failure's message swallow the rest of the run.
+FAILING_RUN_FROM_A_SCREEN = (
+    "TEST(Vring, Wraps) - 0 ms\n"
+    "TEST(Vring, Fails)\n"
+    "vring_test.cpp:42: error: Failure in TEST(Vring, Fails)\n"
+    "        expected <1 0x1>\n"
+    "        but was  <2 0x2>\n"
+    "        difference starts at position 0 at: <          2  >\n"
+    "                                                       ^\n"
+    " - 1 ms\n"
+    "IGNORE_TEST(Vring, Slow) - 0 ms\n"
+    "Errors (1 failures, 3 tests, 3 ran, 4 checks, 1 ignored, "
+    "0 filtered out, 1 ms)\n")
+
 
 class ParseTests(unittest.TestCase):
     def test_parse_normalizes_results(self):
@@ -69,6 +89,37 @@ class ParseRunTests(unittest.TestCase):
         self.assertEqual(failed.line, 42)
         self.assertEqual(failed.message,
                          "expected <1 0x1>\nbut was  <2 0x2>")
+
+    def test_a_message_ends_where_the_next_thing_begins(self):
+        # Without a blank line to stop at, the message used to run on
+        # through the timing line, the next test and the summary — so
+        # a guest's one-line failure arrived carrying the whole rest
+        # of the run. It ends at whatever CppUTest writes next.
+        outcomes = {(o.group, o.name): o
+                    for o in cpputest.parse_run(FAILING_RUN_FROM_A_SCREEN)}
+
+        failed = outcomes[("Vring", "Fails")]
+        self.assertEqual(failed.file, "vring_test.cpp")
+        self.assertEqual(failed.line, 42)
+        self.assertNotIn("ms", failed.message)
+        self.assertNotIn("Errors (", failed.message)
+        self.assertNotIn("IGNORE_TEST", failed.message)
+
+    def test_a_screen_rendered_indent_is_removed_but_alignment_is_not(self):
+        # The tab CppUTest writes arrives as spaces, so the common
+        # indent goes; the caret under a difference report is deeper
+        # than that and has to stay where it was pointing.
+        outcomes = {(o.group, o.name): o
+                    for o in cpputest.parse_run(FAILING_RUN_FROM_A_SCREEN)}
+
+        lines = outcomes[("Vring", "Fails")].message.splitlines()
+        self.assertEqual(lines[0], "expected <1 0x1>")
+        self.assertEqual(lines[1], "but was  <2 0x2>")
+        caret = lines[-1]
+        difference = lines[-2]
+        self.assertEqual(caret.strip(), "^")
+        self.assertEqual(caret.index("^"),
+                         difference.index("2", difference.index("<")))
 
     def test_failure_outside_test_file_uses_failure_site(self):
         # TestOutput.cpp prints a second location line (the actual

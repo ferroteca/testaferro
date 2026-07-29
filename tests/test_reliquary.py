@@ -28,6 +28,38 @@ if RELIQUARY_AVAILABLE:
     from testaferro import environments
     from testaferro import reliquary as binding
 
+_no_install = None
+
+
+def setUpModule():
+    """No case in this file may install a guest system (P10).
+
+    Building the default image boots a machine and installs FreeDOS
+    into it — minutes, not milliseconds — so a test that reaches it
+    unstubbed does not merely run slowly. It did exactly that once:
+    the old default was a *download* and the case that exercised it
+    mocked `reliquary.fetch_media`, which stopped being the seam the
+    day the default became an install. Nothing failed; it just
+    installed an operating system. This makes the next such slip fail
+    on the spot, and a case that wants a default image stubs
+    `_cached_default_image` for itself.
+    """
+    global _no_install
+    if not RELIQUARY_AVAILABLE:
+        return
+    _no_install = mock.patch.object(
+        binding, "_build_default_image",
+        side_effect=AssertionError(
+            "the unit tier may not install a guest system: stub "
+            "_cached_default_image() in this test (P10)"))
+    _no_install.start()
+
+
+def tearDownModule():
+    if _no_install is not None:
+        _no_install.stop()
+
+
 EMPTY_RUN_OUTPUT = (
     "OK (2 tests, 0 ran, 0 checks, 0 ignored, 2 filtered out, 0 ms)\n")
 RUN_ONE_OUTPUT = (
@@ -115,7 +147,14 @@ class _BindingFixture(unittest.TestCase):
         """Run one whole guest session, returning the reliquary home
         (and boot image bytes) each guest run was scoped to. The fake
         reads them off the authored blueprint, so a run that stops
-        declaring its own home or boot drive fails loudly."""
+        declaring its own home or boot drive fails loudly.
+
+        Every caller declares a **boot image**, deliberately: the
+        zero-configuration path now boots a layered system disk, and
+        both layering it and building it are things this tier may not
+        do (P10). What is under test here is testaferro's own
+        bookkeeping, which a floppy exercises just as well.
+        """
         seen = []
 
         def fake_exec(command, *, machine=None, context=None, timeout=None):
@@ -216,20 +255,45 @@ class ReliquarySuiteBackendTests(_BindingFixture):
             finally:
                 backend.stop_guest()
 
-    def test_default_boot_image_downloads_once_then_caches(self):
-        def fake_fetch_media(name, context):
-            payload = os.path.join(context.home_dir, "payload.img")
-            with open(payload, "wb") as image:
+    def test_the_default_system_is_built_once_and_then_reused(self):
+        # `_build_default_image()` performs a real FreeDOS install, so
+        # it is stubbed here and belongs to integration — the seam to
+        # mock is this one, and no longer a download. Mocking the wrong
+        # seam does not fail: it installs an operating system, which is
+        # how this rule got broken once already (P10).
+        built = []
+
+        def fake_build(destination):
+            built.append(destination)
+            os.makedirs(os.path.dirname(destination), exist_ok=True)
+            with open(destination, "wb") as image:
                 image.write(b"freedos")
-            return payload
 
         backend = binding.suite_backend(self.exe)
-        with mock.patch("reliquary.fetch_media",
-                        side_effect=fake_fetch_media) as fetch_media:
-            images = [self._guest_homes_seen(backend)[0][1]
-                      for _ in range(2)]
-        self.assertEqual(images, [b"freedos", b"freedos"])
-        fetch_media.assert_called_once()
+        with mock.patch.object(binding, "_build_default_image",
+                               side_effect=fake_build) as build:
+            first = binding._cached_default_image()
+            second = binding._cached_default_image()
+
+        self.assertEqual(first, second)
+        build.assert_called_once()
+        self.assertTrue(first.endswith(binding._FREEDOS_IMAGE_NAME))
+
+    def test_zero_configuration_layers_the_system_rather_than_using_it(self):
+        # Every guest session shares one built image, so none of them
+        # may write into it: the drive is layered, and the work drive
+        # lands beside it as the guest's second disk — D:.
+        backend = binding.suite_backend(self.exe)
+        with mock.patch.object(binding, "_cached_default_image",
+                               return_value="SYSTEM.QCOW2"):
+            document, letter = backend._blueprint("work")
+
+        drives = document[0]["drives"]
+        self.assertEqual(drives["hdd0"]["materialize"], "difference")
+        self.assertEqual(drives["hdd0"]["location"], {"local": "SYSTEM.QCOW2"})
+        self.assertEqual(document[0]["boot"], ["hdd0"])
+        self.assertEqual(letter, "D")
+        self.assertEqual(drives["hdd1"]["name"], binding._WORK_MEDIA_NAME)
 
     def test_runs_suite_through_reliquary(self):
         expected = tuple(EMPTY_RUN_OUTPUT.splitlines())
@@ -453,13 +517,21 @@ class SessionLifecycleTests(_BindingFixture):
             binding.start()
         cached.assert_not_called()
 
-    def test_stop_sweeps_run_homes_but_keeps_download_cache(self):
-        cached = pathlib.Path(cache.cache_root()) / "boot.img"
+    def test_stop_sweeps_run_homes_but_keeps_the_built_system(self):
+        # The run's own area goes; what an install paid for stays.
+        # A boot image is declared here so the case tests sweeping
+        # rather than the default path, which is no longer this
+        # tier's to walk (P10): a layered system drive materializes
+        # through an external image tool, and the system itself
+        # materializes through a guest install.
+        cached = pathlib.Path(cache.cache_root()) / binding._FREEDOS_IMAGE_NAME
         cached.parent.mkdir(parents=True, exist_ok=True)
-        cached.write_bytes(b"freedos")
-        binding.start()
+        if not cached.exists():
+            cached.write_bytes(b"not a real system")
+            self.addCleanup(cached.unlink)
+        binding.start(boot_image=self.image)
         home, image = self._run_suite(binding.suite_backend(self.exe))
-        self.assertEqual(image, b"freedos")
+        self.assertEqual(image, b"custom dos")
 
         binding.stop()
         self.assertFalse(os.path.exists(os.path.dirname(home)))
@@ -479,10 +551,12 @@ class SessionLifecycleTests(_BindingFixture):
         self.assertTrue(os.path.exists(home))
         self.assertIn(home, cache.kept_guest_homes())
 
-    def test_stop_clear_downloads_removes_cached_image(self):
-        cached = pathlib.Path(cache.cache_root()) / "boot.img"
+    def test_stop_clear_downloads_removes_the_built_system(self):
+        # What it drops is now an install rather than a download, so
+        # the next zero-configuration run pays minutes to rebuild it.
+        cached = pathlib.Path(cache.cache_root()) / binding._FREEDOS_IMAGE_NAME
         cached.parent.mkdir(parents=True, exist_ok=True)
-        cached.write_bytes(b"freedos")
+        cached.write_bytes(b"not a real system")
 
         binding.stop(clear_downloads=True)
         self.assertFalse(cached.exists())

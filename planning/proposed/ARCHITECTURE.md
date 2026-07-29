@@ -132,7 +132,10 @@ named here follows that rule.
 6. **The cache location and layout** — `%LOCALAPPDATA%\testaferro`
    or `$XDG_CACHE_HOME/testaferro`, what testaferro puts there, and
    what `stop()` and `stop(clear_downloads=True)` sweep. A durable
-   on-disk footprint on the user's machine is a contract with them.
+   on-disk footprint on the user's machine is a contract with them —
+   and since D20 what sits there is a FreeDOS system testaferro
+   *installed*, so `clear_downloads=True` discards minutes of work
+   rather than a download.
 
 **The plugin's options have joined this list**, and they are not a
 seventh surface but a second presentation of the first two:

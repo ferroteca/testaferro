@@ -50,6 +50,18 @@ Package layout (each module states its contract in its docstring):
   reason and does not quote the text back** (D19): the caller passed
   that text in and still holds it, and an adapter that never saw the
   guest cannot say where it came from.
+
+  **A grammar tolerates the transport, and derives that from the
+  source too.** CppUTest ends a failure's message with a blank line
+  and indents it with a tab; a guest screen read back row by row drops
+  blank rows and renders the tab as spaces. Reading the blank line as
+  the terminator therefore let a message swallow the timing line, the
+  next test and the summary. So a message ends at whatever CppUTest
+  writes *next* — timing line, next header, another failure, or the
+  summary — and the **common** indent is removed rather than each
+  line stripped, which keeps a difference report's caret under the
+  character it indicts. This is what P9 costs, arriving: source-derived
+  fixtures could not have shown it, and the first real run did.
 - [testaferro/environments.py](testaferro/environments.py) — named
   test-environment declarations backed by immutable
   `EnvironmentSpec` templates, plus selection and loading of the
@@ -95,6 +107,13 @@ Package layout (each module states its contract in its docstring):
   error messages; a future guest extends this by claiming formats
   currently mapped to None. Shared by the facade's dispatch and
   each guest binding's own guard.
+- [testaferro/assets/](testaferro/assets/) — the FreeDOS recipe
+  testaferro authors: a blueprint and the install script that drives
+  it. Vendored from the provider's codex deliberately and read only
+  from here (P17, D20), and read **once** — what a test run touches is
+  the disk the install produced, never this. Shipped inside the
+  package (`package-data` in [pyproject.toml](pyproject.toml)) because
+  the package reads it at run time.
 - [testaferro/cache.py](testaferro/cache.py) — `cache_root()`,
   testaferro's durable filespace (LOCALAPPDATA or XDG_CACHE_HOME),
   shared by the guest bindings. Also where a finished guest home is
@@ -115,6 +134,21 @@ Package layout (each module states its contract in its docstring):
   the provider's own document, passing through as `platform` does.
   `PLATFORMS` is the one thing it tells resolution about itself — the
   guests this provider serves, its own answer to give.
+
+  **Zero configuration boots a FreeDOS system testaferro installed**
+  (D20), not a downloaded floppy. `assets/` holds the recipe — the
+  blueprint and its install script, vendored so nothing resolves out
+  of the provider's codex at run time (P17) — and
+  `_build_default_image()` runs it **once**, into the cache. A guest
+  session layers a `difference` overlay over that disk and so cannot
+  write into the copy every other session shares. The image it
+  replaced booted FreeDOS's *installer* and never reached a prompt, so
+  zero configuration could not have worked; nothing had looked until
+  an integration run did. `boot_image=` is unchanged and still boots a
+  tester's own floppy (U3) — what changed is only what happens when
+  nobody says. With the system on `hdd0` the work drive takes the next
+  slot, so the guest calls it **D:**.
+
   `suite_backend()` guards with `binfmt.classify()`
   (rejections name the format and architecture) and returns a
   `ReliquarySuiteBackend`, with `framework` defaulting to the CppUTest
@@ -375,7 +409,9 @@ principle governs.
 - As a reusable library, testaferro never names specific consuming
   projects in source, tests, README.md, or repository guidance (P12). Refer
   to consumers and runners only in general instructional terms.
-- Tests are stdlib `unittest` under `tests/`.
+- Tests are stdlib `unittest` under `tests/`, integration included:
+  `tests/integration/` is skipped unless `TESTAFERRO_INTEGRATION` is
+  set, so the constraint is not spent on a second runner.
 - Licensing is BSD-3-Clause, REUSE-style.
   New files authored by Paul need
   `SPDX-FileCopyrightText: 2026 Paul Galbraith` and
@@ -392,9 +428,17 @@ python -m compileall -q testaferro tests
 python -m unittest discover -s tests -v
 ```
 
-Output-grammar changes additionally warrant a real end-to-end run
-from a consuming project (`pytest -m integration`), since the unit
-fixtures are source-derived, not captured.
+Output-grammar changes additionally warrant a real end-to-end run,
+since the unit fixtures are source-derived and not captured (P9) —
+which is not a formality: the first real run found a failure message
+running on past its own end, because the transport drops the blank
+line the grammar ended on. That run is the integration tier, and it
+boots a guest, so it is asked for rather than discovered:
+
+```powershell
+$env:TESTAFERRO_INTEGRATION = "1"
+python -m unittest discover -s tests/integration -v
+```
 
 ## Unit and integration
 
@@ -418,36 +462,62 @@ start a guest (P10). The boundary is exact:
 
 **The cheap half of that is conditional on the blueprint, not on the
 call.** `create_machine()` stays cheap only while every drive's media
-is `use` (attached in place), which is what testaferro authors. A
-blueprint declaring a blank (`{"size": ...}`) materializes it through
-an **external image tool** — the same uncontrolled toolchain, so such
-a machine belongs in an integration test. Reliquary's own codex `freedos` blueprint
-declares exactly such a blank, so this is easy to walk into.
+is `use` (attached in place). A blueprint declaring a blank
+(`{"size": ...}`) — or a `difference` overlay — materializes it
+through an **external image tool**, the same uncontrolled toolchain,
+so such a machine belongs in an integration test.
 
-Six tests once launched real VMs while appearing mocked, costing ~10s
-of a 12s suite. The suite runs in about eight seconds today, and
+**Zero configuration is now on the far side of that line** (D20), and
+this is the boundary moving rather than a rule relaxing. The default
+system materializes through a guest *install*, and a guest session
+layers a `difference` overlay over it; neither is the unit tier's to
+do. Unit cases that are about testaferro's own bookkeeping declare a
+`boot_image` instead and stay cheap, and `tests/test_reliquary.py`
+refuses `_build_default_image` at module scope so that reaching it
+fails on the spot.
+
+**That guard exists because the same mistake happened twice.** Six
+tests once launched real VMs while appearing mocked, costing ~10s
+of a 12s suite. Then the default became an install, and the case
+exercising it went on mocking `reliquary.fetch_media` — which had
+stopped being the seam. Nothing failed; a unit run simply installed
+an operating system for five minutes. The lesson both times is the
+same: a mock that no longer intercepts does not announce itself.
+
+The suite runs in about nineteen seconds today, and
 roughly six of those are `tests/test_plugin.py`: a collection plugin's
 whole subject is what pytest does with a file, so each case runs
 pytest for real in a subprocess. Those runs stay on this side of the
 line because the tree's own `conftest.py` puts a fake binding in
 `sys.modules` before resolution imports it — no guest started, and
-no reliquary either. Everything else is still about one second, so a
+no reliquary either. Everything else is a few seconds, so a
 jump outside `test_plugin.py` means something crossed the line;
-`--durations` finds it quickly.
+`--durations` finds it quickly, and a jump into the *minutes* means
+an install did.
 
 `_work_drive()` duplicates a rule reliquary owns and does not expose
 (DOS drive letters). `WorkDrivePlacementTests` cross-checks the copy
 against `reliquary.platform_dos.drive_letters`, so the duplication
 fails loudly rather than silently running a suite off the wrong
-drive. Keep that guard until reliquary offers a public query.
+drive. Keep that guard until reliquary offers a public query. Since
+D20 the copy is also **exercised**: the default system takes `hdd0`,
+so the work drive is the second disk and the guest calls it `D:` —
+the first time the assumption past the first disk has been worth
+anything, and a real guest agrees with it.
 
-There is **no integration suite yet**, so no guest has run since the
-migration to the blueprint model. End-to-end proof is still owed, and
-it is what would arm the use cases: building the first of it is
-**F13** in
-[planning/pledged/FEATURES.md](planning/pledged/FEATURES.md) — one
-authored DOS suite, one real machine, one real failure — with the
-tier itself stdlib `unittest` under `tests/integration/`, skipped
-unless asked for, so the unit run stays cheap by default rather than
-by discipline. The mention of `pytest -m integration` under "Checks"
-above describes a *consuming* project's run and is not that tier.
+**The integration tier exists** — `tests/integration/`, holding
+testaferro's own CppUTest DOS suite (`guest/`, with its source, its
+Open Watcom makefile and the built `SUITE.EXE`) and the cases that
+boot it. A guest has run: it enumerates, runs batched and singly, and
+a failure comes back carrying the guest's own file and line. Two
+defects fell out of that first run — a grammar that ended a message
+on a blank line the transport drops (fixed, above), and a provider
+race in which the first command after boot returns the boot banner
+(reported upstream as `ferroteca/reliquary#6`, and **not** worked
+around here: a guest-machine property is the provider's to guarantee,
+P1).
+
+**F13 is not delivered yet**, and that race is why: until it lands,
+the tier's own cases need a throwaway first command to pass. The
+feature is in
+[planning/pledged/FEATURES.md](planning/pledged/FEATURES.md).

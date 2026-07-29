@@ -49,6 +49,10 @@ _FAILED = re.compile(
 _LOCATION = re.compile(r"^(.*):(\d+): error:$")
 _SUMMARY = re.compile(r"^(?:OK|Errors) \(.*\)", re.M)
 _LIST_ID = re.compile(r"(\w+)\.(\w+)$")
+# The per-test timing line CppUTest writes once a test is done. It is
+# what actually follows a failure's message, and the blank line
+# between them is the thing a transport is free to lose.
+_TIMING = re.compile(r"^\s*-\s+\d+\s*ms\s*$")
 
 
 def list_argv():
@@ -87,6 +91,46 @@ def parse_list(text):
     return ids
 
 
+def _ends_message(line):
+    """Whether this line is the end of a failure's message.
+
+    CppUTest writes a blank line after the message and then the test's
+    timing line, so a blank line is the natural terminator — and it is
+    the one thing a transport may not deliver. A guest screen read
+    back row by row has its blank rows dropped, which left the message
+    running on into the next test and the summary. So the message ends
+    at the blank line **or at whatever CppUTest writes next**: the
+    timing line, the next test's header, another failure, or the
+    summary. Each of those is in the framework's own output, not in
+    any sample (P9).
+    """
+    return (not line.strip()
+            or bool(_TIMING.match(line))
+            or bool(_RAN.match(line))
+            or bool(_FAILED.match(line))
+            or bool(_LOCATION.match(line))
+            or bool(_SUMMARY.match(line)))
+
+
+def _dedented(message):
+    """Message lines with their common indent removed.
+
+    CppUTest indents each message line with a tab. A guest console
+    renders that tab as spaces, so stripping tabs specifically finds
+    nothing to strip on a real screen. Removing the *common* leading
+    whitespace handles both, and unlike stripping each line it leaves
+    the deeper indentation alone — which matters, because a
+    difference report points at a column with a caret and a caret that
+    has moved is worse than one that is indented.
+    """
+    filled = [line for line in message if line.strip()]
+    if not filled:
+        return message
+    indents = [len(line) - len(line.lstrip()) for line in filled]
+    common = min(indents)
+    return [line[common:] if line.strip() else line for line in message]
+
+
 def _failures(text):
     """Map 'Group.Name' -> (file, line, message) for each failure
     block in verbose output."""
@@ -102,10 +146,11 @@ def _failures(text):
             rest = rest[1:]
         message = []
         for text_line in rest:
-            if not text_line:
+            if _ends_message(text_line):
                 break
-            message.append(text_line.lstrip("\t"))
-        failures[f"{group}.{name}"] = (file, int(line), "\n".join(message))
+            message.append(text_line)
+        failures[f"{group}.{name}"] = (
+            file, int(line), "\n".join(_dedented(message)).rstrip())
     return failures
 
 

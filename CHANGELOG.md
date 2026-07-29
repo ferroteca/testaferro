@@ -49,6 +49,20 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ### Changed
 
+- **Zero configuration installs its own FreeDOS system instead of downloading a boot floppy** (D20), because the floppy
+  it downloaded never worked: it was FreeDOS 1.4's FloppyEdition boot image, which boots the **installer** — a language
+  menu, then "Do you want to proceed [Y,N]?" — and never reaches a DOS prompt, so every guest command waited for a
+  prompt that was not coming. Nothing had ever looked; the first end-to-end run found it. testaferro now carries the
+  install recipe itself and runs it **once**, into the cache (a few minutes); every run afterwards attaches the result
+  in seconds and layers its own copy-on-write overlay, so no run disturbs the system the others share. `boot_image=` is
+  unchanged and still boots a floppy of your own. Two consequences worth knowing: the cached artifact is now
+  `freedos.qcow2` rather than `boot.img`, so `stop(clear_downloads=True)` discards an install rather than a download;
+  and the work drive is now the guest's **second** disk, `D:`, when the installed system is booted.
+- **A failure message no longer runs on past its own end.** CppUTest ends one with a blank line, and a guest screen read
+  back row by row has its blank rows dropped — so a failure arrived carrying the timing line, the next test and the run
+  summary glued to it. A message now ends at whatever CppUTest writes next, and its leading indent is removed in common
+  rather than per line, which keeps a difference report's caret under the character it points at. Found by the first
+  real guest run, which is exactly the cost P9 states against itself.
 - **A guest answer no adapter can read now reports as the guest's own screen** (D19), at both entry points and at both
   moments — enumeration, where it aborts collection, and a run, where each item fails. Previously a grammar's
   `ValueError` escaped, so trying a suite for the first time produced three frames of testaferro's internals with the

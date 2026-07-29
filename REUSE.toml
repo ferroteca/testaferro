@@ -15,3 +15,12 @@ path = [
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Paul Galbraith"
 SPDX-License-Identifier = "BSD-3-Clause"
+
+# The built guest suite: a DOS executable, so it can carry no header
+# at all. Its source and its build recipe sit beside it, which is what
+# makes the binary reproducible rather than opaque.
+[[annotations]]
+path = ["tests/integration/guest/SUITE.EXE"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Paul Galbraith"
+SPDX-License-Identifier = "BSD-3-Clause"

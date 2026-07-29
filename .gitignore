@@ -6,3 +6,11 @@ __pycache__/
 dist/
 CLAUDE.md
 uv.lock
+
+# Open Watcom leavings from building the guest suite. SUITE.EXE is
+# checked in deliberately — the objects and the CppUTest library it
+# was linked from are not, being reproducible from the makefile.
+tests/integration/guest/obj/
+tests/integration/guest/*.lib
+tests/integration/guest/*.bak
+tests/integration/guest/*.map
