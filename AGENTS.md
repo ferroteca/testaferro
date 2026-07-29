@@ -443,5 +443,11 @@ drive. Keep that guard until reliquary offers a public query.
 
 There is **no integration suite yet**, so no guest has run since the
 migration to the blueprint model. End-to-end proof is still owed, and
-it is what would arm the use cases: building that tier is F6 in
-[planning/proposed/FEATURES.md](planning/proposed/FEATURES.md).
+it is what would arm the use cases: building the first of it is
+**F13** in
+[planning/pledged/FEATURES.md](planning/pledged/FEATURES.md) — one
+authored DOS suite, one real machine, one real failure — with the
+tier itself stdlib `unittest` under `tests/integration/`, skipped
+unless asked for, so the unit run stays cheap by default rather than
+by discipline. The mention of `pytest -m integration` under "Checks"
+above describes a *consuming* project's run and is not that tier.

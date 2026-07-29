@@ -26,7 +26,7 @@ pledging it means, and a split retires the parent's number for a
 fresh one per piece. Entries flagged below as too large must be cut
 at the pledge.
 
-**Two numbers here are retired by split**, which is what the sprint
+**Three numbers here are retired by split**, which is what the sprint
 bound does at the pledge: the parent goes and each piece takes a
 fresh one, because sub-numbering would build a hierarchy and
 hierarchy is how a feature list turns into a schedule.
@@ -44,6 +44,13 @@ hierarchy is how a feature list turns into a schedule.
   the cut working — two bounded pushes where the parent was one
   shapeless one. The binding rename it also carried had already
   landed on its own (D16).
+- **F6**, the integration tier: too large as written, and it grew a
+  dependency the project did not have. Its own text named its first
+  slice, and that slice is **F13**, now pledged — one real suite,
+  one real machine, one real failure. What it could not carry became
+  **F14** (CppUTest's own output) and **F15** (the remaining
+  journeys), both below, because neither can be sized until F13 has
+  shown what an integration test costs to write and to run.
 
 A gap in the numbering here is where one of them went.
 
@@ -104,24 +111,6 @@ unattended setup and platform-specific completion detection are its
 work, not testaferro's (D2). This entry is shapeless until a
 specific platform is named, and cutting it means naming one.
 
-## F6 — The integration tier
-
-The verification testaferro does not have. There is **no integration
-suite**, so no guest has run since the migration to the blueprint
-model (D4), and U1, U2, U3 and U5 cannot be armed on the strength of
-unit tests alone (P10 says why: nearly all of this project's
-behaviour can only be proved by booting a guest).
-
-> **Too large as written**, and it grows a dependency the project
-> does not have: an actual guest test suite to run. Cut at the
-> pledge — the first sprint's worth is one real suite booting one
-> real machine and reporting one real failure.
-
-What it is for is worth stating plainly, because it is unusual for a
-feature: this one does not add capability, it converts claims into
-in-force ones. Until it exists, root `USE-CASES.md` stays empty of
-everything it would otherwise be ready to carry.
-
 ## F9 — In-guest harness prep
 
 Serves **U7**. Two levels, both declared, both optional:
@@ -141,3 +130,39 @@ Serves **U7**. Two levels, both declared, both optional:
 
 The prep vocabulary is new declaration surface (the second
 interface) and lands through the interface-change rule.
+
+## F14 — CppUTest's own output, proven
+
+A suite built with **real CppUTest** for a DOS target, run end to end,
+so the output grammars answer to the framework rather than to a
+fixture testaferro authored. This is what discharges the cost **P9**
+states against itself: grammars derive from CppUTest's own source and
+source-derived fixtures cannot prove a real run, so until a genuine
+build has been read, every grammar claim rests on reading rather than
+on evidence. F13's authored suite deliberately does not do this, and
+says so.
+
+> **Not sizeable yet**, and the reason is a question rather than a
+> quantity: whether CppUTest builds for a 16-bit DOS target at all,
+> and with which toolchain. Answer that first — the answer may make
+> this a sprint, or may make it a different feature entirely.
+
+A build tool is not a dependency in **P11**'s sense: it is what a
+maintainer needs to regenerate a checked-in fixture, not something a
+consumer installs. That distinction should be stated wherever the
+recipe lands, because it is easy to read the other way.
+
+## F15 — The remaining journeys, proven
+
+The end-to-end coverage F13 deliberately leaves: **U3**'s declared
+environments booting for real — a `testaferro.ini` beside a project
+selecting a machine that actually comes up — and **U5**'s parallelism,
+where every xdist worker collects and so every worker wants a guest.
+Each is a journey a consumer takes, and neither can be armed on unit
+tests (P10 says why: nearly all of this project's behaviour can only
+be proved by booting a guest).
+
+> **Shapeless until F13 lands.** What an integration test costs to
+> write and to run is unknown, and it is exactly what decides whether
+> this is one feature or four. Cut it when there is one to measure
+> against.

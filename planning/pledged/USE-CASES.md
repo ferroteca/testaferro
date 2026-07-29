@@ -48,7 +48,7 @@ code meets it.
   landed with D19 — an answer no adapter can read is now reported as
   the guest's own screen at both entry points, rather than as a
   traceback through testaferro. Arming waits on end-to-end proof, the
-  same proof U1, U2 and U3 wait on — F6.)*
+  same proof U1, U2 and U3 wait on — F13, pledged.)*
 
 U4 cites U1, U2 and U3, which remain drafted. That is not the
 reference flaw the map names: the rule's test is **completion**, and

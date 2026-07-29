@@ -226,7 +226,7 @@ built and verified.
   line — an inferred platform matches declarations only, so the
   catalog is reached by asking for it and never by falling into it —
   while the boot that path ends in waits on the integration tier,
-  with U2 (F6, P10). Arming this asserts that the entry point is kept
+  with U2 (F13, P10). Arming this asserts that the entry point is kept
   open, which is the part a new option can close by accident.
 
 - **P9 — Grammars derive from source, never from samples.** A
@@ -253,7 +253,7 @@ built and verified.
   for underneath is the provider's own (P2), and what testaferro can
   see is only that the call stopped being cheap.
 
-  **The tier those calls belong to does not exist yet** (F6), and
+  **The tier those calls belong to does not exist yet** (F13), and
   this entry does not pretend otherwise: it forbids them on this side
   of the line and promises no home on the other. That is why its
   absence is not residue against this principle — nothing here claims
