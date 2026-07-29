@@ -4,7 +4,7 @@ __pycache__/
 .venv/
 .idea/
 dist/
-CLAUDE.md
+build/
 uv.lock
 
 # Open Watcom leavings from building the guest suite. SUITE.EXE is

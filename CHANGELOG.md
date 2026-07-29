@@ -4,7 +4,13 @@ All notable changes to testaferro are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0.dev6] - 2026-07-29
+
+**A guest actually runs.** Until this release nothing testaferro said about a guest had ever been observed: no VM had
+booted since the move to reliquary blueprints, and the image zero configuration downloaded turned out to be FreeDOS's
+*installer*, which never reaches a prompt. testaferro now installs its own FreeDOS system once and boots it, and an
+integration tier proves the whole journey end to end — a DOS CppUTest suite enumerated, run, and a failure reported
+with the guest's own file and line.
 
 ### Added
 
