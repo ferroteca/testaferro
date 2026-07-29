@@ -124,7 +124,9 @@ named here follows that rule.
 5. **The pytest items testaferro produces** — the id spelling
    (`Group-Name`, a dash and never a dot, because IDE tree-to-target
    mapping reads dots as hierarchy), the re-homed source location,
-   and the shape of a guest failure's report. Consumers write node
+   and the shape of a guest failure's report — the guest's own file,
+   line and assertion when it ran, and its own screen when its answer
+   could not be read at all (D19). Consumers write node
    ids into CI invocations and IDE run configurations, so these are
    world-facing whether or not they look like an API.
 6. **The cache location and layout** — `%LOCALAPPDATA%\testaferro`

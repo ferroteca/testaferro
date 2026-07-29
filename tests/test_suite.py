@@ -5,7 +5,8 @@
 import unittest
 
 from testaferro import cpputest
-from testaferro.backend import TestId, TestOutcome
+from testaferro.backend import GuestOutputError, TestId, TestOutcome
+from testaferro.items import guest_output_text
 from testaferro.suite import SuiteBackend
 
 LIST_OUTPUT = "Vring.Wraps Vring.Fails\n"
@@ -133,6 +134,52 @@ class SuiteBackendTests(unittest.TestCase):
 
         with self.assertRaisesRegex(LookupError, "Vring.Gone"):
             backend.run_test("Vring", "Gone")
+
+    def test_an_unreadable_answer_carries_the_whole_exchange(self):
+        # The composition is the only place both halves are in hand,
+        # so it is where a grammar's refusal picks up what was asked
+        # and what came back.
+        run = ScriptedRunner({("-ln",): "Bad command or file name\r\n"})
+        backend = SuiteBackend("SUITE.EXE", run=run, framework=cpputest)
+
+        with self.assertRaises(GuestOutputError) as caught:
+            backend.list_tests()
+
+        self.assertEqual(caught.exception.argv, ("-ln",))
+        self.assertEqual(caught.exception.output,
+                         "Bad command or file name\r\n")
+        self.assertIn("CppUTest", caught.exception.reason)
+
+    def test_a_run_that_never_finished_carries_it_too(self):
+        run = ScriptedRunner({("-v",): "Bad command or file name\r\n"})
+        backend = SuiteBackend("SUITE.EXE", run=run, framework=cpputest)
+
+        with self.assertRaises(GuestOutputError) as caught:
+            backend.run_all()
+
+        self.assertEqual(caught.exception.argv, ("-v",))
+        self.assertIn("summary line", caught.exception.reason)
+
+    def test_the_report_leads_with_why_and_marks_the_guests_words(self):
+        error = GuestOutputError("no summary line", ("-v",),
+                                 "Bad command or file name\r\n")
+
+        report = guest_output_text(error)
+
+        # The first line is what pytest's short summary quotes, so it
+        # has to be the one worth reading alone.
+        self.assertEqual(report.splitlines()[0],
+                         "guest output not understood: no summary line")
+        self.assertIn("ran the guest suite with: -v", report)
+        self.assertIn("what the guest showed on its screen", report)
+        self.assertIn("    Bad command or file name", report)
+        # A stray CR would overprint the report on a terminal.
+        self.assertNotIn("\r", report)
+
+    def test_an_empty_screen_says_so_rather_than_showing_nothing(self):
+        error = GuestOutputError("no summary line", ("-v",), "\r\n\r\n")
+
+        self.assertIn("(the screen was empty)", guest_output_text(error))
 
     def test_enumerator_overrides_guest_enumeration(self):
         # e.g. a host-built twin executable enumerating faster than a

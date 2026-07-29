@@ -59,8 +59,9 @@ from . import binfmt
 from . import cache
 from . import cpputest
 from . import environments
+from .backend import GuestOutputError
 from .facade import ResultBroker
-from .items import failure_text, item_id
+from .items import failure_text, guest_output_text, item_id
 from .resolution import resolve_backend
 
 
@@ -183,25 +184,40 @@ class GuestSuiteFile(pytest.File):
     def collect(self):
         backend = _backend_for(self.config, self.path)
         twin = _twin_for(self.config, self.path)
-        if twin is None:
-            # No twin: the list has to be read out of the guest, which
-            # is a boot, and a boot is what the twin exists to avoid.
-            try:
-                backend.start_guest()
+        # Enumeration is the first contact with the guest, so it is
+        # where a broken setup shows up — and a collector says so
+        # through CollectError rather than by letting an exception
+        # escape, which would print testaferro's own frames for
+        # something that went wrong somewhere else entirely.
+        try:
+            if twin is None:
+                # No twin: the list has to be read out of the guest,
+                # which is a boot, and a boot is what the twin exists
+                # to avoid.
+                try:
+                    backend.start_guest()
+                    ids = list(backend.list_tests())
+                finally:
+                    backend.stop_guest()
+                # Plain ASCII on purpose: this lands on a terminal, and
+                # the guest side of this project is a console world.
+                warnings.warn(
+                    f"{self.path.name}: test list read inside the guest, "
+                    "so it may be short - a long list can lose its head "
+                    "to the guest's screen. Declare a host-built twin "
+                    "with --testaferro-enumerator (or "
+                    "testaferro-enumerator) for a faithful list.",
+                    GuestEnumerationWarning)
+            else:
                 ids = list(backend.list_tests())
-            finally:
-                backend.stop_guest()
-            # Plain ASCII on purpose: this lands on a terminal, and
-            # the guest side of this project is a console world.
-            warnings.warn(
-                f"{self.path.name}: test list read inside the guest, so "
-                "it may be short - a long list can lose its head to "
-                "the guest's screen. Declare a host-built twin with "
-                "--testaferro-enumerator (or testaferro-enumerator) "
-                "for a faithful list.",
-                GuestEnumerationWarning)
-        else:
-            ids = list(backend.list_tests())
+        except GuestOutputError as error:
+            raise pytest.Collector.CollectError(
+                guest_output_text(error)) from None
+        except RuntimeError as error:
+            # The host-built twin's own refusals, which arrive already
+            # said in full — it is a host program, so there is no guest
+            # screen to show.
+            raise pytest.Collector.CollectError(str(error)) from None
         suite = _Suite(backend, ResultBroker(backend, ids))
         for test_id in ids:
             yield GuestTestItem.from_parent(
@@ -224,6 +240,8 @@ class GuestTestItem(pytest.Item):
                                                  self._selected())
         except LookupError as error:
             raise GuestTestFailure(str(error)) from None
+        except GuestOutputError as error:
+            raise GuestTestFailure(guest_output_text(error)) from None
         self._outcome = outcome
         if not outcome.passed:
             raise GuestTestFailure(failure_text(outcome))
@@ -438,7 +456,13 @@ def _twin_enumerator(twin):
                 f"host-built twin {twin} failed to enumerate "
                 f"(exit {completed.returncode}): "
                 f"{completed.stderr.strip() or completed.stdout.strip()}")
-        return cpputest.parse_list(completed.stdout)
+        try:
+            return cpputest.parse_list(completed.stdout)
+        except ValueError as error:
+            raise RuntimeError(
+                f"host-built twin {twin} did not print a test list: "
+                f"{error}\nWhat it printed:\n{completed.stdout.strip()}"
+            ) from None
 
     return enumerate_tests
 

@@ -24,8 +24,9 @@ testaferro's pluggable aspect is the guest unit-test framework
 Package layout (each module states its contract in its docstring):
 
 - [testaferro/backend.py](testaferro/backend.py) — the `Backend`
-  seam (`TestId`, `TestOutcome`, the five-operation ABC:
-  `start_guest`, `list_tests`, `run_test`, `run_all`, `stop_guest`).
+  seam (`TestId`, `TestOutcome`, `GuestOutputError`, the
+  five-operation ABC: `start_guest`, `list_tests`, `run_test`,
+  `run_all`, `stop_guest`).
   **Three spans, three words** (D15): pytest's *session* is the whole
   run; a **guest session** is one guest up, between `start_guest()`
   and `stop_guest()`; a **run** is what `testaferro.start()`/`stop()`
@@ -45,7 +46,10 @@ Package layout (each module states its contract in its docstring):
   went wrong once: the binding joined a string's characters and
   every guest operation asked for `SUITE.EXE - v`. So an argv
   expectation in a test is written out as a literal, never rebuilt
-  from the builder under test.
+  from the builder under test. A grammar that refuses **states its
+  reason and does not quote the text back** (D19): the caller passed
+  that text in and still holds it, and an adapter that never saw the
+  guest cannot say where it came from.
 - [testaferro/environments.py](testaferro/environments.py) — named
   test-environment declarations backed by immutable
   `EnvironmentSpec` templates, plus selection and loading of the
@@ -77,7 +81,12 @@ Package layout (each module states its contract in its docstring):
   internal execution × framework composition. Argv crosses it
   untouched: it joins nothing and quotes nothing, because a
   composition that knows neither aspect cannot know what a command
-  line looks like at the far end.
+  line looks like at the far end. It is also **the only place both
+  halves of an exchange are in hand** — the argv that went out and
+  the text that came back — which is why an adapter's refusal becomes
+  a `backend.GuestOutputError` here, carrying both, for an entry point
+  to report (D19). An adapter states its reason and nothing about
+  provenance; it never saw the guest.
 - [testaferro/binfmt.py](testaferro/binfmt.py) — stdlib-only
   executable-format classification. `classify()` names the guest OS
   able to run a file — "dos" for plain MZ and headerless/.com
@@ -185,9 +194,13 @@ Package layout (each module states its contract in its docstring):
   `environments` (and so reliquary) is imported inside the call.
 - [testaferro/items.py](testaferro/items.py) — the pytest items
   testaferro produces, which is the fifth interface: `item_id()` (the
-  dash rule) and `failure_text()` (the guest's own file, line and
-  assertion). Both entry points surface the same guest tests, so the
-  spellings they share live here rather than in either of them.
+  dash rule), `failure_text()` (the guest's own file, line and
+  assertion) and `guest_output_text()` (the guest's own screen, when
+  its answer could not be read at all — D19). Both entry points
+  surface the same guest tests, so the spellings they share live here
+  rather than in either of them. `guest_output_text()` leads with the
+  reason because pytest's short summary quotes a report's first line
+  and drops the rest, so that line has to stand alone.
 - [testaferro/plugin.py](testaferro/plugin.py) — the `pytest11`
   collection plugin, which **auto-loads on installation** (D13):
   `pytest_collect_file` claims suite executables, and each guest test

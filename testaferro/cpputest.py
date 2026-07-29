@@ -69,14 +69,20 @@ def run_one_argv(group, name):
 
 def parse_list(text):
     """Parse '-ln' enumeration output: space-separated 'Group.Name'
-    tokens. Returns a list of TestId."""
+    tokens. Returns a list of TestId.
+
+    Raises ValueError naming the token it choked on, and not the text
+    it was given: the caller passed that in and still has it, and
+    whoever obtained it is the one who can say where it came from.
+    """
     text = text.replace("\r\n", "\n")
     ids = []
     for token in text.split():
         match = _LIST_ID.fullmatch(token)
         if not match:
             raise ValueError(
-                f"not a CppUTest -ln test list:\n{text}")
+                f"{token!r} is not a CppUTest 'Group.Name' test id, so "
+                "this is not a '-ln' test list")
         ids.append(TestId(*match.groups()))
     return ids
 
@@ -106,12 +112,15 @@ def _failures(text):
 def parse_run(text):
     """Parse verbose (-v) run output into a list of TestOutcome, in
     output order. Raises ValueError when the output carries no
-    CppUTest summary line (the run died before finishing). DOS logs
-    arrive with CRLF line endings; both endings are accepted."""
+    CppUTest summary line (the run died before finishing) — naming
+    what was missing rather than repeating the text the caller
+    supplied. DOS logs arrive with CRLF line endings; both endings are
+    accepted."""
     text = text.replace("\r\n", "\n")
     if not _SUMMARY.search(text):
         raise ValueError(
-            f"no CppUTest summary line in suite output:\n{text}")
+            "no CppUTest summary line ('OK (...)' or 'Errors (...)'), "
+            "so the suite did not run to completion")
     failures = _failures(text)
     outcomes = []
     for group, name in _RAN.findall(text):

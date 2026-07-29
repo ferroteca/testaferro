@@ -111,6 +111,68 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D19 — A guest's own words, never a traceback through the courier
+
+**Decided** owner, 2026-07-28. **Supports** U4 (pledged), P4.
+
+U4 promises that a trial "does not fail blind": a suite that boots
+nothing, or whose output no framework adapter recognizes, is reported
+by what the guest actually showed. It was not built. A grammar's
+`ValueError` escaped both entry points, so a developer trying a suite
+for the first time met three frames of testaferro's internals with
+the guest's one useful line buried under them — and pytest's short
+summary, which quotes only a report's first line, dropped that line
+entirely. The fix states the contract the defect revealed had never
+been stated.
+
+**Three parties, and each says only what it knows.** The **adapter**
+states its reason and does not quote the caller's text back: it never
+saw the guest and cannot say where the text came from, which is D17's
+reasoning about quoting applied to provenance, and the caller passed
+that text in and still holds it. The **composition** (`SuiteBackend`)
+is the only place both halves of the exchange are in hand — argv out,
+text back — so it is where a refusal becomes a `GuestOutputError`
+carrying both. The **entry point** renders it, through the one
+spelling both share in `items.py`, beside `failure_text()`.
+
+**The report leads with the reason and ends with the screen**, with a
+line between them saying outright that what follows is what the guest
+showed in response. Leading with the reason is forced by pytest:
+the short summary quotes the first line only, so that line has to be
+the one worth reading alone. A collector reports through
+`Collector.CollectError` and an item through the existing
+`GuestTestFailure`, which are different pytest mechanisms for the
+same rule — and neither prints a frame.
+
+**Recorded because the surface is enumerated.**
+[proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md) names "the shape
+of a guest failure's report" inside the fifth interface, so this is
+not housekeeping whatever its diff, and it takes the landing steps in
+[INTERFACES.md](INTERFACES.md). Two surfaces move: the fifth, and the
+first — a framework adapter is usable on its own (U6), so what its
+refusals say is part of the embedding API. No amendment was needed:
+U4 already demanded this, which is what made the shortfall unbuilt
+work rather than an argument to have.
+
+**Weighed and declined:** keeping the text inside the adapter's own
+message and having the entry point print only that. It fixes the
+traceback and leaves the adapter presenting a guest it has never seen,
+which is exactly the boundary D17 drew. Also declined: reporting
+through an exception subclass so the short summary keeps its
+`reprcrash`. `CollectError` gives no summary text at all, which is the
+trade testaferro already makes for ordinary guest failures — one
+convention for both beats a summary line for one of them.
+
+**Folded into:** [../testaferro/backend.py](../testaferro/backend.py)
+(`GuestOutputError`), [../testaferro/suite.py](../testaferro/suite.py),
+[../testaferro/items.py](../testaferro/items.py)
+(`guest_output_text()`),
+[../testaferro/cpputest.py](../testaferro/cpputest.py),
+[../testaferro/plugin.py](../testaferro/plugin.py),
+[../testaferro/facade.py](../testaferro/facade.py),
+[../AGENTS.md](../AGENTS.md), [../CHANGELOG.md](../CHANGELOG.md),
+[pledged/USE-CASES.md](pledged/USE-CASES.md) (U4's built-so-far note).
+
 ### D18 — A suite names a test environment; D3's pair is retired
 
 **Decided** owner, 2026-07-28. **Supports** P1, P2 (pledged by this

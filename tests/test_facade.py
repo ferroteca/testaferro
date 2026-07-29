@@ -292,5 +292,60 @@ class GuestSuiteTests(unittest.TestCase):
         ])
 
 
+@unittest.skipUnless(PYTEST_AVAILABLE, "pytest is not installed")
+class UnreadableGuestOutputTests(unittest.TestCase):
+    """The facade's half of U4's promise (the plugin's is in
+    test_plugin): when the guest answers unusably, the consumer reads
+    the guest's screen rather than a traceback through their own
+    module and this one. Enumeration here happens while that module
+    is importing, which is why it is a separate mechanism from the
+    plugin's collector."""
+
+    def _run_pytest(self, enumerates):
+        with tempfile.TemporaryDirectory(
+                dir=Path(__file__).parent) as directory:
+            module = Path(directory) / "test_guest.py"
+            module.write_text(
+                "import testaferro\n"
+                "from testaferro import cpputest\n"
+                "from testaferro.suite import SuiteBackend\n"
+                "\n"
+                f"ENUMERATES = {enumerates!r}\n"
+                "\n"
+                "def run(exe_path, args):\n"
+                "    if ENUMERATES and '-ln' in args:\n"
+                "        return 'Vring.Wraps Vring.Fails\\r\\n'\n"
+                "    return 'Bad command or file name\\r\\n'\n"
+                "\n"
+                "test_guest_case = testaferro.guest_suite(\n"
+                "    SuiteBackend('SUITE.EXE', run=run,\n"
+                "                 framework=cpputest))\n",
+                encoding="utf-8")
+            return subprocess.run(
+                [sys.executable, "-m", "pytest", "-q",
+                 "-p", "no:cacheprovider", str(module)],
+                capture_output=True, text=True, check=False)
+
+    def _assert_reads_as_the_guests(self, output):
+        self.assertIn("guest output not understood", output)
+        self.assertIn("what the guest showed on its screen", output)
+        self.assertIn("Bad command or file name", output)
+        for frame in ("cpputest.py", "suite.py", "facade.py",
+                      "ValueError", "Traceback"):
+            self.assertNotIn(frame, output)
+
+    def test_an_unreadable_enumeration_reports_the_guests_screen(self):
+        result = self._run_pytest(enumerates=False)
+
+        self._assert_reads_as_the_guests(result.stdout)
+        self.assertIn("ran the guest suite with: -ln", result.stdout)
+
+    def test_an_unreadable_run_reports_the_guests_screen(self):
+        result = self._run_pytest(enumerates=True)
+
+        self._assert_reads_as_the_guests(result.stdout)
+        self.assertIn("ran the guest suite with: -v", result.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

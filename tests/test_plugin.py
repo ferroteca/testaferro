@@ -96,8 +96,51 @@ testaferro.reliquary = fake
 '''
 
 
-@unittest.skipUnless(PYTEST_AVAILABLE, "pytest is not installed")
-class PluginTests(unittest.TestCase):
+# A binding whose guest answers with something no adapter can read.
+# A real SuiteBackend over the real CppUTest adapter, so what is
+# exercised is the grammar refusing and the report that follows.
+UNREADABLE_CONFTEST = '''
+import sys
+import types
+
+import testaferro
+from testaferro import cpputest
+from testaferro.suite import SuiteBackend
+
+ENUMERATES = {enumerates!r}
+
+
+def run(exe_path, args):
+    if ENUMERATES and "-ln" in args:
+        return "Vring.Wraps Vring.Fails\\r\\n"
+    return "Bad command or file name\\r\\n"
+
+
+def suite_backend(exe_path, enumerator=None, **options):
+    # `enumerator` has to reach the composition or a declared twin is
+    # silently ignored and the guest answers instead.
+    return SuiteBackend(exe_path, run=run, framework=cpputest,
+                        enumerator=enumerator)
+
+
+fake = types.ModuleType("testaferro.reliquary")
+fake.suite_backend = suite_backend
+fake.PLATFORMS = ("dos",)
+sys.modules["testaferro.reliquary"] = fake
+testaferro.reliquary = fake
+'''
+
+
+class _PytestTreeCase(unittest.TestCase):
+    """A throwaway project tree, with pytest run against it for real.
+
+    A collection plugin's whole subject is what pytest does with a
+    file, so a case here is a real pytest run in a subprocess. The
+    tree's own conftest is what each subclass supplies, and every one
+    of them puts a fake binding in `sys.modules` before resolution
+    imports it — so no guest starts and no reliquary loads (P10).
+    """
+
     def setUp(self):
         self.tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(self.tempdir.cleanup)
@@ -108,9 +151,6 @@ class PluginTests(unittest.TestCase):
         self.write("pytest.ini", "[pytest]\n")
         self.homes = self.root / "homes"
         self.homes.mkdir()
-        self.write("conftest.py",
-                   CONFTEST.format(events=str(self.events),
-                                   homes=str(self.homes)))
 
     def write(self, name, content):
         path = self.root / name
@@ -136,6 +176,15 @@ class PluginTests(unittest.TestCase):
         if not self.events.exists():
             return []
         return self.events.read_text(encoding="utf-8").splitlines()
+
+
+@unittest.skipUnless(PYTEST_AVAILABLE, "pytest is not installed")
+class PluginTests(_PytestTreeCase):
+    def setUp(self):
+        super().setUp()
+        self.write("conftest.py",
+                   CONFTEST.format(events=str(self.events),
+                                   homes=str(self.homes)))
 
     # --- claiming -----------------------------------------------
 
@@ -388,6 +437,86 @@ class PluginTests(unittest.TestCase):
         twin = self.write("twin.sh", f"#!/bin/sh\necho '{listing}'\n")
         twin.chmod(twin.stat().st_mode | stat.S_IEXEC)
         return twin
+
+
+@unittest.skipUnless(PYTEST_AVAILABLE, "pytest is not installed")
+class UnreadableGuestOutputTests(_PytestTreeCase):
+    """What a trial looks like when the guest answers unusably (U4).
+
+    Trying a suite is exactly when things go wrong, so the report is
+    what the guest showed — never a traceback into testaferro, which
+    would describe the courier instead of what happened. Both moments
+    are covered because they are different pytest mechanisms: a
+    collector reports an error, an item reports a failure.
+    """
+
+    def _binding(self, enumerates):
+        self.write("conftest.py",
+                   UNREADABLE_CONFTEST.format(enumerates=enumerates))
+        self.suite()
+
+    def _assert_reads_as_the_guests(self, output):
+        self.assertIn("guest output not understood", output)
+        self.assertIn("what the guest showed on its screen", output)
+        self.assertIn("Bad command or file name", output)
+        # The whole point: nothing of testaferro's own machinery in
+        # what the developer is asked to read.
+        for frame in ("cpputest.py", "suite.py", "plugin.py",
+                      "ValueError", "Traceback"):
+            self.assertNotIn(frame, output)
+
+    def test_an_unreadable_enumeration_reports_the_guests_screen(self):
+        self._binding(enumerates=False)
+
+        result = self.pytest("SUITE.EXE")
+
+        self._assert_reads_as_the_guests(result.stdout)
+        self.assertIn("ran the guest suite with: -ln", result.stdout)
+
+    def test_an_unreadable_run_reports_the_guests_screen(self):
+        # Enumeration works here, so the guest is only found wanting
+        # once a test runs — a different pytest mechanism, same rule.
+        self._binding(enumerates=True)
+
+        result = self.pytest("SUITE.EXE", "-W", "ignore::UserWarning")
+
+        self._assert_reads_as_the_guests(result.stdout)
+        self.assertIn("ran the guest suite with: -v", result.stdout)
+
+    def test_the_reason_survives_into_the_short_summary(self):
+        # pytest quotes only a report's first line there, which is why
+        # the reason leads and the exchange follows.
+        self._binding(enumerates=True)
+
+        result = self.pytest("SUITE.EXE", "-W", "ignore::UserWarning")
+
+        summary = [line for line in result.stdout.splitlines()
+                   if line.startswith("FAILED ")]
+        self.assertTrue(summary, result.stdout)
+        for line in summary:
+            self.assertIn("guest output not understood", line)
+
+    def test_a_twin_that_prints_nonsense_names_the_twin(self):
+        # The host-built twin is a host program, so there is no guest
+        # screen to show — but it must not fail as a traceback either.
+        self._binding(enumerates=True)
+        self._twin("not a test list at all")
+
+        result = self.pytest(
+            "SUITE.EXE", "--testaferro-enumerator=" + self._twin_name())
+
+        self.assertIn("did not print a test list", result.stdout)
+        self.assertNotIn("Traceback", result.stdout)
+
+    def _twin(self, listing):
+        if os.name == "nt":
+            return self.write("twin.cmd", f"@echo {listing}\n")
+        twin = self.write("twin.sh", f"#!/bin/sh\necho '{listing}'\n")
+        twin.chmod(twin.stat().st_mode | stat.S_IEXEC)
+        return twin
+
+    def _twin_name(self):
+        return "twin.cmd" if os.name == "nt" else "twin.sh"
 
 
 if __name__ == "__main__":

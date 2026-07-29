@@ -31,8 +31,8 @@ from __future__ import annotations
 
 import os
 
-from .backend import TestId
-from .items import failure_text, item_id
+from .backend import GuestOutputError, TestId
+from .items import failure_text, guest_output_text, item_id
 from .resolution import resolve_backend
 
 
@@ -135,10 +135,17 @@ def guest_suite(target, framework=None, enumerator=None,
 
     if enumerator is None:
         try:
-            backend.start_guest()
-            ids = list(backend.list_tests())
-        finally:
-            backend.stop_guest()
+            try:
+                backend.start_guest()
+                ids = list(backend.list_tests())
+            finally:
+                backend.stop_guest()
+        except GuestOutputError as error:
+            # This runs while the consumer's module is importing, so
+            # an escaped exception reports as a traceback through
+            # their module and this one. `pytrace=False` leaves the
+            # guest's own words and nothing else.
+            pytest.fail(guest_output_text(error), pytrace=False)
     else:
         # A host-side enumerator answers without the guest, so starting
         # one here would boot a machine and ask it nothing. Safe to
@@ -169,6 +176,8 @@ def guest_suite(target, framework=None, enumerator=None,
                                      _selected_ids(request, broker))
         except LookupError as error:
             pytest.fail(str(error), pytrace=False)
+        except GuestOutputError as error:
+            pytest.fail(guest_output_text(error), pytrace=False)
         if not outcome.passed:
             pytest.fail(failure_text(outcome), pytrace=False)
 

@@ -38,6 +38,22 @@ class ParseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no CppUTest summary"):
             cpputest.parse("TEST(Math, Adds)\n")
 
+    def test_a_refusal_says_why_without_quoting_back_the_text(self):
+        # The caller passed the text in and still holds it; whoever
+        # obtained it is the one who can say where it came from, and
+        # is the one who reports it. A grammar states its own reason.
+        with self.assertRaises(ValueError) as caught:
+            cpputest.parse_run("Bad command or file name\n")
+
+        self.assertNotIn("Bad command or file name", str(caught.exception))
+        self.assertIn("summary line", str(caught.exception))
+
+    def test_a_list_refusal_names_the_token_it_choked_on(self):
+        with self.assertRaises(ValueError) as caught:
+            cpputest.parse_list("Vring.Wraps NotAnId Vring.Fails")
+
+        self.assertIn("'NotAnId'", str(caught.exception))
+
 
 class ParseRunTests(unittest.TestCase):
     def test_outcomes_carry_failure_location_and_message(self):

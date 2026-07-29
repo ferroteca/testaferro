@@ -44,6 +44,24 @@ class TestOutcome:
     message: str = ""
 
 
+class GuestOutputError(Exception):
+    """The guest answered, and no framework adapter could read it.
+
+    Carries both halves of the exchange — the argv tokens the guest
+    was asked for, and the text it showed in reply — so an entry point
+    can report what actually happened out there instead of a traceback
+    through the courier. The adapter supplies `reason` and nothing
+    else: a grammar knows why it refused, and whoever performed the
+    exchange knows what the exchange was.
+    """
+
+    def __init__(self, reason, argv=(), output=""):
+        super().__init__(reason)
+        self.reason = reason
+        self.argv = tuple(argv)
+        self.output = output
+
+
 class Backend(ABC):
     def start_guest(self):
         """Boot or attach to the remote target. Ready to accept

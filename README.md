@@ -67,6 +67,21 @@ failure reports what the guest reported — its file, line and assertion — nev
 test with `pytest "tests/TESTS.EXE::Vring-Wraps"`, and keep the guest's home for inspection with
 `--testaferro-keep-guest-home`.
 
+**When the guest says something testaferro cannot read at all**, that is reported the same way — as the guest's own
+screen, not as a stack through the courier that carried it:
+
+```
+guest output not understood: 'Bad' is not a CppUTest 'Group.Name' test id, so this is not a '-ln' test list
+
+testaferro ran the guest suite with: -ln
+The following is what the guest showed on its screen in response:
+
+    Bad command or file name
+```
+
+Trying a suite is exactly when things go wrong, so this is the report that matters most: what you need is what the
+guest said, and testaferro's own frames would tell you nothing about it.
+
 **The plugin activates on installation, and claims almost nothing.** A file *you name* on the command line is claimed
 when it is a DOS program (or when a declaration says a guest runs it). A directory *scan* claims only what you opted
 in — a `testaferro-suites` mask in pytest's ini, or a `suites` mask on an environment in `testaferro.ini`:

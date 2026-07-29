@@ -40,3 +40,32 @@ def failure_text(outcome):
     """
     where = f"{outcome.file}:{outcome.line}: " if outcome.file else ""
     return f"guest test failed: {where}{outcome.message}"
+
+
+def guest_output_text(error):
+    """How an unreadable guest answer reads.
+
+    Same rule as `failure_text()` above, applied one layer out: the
+    guest said something, and what a consumer needs is what it said —
+    not a stack through the courier that carried it. Trying a suite is
+    exactly when this happens, so the report names the request, marks
+    the guest's own words as the guest's, and says last what testaferro
+    made of them.
+
+    The reason comes first because pytest's short summary quotes only
+    the first line of a report, so that line has to be the one worth
+    reading on its own. The guest's screen is indented rather than
+    quoted, because it is console text of unknown shape and a quote
+    character in it would read as ours.
+    """
+    asked = " ".join(error.argv) if error.argv else "(no arguments)"
+    # A DOS guest's screen arrives with CRLF, and a stray CR left in
+    # here would overprint the report on a terminal.
+    shown = error.output.replace("\r\n", "\n").replace("\r", "").strip()
+    screen = ("\n".join(f"    {row}" for row in shown.split("\n"))
+              if shown else "    (the screen was empty)")
+    return (f"guest output not understood: {error.reason}\n\n"
+            f"testaferro ran the guest suite with: {asked}\n"
+            f"The following is what the guest showed on its screen in "
+            f"response:\n\n"
+            f"{screen}")

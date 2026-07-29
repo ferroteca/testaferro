@@ -28,7 +28,7 @@ changing where the tests actually run.
 
 from __future__ import annotations
 
-from .backend import Backend, TestId, TestOutcome
+from .backend import Backend, GuestOutputError, TestId, TestOutcome
 
 
 class SuiteBackend(Backend):
@@ -41,13 +41,12 @@ class SuiteBackend(Backend):
     def list_tests(self) -> "list[TestId]":
         if self._enumerator is not None:
             return self._enumerator()
-        return self._framework.parse_list(
-            self._run(self._exe, self._framework.list_argv()))
+        argv = self._framework.list_argv()
+        return self._parse(self._framework.parse_list, argv)
 
     def run_test(self, group, name) -> TestOutcome:
-        outcomes = self._framework.parse_run(
-            self._run(self._exe,
-                      self._framework.run_one_argv(group, name)))
+        argv = self._framework.run_one_argv(group, name)
+        outcomes = self._parse(self._framework.parse_run, argv)
         for outcome in outcomes:
             if (outcome.group, outcome.name) == (group, name):
                 return outcome
@@ -56,5 +55,21 @@ class SuiteBackend(Backend):
             "(host and target test lists out of sync?)")
 
     def run_all(self) -> "list[TestOutcome]":
-        return self._framework.parse_run(
-            self._run(self._exe, self._framework.run_all_argv()))
+        argv = self._framework.run_all_argv()
+        return self._parse(self._framework.parse_run, argv)
+
+    def _parse(self, grammar, argv):
+        """Perform one exchange and read it, or say what was exchanged.
+
+        This is the only place both halves are in hand at once — the
+        argv that went out and the text that came back — so it is
+        where an adapter's refusal becomes something an entry point
+        can report. The grammar says why it refused and nothing about
+        provenance; it never saw the guest, and D17's reasoning cuts
+        the same way here as it does for quoting.
+        """
+        output = self._run(self._exe, argv)
+        try:
+            return grammar(output)
+        except ValueError as error:
+            raise GuestOutputError(str(error), argv, output) from None

@@ -43,9 +43,12 @@ code meets it.
   call when programmatic control is wanted, and the trial command
   stays valid forever — the step before U1 and the same surface as
   U1, so adopting testaferro does not start with a leap of faith.
-  *(Built: the plugin claims suite executables and auto-loads, and
-  the trial command is pytest's own. Arming waits on end-to-end
-  proof, the same proof U1, U2 and U3 wait on — F6.)*
+  *(Built: the plugin claims suite executables and auto-loads, the
+  trial command is pytest's own, and the not-failing-blind clause
+  landed with D19 — an answer no adapter can read is now reported as
+  the guest's own screen at both entry points, rather than as a
+  traceback through testaferro. Arming waits on end-to-end proof, the
+  same proof U1, U2 and U3 wait on — F6.)*
 
 U4 cites U1, U2 and U3, which remain drafted. That is not the
 reference flaw the map names: the rule's test is **completion**, and

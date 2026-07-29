@@ -49,6 +49,18 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ### Changed
 
+- **A guest answer no adapter can read now reports as the guest's own screen** (D19), at both entry points and at both
+  moments — enumeration, where it aborts collection, and a run, where each item fails. Previously a grammar's
+  `ValueError` escaped, so trying a suite for the first time produced three frames of testaferro's internals with the
+  guest's one useful line buried underneath, and pytest's short summary — which quotes only a report's first line —
+  dropped that line entirely. The report now leads with why testaferro could not read the answer, names the argv the
+  guest was given, says outright that what follows is what the guest showed in response, and ends with the screen
+  itself. No traceback, in either place. A host-built twin that prints something unreadable is reported the same way,
+  naming the twin, since a host program has no guest screen to show.
+- **A framework adapter's refusals state a reason and no longer quote the text back.**
+  `cpputest.parse_list()` names the token it choked on; `parse_run()` names the summary line it did not find. Standalone
+  callers (U6) passed that text in and still hold it, and an adapter that never saw the guest is not the party to
+  present it — the same boundary D17 drew for quoting, read for provenance.
 - **Backend dispatch keys by provider rather than by guest OS.** Resolution used to hold a table saying which binding
   ran which platform; it now selects the binding the declaration named and asks *it* which platforms it serves, because
   that is the provider's own answer and not a fact to keep upstream of it. What a run sees is a better refusal: an
