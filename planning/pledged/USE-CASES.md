@@ -43,12 +43,16 @@ code meets it.
   call when programmatic control is wanted, and the trial command
   stays valid forever — the step before U1 and the same surface as
   U1, so adopting testaferro does not start with a leap of faith.
-  *(Built: the plugin claims suite executables and auto-loads, the
-  trial command is pytest's own, and the not-failing-blind clause
-  landed with D19 — an answer no adapter can read is now reported as
-  the guest's own screen at both entry points, rather than as a
-  traceback through testaferro. Arming waits on end-to-end proof, the
-  same proof U1, U2 and U3 wait on — F13, pledged.)*
+  *(Built, and now run: the plugin claims suite executables and
+  auto-loads, the trial command is pytest's own, the
+  not-failing-blind clause landed with D19, and the integration tier
+  boots a real guest — `pytest SUITE.EXE` collects and runs, and a
+  failure comes back with the guest's own file and line. Three
+  clauses still want asserting before this can arm: `-x` and `--lf`
+  are named here and tested nowhere, a `testaferro.ini` selecting the
+  same environment is proved by unit tests rather than by a guest,
+  and this entry still says "run home" where D15 left
+  `--testaferro-keep-guest-home`.)*
 
 U4 cites U1, U2 and U3, which remain drafted. That is not the
 reference flaw the map names: the rule's test is **completion**, and

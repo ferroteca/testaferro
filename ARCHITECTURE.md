@@ -221,13 +221,17 @@ built and verified.
   configuration surface added leaves the no-declaration path working:
   a suite executable and nothing else still runs. (U2.)
 
-  **What arms here is the rule, not a proof of the journey.** That
+  **The rule is what arms, and the journey has since been run.** That
   each surface leaves the path intact is checked on this side of the
   line — an inferred platform matches declarations only, so the
   catalog is reached by asking for it and never by falling into it —
-  while the boot that path ends in waits on the integration tier,
-  with U2 (F13, P10). Arming this asserts that the entry point is kept
-  open, which is the part a new option can close by accident.
+  and the boot it ends in is checked on the other, by an integration
+  tier that now exists. Arming this asserted that the entry point is
+  kept open, which is the part a new option can close by accident;
+  what the first real run added was that the path it keeps open
+  actually arrives somewhere. *[Amended after that run: this said the
+  boot "waits on the integration tier". It waited; it no longer
+  does.]*
 
 - **P9 — Grammars derive from source, never from samples.** A
   framework adapter's argv builders and output grammars are derived
@@ -253,12 +257,17 @@ built and verified.
   for underneath is the provider's own (P2), and what testaferro can
   see is only that the call stopped being cheap.
 
-  **The tier those calls belong to does not exist yet** (F13), and
-  this entry does not pretend otherwise: it forbids them on this side
-  of the line and promises no home on the other. That is why its
-  absence is not residue against this principle — nothing here claims
-  an integration suite, only that certain calls are not the unit
-  tier's to make. *[Amended before arming: this read
+  **The tier those calls belong to now exists** — `tests/integration/`,
+  asked for rather than discovered — so they have a home as well as an
+  exclusion. This entry never promised them one, and did not need to:
+  what it forbids is the unit tier starting a guest, which stands
+  whether or not anywhere else does. Note what joined the forbidden
+  list on the way: `execute_script()`, because a script's `machine`
+  header is a precondition the provider *establishes*, so running one
+  that expects a running machine starts a stopped one for real.
+  *[Amended once the tier landed: this read "does not exist yet".]*
+
+  *[Amended before arming: this read
   "never launch a hypervisor", and named the tool. Both spoke a layer
   below the provider, which P1 and P2 put out of testaferro's
   vocabulary. The boundary is unchanged and one step wider on

@@ -88,6 +88,12 @@ _ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                        "assets")
 _FREEDOS_BLUEPRINT = "freedos"
 _FREEDOS_IMAGE_NAME = "freedos.qcow2"
+# The readiness script and the variable its last step sets. Reliquary
+# ships no readiness script on purpose — what "ready" means belongs to
+# whatever is being built — so this one is testaferro's answer for a
+# guest suite: the guest will take a command.
+_READY_SCRIPT = os.path.join(_ASSETS, "freedos-ready.rlqs")
+_READY_VAR = "ready"
 
 
 def suite_backend(exe_path, framework=cpputest, enumerator=None,
@@ -393,6 +399,7 @@ class ReliquarySuiteBackend(SuiteBackend):
                 _BLUEPRINT_NAME, context=self._ctx)
             _machine_started(self)
             reliquary.start_machine(self._machine, context=self._ctx)
+            self._wait_ready()
         except BaseException:
             self.stop_guest()
             raise
@@ -413,6 +420,39 @@ class ReliquarySuiteBackend(SuiteBackend):
             self._ctx = None
             self._machine = None
             self._letter = None
+
+    def _wait_ready(self):
+        """Block until the guest will take a command.
+
+        `start_machine()` launches a machine; it does not wait for the
+        guest inside it, and never claimed to. Reliquary ships no
+        readiness script deliberately — what "ready" means belongs to
+        whatever is being built — and the channel it provides is a
+        **machine variable**: a script of the caller's own sets one as
+        its last step, and the host reads it back. Variables are
+        cleared at every start, so finding it set says *this* boot got
+        there.
+
+        Skipping this is what made the first guest command of every
+        run come back as the boot's own output: the guest was still
+        running its startup files, so what was typed at it went
+        nowhere.
+
+        **The variable is confirmation here, not a poll.** Reliquary's
+        own description of this pattern polls, because its CLI runs
+        the script and reads the variable from two separate processes.
+        `execute_script()` is synchronous, so the script's last step
+        has already run by the time it returns; reading the variable
+        holds the script to the contract rather than waiting for it.
+        """
+        reliquary.execute_script(reliquary.load_script(_READY_SCRIPT),
+                                 machine_id=self._machine,
+                                 context=self._ctx)
+        if reliquary.get_machine_var(_READY_VAR, machine=self._machine,
+                                     context=self._ctx) is None:
+            raise RuntimeError(
+                "the guest never reported itself ready, so nothing it "
+                "shows can be trusted to be an answer")
 
     def _program(self):
         """The suite's guest-side command name."""

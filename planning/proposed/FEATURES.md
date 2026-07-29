@@ -46,10 +46,11 @@ hierarchy is how a feature list turns into a schedule.
   landed on its own (D16).
 - **F6**, the integration tier: too large as written, and it grew a
   dependency the project did not have. Its own text named its first
-  slice, and that slice is **F13**, now pledged — one real suite,
-  one real machine, one real failure. What it could not carry became
-  **F14** (CppUTest's own output) and **F15** (the remaining
-  journeys), the latter still below.
+  slice, and that slice was **F13** — one real suite, one real
+  machine, one real failure — **delivered, its number evaporated with
+  it**. What F6 could not carry became **F14** (CppUTest's own
+  output) and **F15** (the remaining journeys), the latter still
+  below.
 
 **F14 retired without ever being separate work.** It was issued to
 hold an open question — whether CppUTest builds for a DOS target at
@@ -140,15 +141,15 @@ interface) and lands through the interface-change rule.
 
 ## F15 — The remaining journeys, proven
 
-The end-to-end coverage F13 deliberately leaves: **U3**'s declared
-environments booting for real — a `testaferro.ini` beside a project
-selecting a machine that actually comes up — and **U5**'s parallelism,
-where every xdist worker collects and so every worker wants a guest.
-Each is a journey a consumer takes, and neither can be armed on unit
-tests (P10 says why: nearly all of this project's behaviour can only
-be proved by booting a guest).
+The end-to-end coverage the first integration slice deliberately
+left: **U3**'s declared environments booting for real — a
+`testaferro.ini` beside a project selecting a machine that actually
+comes up — and **U5**'s parallelism, where every xdist worker collects
+and so every worker wants a guest. Each is a journey a consumer takes,
+and neither can be armed on unit tests (P10 says why: nearly all of
+this project's behaviour can only be proved by booting a guest).
 
-> **Shapeless until F13 lands.** What an integration test costs to
-> write and to run is unknown, and it is exactly what decides whether
-> this is one feature or four. Cut it when there is one to measure
-> against.
+> **Now measurable, and worth cutting on that basis.** The tier
+> exists and its five cases take about a minute, most of it one boot;
+> what an integration test costs is no longer a guess. That is what
+> decides whether this is one feature or four.

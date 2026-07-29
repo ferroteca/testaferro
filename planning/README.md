@@ -86,15 +86,14 @@ the same artifacts in different states. A thing in `proposed/` moves
 to `pledged/`, and **the commit that moves it is the record**. Each
 mirrored file appears in `pledged/` with its first promoted entry
 rather than standing empty, and leaves again when its last one
-does. **Two are there today.** `FEATURES.md` has done the round trip
-three times: it held F7 and F8, went when both were delivered and
-their numbers evaporated, came back with F11 and F12, went again when
-those two landed, and is back with F13 — which is the file behaving
+does. **One is there today.** `FEATURES.md` has done the round trip
+three times over — F7 and F8, then F11 and F12, then F13 alone — and
+is gone again now that F13 has delivered, which is the file behaving
 exactly as intended rather than churn. `ARCHITECTURE.md` has done it
 once, holding P1 and P2 from D18 until F12 built what they promised
-and both armed. So what the project owes is **one use case and one
-feature**, and they are the same debt seen twice: U4 is built and
-waiting on proof, and F13 is the proof.
+and both armed. So what the project owes is **one use case and
+nothing else at all**: no feature, no principle, and no unbuilt
+capability. U4 waited on proof, and the proof has run.
 
 **The planning root holds what does not move.** The map, the rule,
 the record and the queue are machinery rather than proposals, and

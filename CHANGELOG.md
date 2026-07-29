@@ -49,6 +49,13 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ### Fixed
 
+- **testaferro waits for the guest before typing at it.** Starting a machine is not the same as the guest inside it
+  being able to take a command, and testaferro was not waiting — so the first command of every run was typed while
+  FreeDOS was still running its startup files, and came back as the boot's own output instead. testaferro now runs a
+  readiness script of its own (`assets/freedos-ready.rlqs`) that waits for a prompt and sets a machine variable, and
+  checks that variable before it asks the guest anything; a guest that never reports itself ready fails there, plainly,
+  rather than answering with something else's text. The prompt is matched as a pattern, so a floppy-booted guest at
+  `A:` is as ready as an installed system at `C:`.
 - **A boot image you supply is no longer writable by the guest.** `boot_image=` attached your file to the machine in
   place, so a guest writing to `A:` — which DOS does for reasons of its own — edited the image you handed over. What
   boots is now testaferro's own copy inside that guest's disposable home, staged before boot exactly as the suite

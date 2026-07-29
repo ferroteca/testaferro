@@ -174,9 +174,15 @@ class _BindingFixture(unittest.TestCase):
         Machine *creation* is real: reliquary parses the blueprint
         testaferro authored, resolves its media and materializes the
         drives, all of which is cheap and hypervisor-free. Booting is
-        not — `start_machine` starts a guest for real (P10) — so the
-        three calls that need a running machine are stubbed and
-        nothing else.
+        not — `start_machine` starts a guest for real (P10) — so every
+        call that needs a running machine is stubbed and nothing else.
+
+        **`execute_script` is one of them, and not obviously.** A
+        script's `machine` header is a precondition reliquary
+        *establishes*: the readiness script says `running`, so running
+        one against a machine this fixture never really started starts
+        it for real. Stubbing `start_machine` alone is not enough, and
+        the way that announces itself is a unit run booting QEMU.
 
         Creation stays cheap only while every drive's media is `use`
         (attached in place). A blueprint declaring a blank (`size`)
@@ -186,6 +192,8 @@ class _BindingFixture(unittest.TestCase):
         return _patched(
             mock.patch("reliquary.start_machine"),
             mock.patch("reliquary.stop_machine"),
+            mock.patch("reliquary.execute_script"),
+            mock.patch("reliquary.get_machine_var", return_value="yes"),
             mock.patch("reliquary.exec", side_effect=exec_side_effect,
                        **exec_kwargs))
 

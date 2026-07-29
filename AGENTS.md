@@ -188,6 +188,20 @@ Package layout (each module states its contract in its docstring):
     free disk slot. The backend snapshots that directory when the
     drive is attached, so staging must happen before
     `start_machine()`, never lazily on first run.
+  - **A started machine is not a ready guest, and testaferro waits.**
+    `start_machine()` launches a machine and never claimed to wait for
+    the guest inside it. Reliquary ships **no readiness script on
+    purpose** — what "ready" means belongs to whatever is being built
+    — and the channel it provides is a machine variable: a script of
+    the caller's own sets one as its last step and the host reads it
+    back, cleared at every start so the answer is about *this* boot.
+    So `assets/freedos-ready.rlqs` waits for a prompt and sets
+    `ready`, `_wait_ready()` runs it through `execute_script()` and
+    checks the variable, and a guest that never reports itself ready
+    fails there rather than being typed at. Skipping this is what made
+    the first command of every run come back as the boot's own output.
+    The prompt is matched as a **pattern**, because testaferro's
+    installed system boots to `C:` and a tester's floppy to `A:`.
   - **A declared boot image is staged too, and for a different
     reason.** What boots is testaferro's copy inside the guest home,
     because the tester's own file is read and never written (P5). A
@@ -464,8 +478,16 @@ start a guest (P10). The boundary is exact:
   materialization, machine state. Unit tests run it for real, and
   should: it is the best coverage available on this side of the line.
 - `start_machine()` starts a guest for real, and leaves a process
-  behind. It, `stop_machine()` and `exec()` are stubbed in the unit
-  suite and belong to integration.
+  behind. It, `stop_machine()`, `exec()`, `execute_script()` and
+  `get_machine_var()` are stubbed in the unit suite and belong to
+  integration.
+
+**`execute_script()` is on that list and not obviously.** A script's
+`machine` header is a precondition reliquary *establishes*, so running
+the readiness script — which says `machine running` — against a
+machine the unit fixture never really started **starts it for real**.
+Stubbing `start_machine` alone does not hold the line, and the way
+that announces itself is a unit run booting QEMU.
 
 **The cheap half of that is conditional on the blueprint, not on the
 call.** `create_machine()` stays cheap only while every drive's media
@@ -514,19 +536,16 @@ the wrong drive fails as a missing program and explains nothing.
 the returned pair to the one reliquary placed. A real guest agrees:
 the default system takes `hdd0`, so the work drive is `D:`.
 
-**The integration tier exists** — `tests/integration/`, holding
-testaferro's own CppUTest DOS suite (`guest/`, with its source, its
-Open Watcom makefile and the built `SUITE.EXE`) and the cases that
-boot it. A guest has run: it enumerates, runs batched and singly, and
-a failure comes back carrying the guest's own file and line. Two
-defects fell out of that first run — a grammar that ended a message
-on a blank line the transport drops (fixed, above), and a provider
-race in which the first command after boot returns the boot banner
-(reported upstream as `ferroteca/reliquary#6`, and **not** worked
-around here: a guest-machine property is the provider's to guarantee,
-P1).
+**The integration tier exists and passes** — `tests/integration/`,
+holding testaferro's own CppUTest DOS suite (`guest/`, with its
+source, its Open Watcom makefile and the built `SUITE.EXE`) and the
+cases that boot it. Five of them: the guest enumerates, runs batched
+and singly, replays a failure with the guest's own file and line, and
+`pytest SUITE.EXE` collects and runs for real. About a minute.
 
-**F13 is not delivered yet**, and that race is why: until it lands,
-the tier's own cases need a throwaway first command to pass. The
-feature is in
-[planning/pledged/FEATURES.md](planning/pledged/FEATURES.md).
+Three defects fell out of building it, which is what it was for. A
+grammar that ended a failure message on a blank line the transport
+drops (fixed above). An `exec()` that returned screen text it could
+not attribute to the command (`ferroteca/reliquary#6`, fixed in
+0.1.0.dev4). And testaferro typing at a guest that was not listening —
+**ours**, and the readiness contract above is the fix.

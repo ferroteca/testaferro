@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: 2026 Paul Galbraith
+# SPDX-License-Identifier: BSD-3-Clause
+
+description "Wait for a DOS guest to be able to take a command"
+platform dos
+machine  running
+timeout  2m
+
+# **Readiness is testaferro's to define, not the provider's.**
+# Reliquary ships no readiness script deliberately: what "ready"
+# means belongs to whatever is being built. For a guest suite it
+# means one thing — the guest will accept a command — and the
+# evidence is a command prompt it drew itself.
+#
+# The prompt is matched as a pattern rather than a literal because
+# the letter is not fixed: testaferro's own installed system boots
+# to C:, while a tester's boot floppy (U3) boots to A:. Matching
+# the shape rather than the drive keeps one script honest for both.
+wait /[A-Z]:\\?[^>]*>/
+
+# The last step, and the whole point of the script. A machine
+# variable is the script's channel back to the host, and it is
+# cleared at every start — so finding it set says *this* boot got
+# here, never a previous one.
+set ready "yes"
