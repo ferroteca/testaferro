@@ -49,6 +49,12 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ### Changed
 
+- **The reliquary pin moves to 0.1.0.dev4**, and testaferro stops mirroring a rule it never owned. `drive_letters()`
+  now places *every* drive rather than only the first disk, so `_work_drive()` chooses the slot and asks reliquary for
+  the letter — the one-volume-per-disk assumption goes back to the party that owns and states it. A drive reliquary
+  will not place is now refused rather than guessed at, because a suite run off the wrong drive fails as a missing
+  program and explains nothing. dev4 also stops `exec()` returning screen text it cannot attribute to the command that
+  was run, which is the failure mode that made an unreadable guest answer look like a parse error.
 - **Zero configuration installs its own FreeDOS system instead of downloading a boot floppy** (D20), because the floppy
   it downloaded never worked: it was FreeDOS 1.4's FloppyEdition boot image, which boots the **installer** — a language
   menu, then "Do you want to proceed [Y,N]?" — and never reaches a DOS prompt, so every guest command waited for a

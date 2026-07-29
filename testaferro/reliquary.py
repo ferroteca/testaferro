@@ -291,22 +291,23 @@ def _context(home, blueprints, scripts=None):
 
 
 def _work_drive(drives):
-    """Place testaferro's work drive and name the letter DOS gives it.
+    """Place testaferro's work drive and ask what letter it gets.
 
-    The work drive takes the lowest free disk slot, so its letter is
-    its own position among the declared disks: floppies take A:/B: by
-    slot and hard disks C: onward in slot order.
+    The slot is testaferro's to choose — the lowest free disk — and
+    the **letter is reliquary's to say**. Since 0.1.0.dev4
+    `platform_dos.drive_letters()` places every drive rather than only
+    the first disk, so the local mirror of that rule is gone and this
+    asks instead. The assumption underneath it (one volume per hard
+    disk) did not disappear; it moved to the party that owns it, which
+    is the whole of what P1 asks for.
 
-    As of reliquary 0.1.0.dev3 that rule is testaferro's alone past
-    the first disk. `platform_dos.drive_letters()` determines a letter
-    for the *first* hard disk and no other, because every later one
-    depends on how many volumes the disks before it carry — a fact a
-    blueprint does not declare. Where the work drive lands first
-    (every zero-configuration run) the letter is reliquary's own; past
-    it testaferro assumes one volume per declared disk, and a machine
-    whose declared disk the guest partitioned in two would run the
-    suite off the wrong drive.
+    A letter reliquary will not determine — mixed controller types
+    leave even the first disk unplaceable — is refused here rather
+    than guessed at, because a suite run off the wrong drive fails as
+    a missing program and says nothing about why.
     """
+    from reliquary import platform_dos
+
     used = sorted({int(key[len("hdd"):] or 0)
                    for key in drives if key.startswith("hdd")})
     free = [slot for slot in range(_HDD_SLOTS) if slot not in used]
@@ -315,9 +316,30 @@ def _work_drive(drives):
             "the machine declares every disk slot; testaferro needs one "
             "free slot for the work drive that carries the suite "
             "executable into the guest")
-    slot = free[0]
-    letter = chr(ord("C") + sorted(used + [slot]).index(slot))
-    return f"hdd{slot}", letter
+    key = f"hdd{free[0]}"
+    state = {name: _drive_state(name) for name in (*drives, key)}
+    if key in platform_dos.undetermined_letters(state):
+        raise ValueError(
+            f"this machine's drives leave {key} without a determined "
+            "letter, so testaferro cannot tell the guest where its "
+            "suite is; declare one fewer controller type, or name the "
+            "drive testaferro should use")
+    for letter, placed in platform_dos.drive_letters(state).items():
+        if placed == key:
+            return key, letter
+    raise ValueError(
+        f"reliquary placed no letter for {key}")
+
+
+def _drive_state(key):
+    """A blueprint drive key as reliquary records it on a machine.
+
+    Medium and slot are what `drive_letters()` reads, and a blueprint
+    key already carries both — `hdd1` is the second disk by its own
+    name — so this is a spelling change rather than a second opinion.
+    """
+    medium = key.rstrip("0123456789")
+    return {"medium": medium, "slot": int(key[len(medium):] or 0)}
 
 
 class ReliquarySuiteBackend(SuiteBackend):

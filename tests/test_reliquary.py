@@ -67,12 +67,6 @@ RUN_ONE_OUTPUT = (
     "OK (2 tests, 1 ran, 1 checks, 0 ignored, 1 filtered out, 0 ms)\n")
 
 
-def _drive_state(key):
-    """A blueprint drive key as reliquary records it on a machine."""
-    medium = key.rstrip("0123456789")
-    return {"medium": medium, "slot": int(key[len(medium):] or 0)}
-
-
 @contextlib.contextmanager
 def _patched(*patches):
     """Enter several patches together, yielding the last one's mock."""
@@ -409,19 +403,17 @@ class WorkDrivePlacementTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "free slot"):
             binding._work_drive(drives)
 
-    def test_the_letter_agrees_with_reliquarys_own_assignment(self):
-        """Guard the duplication, as far as reliquary will vouch for it.
+    def test_the_letter_is_the_one_reliquary_placed(self):
+        """The letter is asked for, not derived, so this checks the
+        asking rather than a copy.
 
-        `_work_drive` derives the guest letter from a rule reliquary
-        owns, and since 0.1.0.dev3 reliquary answers for fewer drives
-        than testaferro asks about: the first hard disk is C: and no
-        later disk has a determined letter, because volume count is
-        not a declared fact. Where it does answer, this copy must
-        agree — the day that rule changes this fails here rather than
-        by running a suite off the wrong drive. Where it does not,
-        testaferro is assuming one volume per declared disk, and the
-        least this can hold it to is that the assumed letter never
-        collides with one reliquary has already placed.
+        Until 0.1.0.dev4 testaferro mirrored reliquary's rule past the
+        first disk and this case guarded the mirror. There is no
+        mirror now — `platform_dos.drive_letters()` places every
+        drive — so what is worth holding is that the key and letter
+        `_work_drive` returns are the pair reliquary itself placed,
+        which is what would break if the slot choice and the asking
+        ever came apart.
         """
         from reliquary import platform_dos
 
@@ -430,13 +422,13 @@ class WorkDrivePlacementTests(unittest.TestCase):
                          {"cdrom0": {}}, {"hdd0": {}, "cdrom0": {}}):
             with self.subTest(declared=sorted(declared)):
                 key, letter = binding._work_drive(declared)
-                state = {name: _drive_state(name)
+                state = {name: binding._drive_state(name)
                          for name in (*declared, key)}
-                determined = platform_dos.drive_letters(state)
-                if key in platform_dos.undetermined_letters(state):
-                    self.assertNotIn(letter, determined)
-                else:
-                    self.assertEqual(determined.get(letter), key)
+
+                self.assertEqual(
+                    platform_dos.drive_letters(state).get(letter), key)
+                self.assertNotIn(
+                    key, platform_dos.undetermined_letters(state))
 
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")

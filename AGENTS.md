@@ -188,19 +188,16 @@ Package layout (each module states its contract in its docstring):
     free disk slot. The backend snapshots that directory when the
     drive is attached, so staging must happen before
     `start_machine()`, never lazily on first run.
-  - **`_work_drive()` mirrors reliquary's DOS letter rule** —
-    floppies take A:/B: by slot, disks C: onward in slot order — to
-    name the drive it just added. Since reliquary 0.1.0.dev3 that
-    mirror runs past what reliquary itself will say:
-    `platform_dos.drive_letters()` places the first hard disk at C:
-    and refuses every later one, because volume count is not a
-    declared fact. Zero-configuration runs land the work drive
-    first, so their letter is reliquary's own; a machine that
-    declares its own disk gets testaferro's assumption of one volume
-    per disk instead. `test_the_letter_agrees_with_reliquarys_own_assignment`
-    holds the copy to reliquary wherever reliquary answers — keep
-    that guard, and prefer a public call over the local rule the day
-    reliquary can determine the rest.
+  - **`_work_drive()` chooses the slot and asks for the letter.**
+    The slot is testaferro's — the lowest free disk — and the letter
+    is reliquary's to say: `platform_dos.drive_letters()` places every
+    drive as of 0.1.0.dev4, so the local mirror of that rule is gone
+    and with it testaferro's own copy of the one-volume-per-disk
+    assumption. A drive reliquary will not place — mixed controller
+    types leave even the first disk unplaceable — is refused rather
+    than guessed at. The obligation written here when the mirror
+    existed — prefer a public call the day reliquary can determine
+    the rest — is discharged.
 
   Guest output is whatever `reliquary.exec()` returns: the visible
   screen, as rows. A command that scrolls past a screenful leaves
@@ -495,15 +492,17 @@ jump outside `test_plugin.py` means something crossed the line;
 `--durations` finds it quickly, and a jump into the *minutes* means
 an install did.
 
-`_work_drive()` duplicates a rule reliquary owns and does not expose
-(DOS drive letters). `WorkDrivePlacementTests` cross-checks the copy
-against `reliquary.platform_dos.drive_letters`, so the duplication
-fails loudly rather than silently running a suite off the wrong
-drive. Keep that guard until reliquary offers a public query. Since
-D20 the copy is also **exercised**: the default system takes `hdd0`,
-so the work drive is the second disk and the guest calls it `D:` —
-the first time the assumption past the first disk has been worth
-anything, and a real guest agrees with it.
+`_work_drive()` chooses the slot and **asks reliquary for the
+letter**. It used to mirror the letter rule locally because
+`platform_dos.drive_letters()` placed only the first disk; since
+0.1.0.dev4 it places every drive, so the mirror is gone and the
+assumption underneath it (one volume per hard disk) sits with the
+party that owns it — which is what P1 asks for. A letter reliquary
+will not determine is refused rather than guessed: a suite run off
+the wrong drive fails as a missing program and explains nothing.
+`WorkDrivePlacementTests` still states every slot case, and now holds
+the returned pair to the one reliquary placed. A real guest agrees:
+the default system takes `hdd0`, so the work drive is `D:`.
 
 **The integration tier exists** — `tests/integration/`, holding
 testaferro's own CppUTest DOS suite (`guest/`, with its source, its
