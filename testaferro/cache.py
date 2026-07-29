@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
-# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-License-Identifier: GPL-3.0-only
 """testaferro's durable filespace, shared by the guest bindings.
 
 Also where a finished guest home is handed back, because whether one

@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
-# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-License-Identifier: GPL-3.0-only
 """The pytest facade: surface a guest suite's tests as pytest items.
 
 A consumer's test module hands over a reference to its suite

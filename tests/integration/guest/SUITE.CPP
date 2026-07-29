@@ -1,6 +1,12 @@
 /* SPDX-FileCopyrightText: 2026 Paul Galbraith
  * SPDX-License-Identifier: BSD-3-Clause
  *
+ * BSD in a GPL repository is deliberate: this file is compiled into
+ * SUITE.EXE together with CppUTest (BSD-3-Clause) and Open Watcom's
+ * runtime (Watcom-1.0, GPL-incompatible, no runtime exception), so
+ * any GPL code in the binary would make it undistributable. See
+ * AGENTS.md "Prior art and external references".
+ *
  * testaferro's own guest suite: the smallest CppUTest program that
  * can prove a guest ran. It tests nothing of testaferro and nothing
  * of DOS — arithmetic and a string compare are enough — because what

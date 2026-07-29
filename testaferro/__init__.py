@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
-# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-License-Identifier: GPL-3.0-only
 """testaferro: a pytest plugin for tests that run inside a guest.
 
 A suite compiled for and running on a remote target surfaces as

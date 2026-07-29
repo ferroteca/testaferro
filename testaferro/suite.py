@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
-# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-License-Identifier: GPL-3.0-only
 """SuiteBackend: internal execution × framework composition.
 
 The reliquary-backed platform binding supplies the execution callable;

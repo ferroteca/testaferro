@@ -14,13 +14,24 @@ path = [
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Paul Galbraith"
-SPDX-License-Identifier = "BSD-3-Clause"
+SPDX-License-Identifier = "GPL-3.0-only"
 
 # The built guest suite: a DOS executable, so it can carry no header
 # at all. Its source and its build recipe sit beside it, which is what
-# makes the binary reproducible rather than opaque.
+# makes the binary reproducible rather than opaque. The binary is an
+# aggregate and this annotation says whose work is inside it: Paul's
+# fixture source (BSD-3-Clause, deliberately — see the makefile),
+# CppUTest's compiled library code (BSD-3-Clause), and the Open
+# Watcom C/C++ runtime the compiler statically links (Watcom-1.0,
+# which has no runtime exception). The makefile header carries the
+# notices that must travel with the binary; nothing in it is GPL, and
+# AGENTS.md "Prior art and external references" records why.
 [[annotations]]
 path = ["tests/integration/guest/SUITE.EXE"]
 precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 Paul Galbraith"
-SPDX-License-Identifier = "BSD-3-Clause"
+SPDX-FileCopyrightText = [
+    "2026 Paul Galbraith",
+    "2007 Michael Feathers, James Grenning and Bas Vodde (CppUTest)",
+    "1983-2002 Sybase, Inc. (Open Watcom runtime, portions)",
+]
+SPDX-License-Identifier = "BSD-3-Clause AND Watcom-1.0"

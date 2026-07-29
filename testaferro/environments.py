@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
-# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-License-Identifier: GPL-3.0-only
 """Named test-environment declarations backed by reliquary blueprints.
 
 A **test environment** is what a suite runs in, and naming one is the

@@ -1,6 +1,22 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: BSD-3-Clause
 #
+# BSD in a GPL repository is deliberate — same reason and same scope
+# as SUITE.CPP: nothing GPL may enter the built binary. See AGENTS.md
+# "Prior art and external references".
+#
+# The built SUITE.EXE embeds third-party material, and the notices
+# below are part of distributing it:
+# - CppUTest, Copyright (c) 2007 Michael Feathers, James Grenning and
+#   Bas Vodde, BSD-3-Clause (text in LICENSES/BSD-3-Clause.txt).
+# - The Open Watcom C/C++ runtime, Portions Copyright (c) 1983-2002
+#   Sybase, Inc., under the Sybase Open Watcom Public License 1.0
+#   (text in LICENSES/Watcom-1.0.txt). Source code for that runtime
+#   is available under the same licence from the Open Watcom project
+#   at https://github.com/open-watcom/open-watcom-v2 — this notice is
+#   the licence's section 2.2(d) obligation, so keep it with the
+#   binary.
+#
 # Builds SUITE.EXE, the 16-bit DOS CppUTest program the integration
 # tier runs inside a guest. The built binary is checked in beside this
 # file, so running this is a maintainer's act when the suite changes —

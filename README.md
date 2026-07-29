@@ -290,5 +290,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, the required check
 
 ## License
 
-BSD 3-Clause; see [LICENSE](LICENSE). The project follows REUSE conventions (SPDX headers
+GPL-3.0-only; see [LICENSE](LICENSE). The project follows REUSE conventions (SPDX headers
 plus [REUSE.toml](REUSE.toml)).
+
+testaferro is copyleft. You may run, study, modify, and redistribute it
+freely; any work you distribute that incorporates it must also be
+GPL-3.0-only. It cannot be taken into a proprietary product.
+
+Paul Galbraith holds copyright in the project and **reserves the right to
+relicense it**, on any terms, at any time. No relicensing is planned or
+in preparation — the reservation exists so the option is not lost by
+default, not because it is about to be used. It takes nothing back from
+what has already been released: every version published under the GPL
+stays under the GPL, permanently. Contributions are accepted under a
+copyright assignment that keeps the reservation intact; see
+[CONTRIBUTING.md](CONTRIBUTING.md).

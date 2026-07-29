@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
-# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-License-Identifier: GPL-3.0-only
 
 [build-system]
 requires = ["setuptools>=77"]
@@ -12,7 +12,7 @@ description = "pytest plugin for DOS-based CppUTest unit testing, run in a reliq
 readme = "README.md"
 authors = [{ name = "Paul Galbraith", email = "paul@galbraiths.ca" }]
 requires-python = ">=3.9"
-license = "BSD-3-Clause"
+license = "GPL-3.0-only"
 license-files = ["LICENSE"]
 keywords = ["pytest", "cpputest", "reliquary", "dos", "testing", "guest"]
 classifiers = [

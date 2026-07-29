@@ -6,6 +6,52 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: testaferro is now GPL-3.0-only.** The project was
+  BSD-3-Clause through `0.1.0.dev7`; every release from here is copyleft.
+  Anyone may still run, study, modify, and redistribute it, but a
+  distributed work incorporating testaferro must now also be GPL-3.0-only,
+  and it can no longer be taken into a proprietary product.
+  Already-published releases are unaffected: what went out under BSD stays
+  under BSD, and this changes nothing retroactively.
+
+  `LICENSE` now carries the GPL v3 text, `LICENSES/` gains
+  `GPL-3.0-only.txt`, and the SPDX header on every file in the repository
+  reads `GPL-3.0-only`, as do `REUSE.toml` and the `license` field in
+  `pyproject.toml` — with one deliberate exception. The integration guest
+  fixture (`SUITE.CPP` and its makefile) stays BSD-3-Clause, because the
+  built `SUITE.EXE` statically embeds Open Watcom's DOS runtime, whose
+  Watcom-1.0 licence has no runtime exception and is GPL-incompatible: any
+  GPL code in that binary would make it arguably undistributable. The
+  binary's REUSE annotation now names what is actually inside it (Paul's
+  fixture, CppUTest's BSD-3-Clause library code, the Sybase runtime), the
+  makefile carries the notices that must travel with it, and
+  `LICENSES/BSD-3-Clause.txt` and the new `LICENSES/Watcom-1.0.txt` hold
+  the texts.
+
+- **The relicensing reservation is now stated, and it is the reason
+  contributions require a copyright assignment.** Paul Galbraith holds
+  copyright in the whole work and reserves the right to relicense it on
+  any terms. Nothing is planned or in preparation; the reservation exists
+  so the option is not lost by default. It takes nothing back — every
+  version published under the GPL stays under the GPL permanently, which
+  `CLA.md` section 4 makes a binding term rather than a promise.
+
+  **New: `CLA.md`**, a copyright assignment with an automatic fallback to
+  an exclusive sublicensable licence for jurisdictions that bar assignment
+  between living persons, plus a licence-back so a contributor keeps full
+  use of their own work. It carries an explicit notice that it awaits
+  legal review before the first external contribution is accepted under
+  it.
+
+- **Every external reference is vetted against the reservation.**
+  AGENTS.md now records the standing of each project testaferro depends
+  on, derives from, or names — the dependency licence tiers, the
+  clean-room doctrine and its one recorded exception (the CppUTest
+  adapter's source-derived grammars), and what the checked-in integration
+  binary embeds.
+
 ## [0.1.0.dev6] - 2026-07-29
 
 **A guest actually runs.** Until this release nothing testaferro said about a guest had ever been observed: no VM had

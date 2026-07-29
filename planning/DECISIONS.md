@@ -1,6 +1,6 @@
 <!--
 SPDX-FileCopyrightText: 2026 Paul Galbraith
-SPDX-License-Identifier: BSD-3-Clause
+SPDX-License-Identifier: GPL-3.0-only
 -->
 
 # DECISIONS
@@ -110,6 +110,111 @@ becoming a D-number, and the commit that moves it is the record.
   is largely reliquary's answer to give.
 
 ## Decisions
+
+### D21 — testaferro is GPL-3.0-only, relicensing is reserved, and contributions are assigned
+
+**Decided** owner, 2026-07-29. **Supports** (none): no use case or
+principle demands a licence, and the governing vision is silent on
+ownership. Recorded because it constrains what may enter the codebase
+forever afterward, which nothing else in this record would otherwise
+state. The record was searched first and holds no prior licensing
+entry; D1, D4, D20 and P17 bear on the vetting below and are cited
+where they do.
+
+**The licence is GPL-3.0-only, replacing BSD-3-Clause.** testaferro
+is copyleft from here: it may be run, studied, modified, and
+redistributed freely, and may not be taken into a proprietary
+product. Releases through `0.1.0.dev7` went out under BSD and stay
+there — a licence change binds forward only, and nothing published is
+withdrawn. This follows the standing `manage-contribution-licensing`
+policy for the owner's GPL-3.0 projects, with reliquary's D82 as the
+worked precedent; where this entry is thinner than D82, that record
+carries the fuller argument and this one adopts it.
+
+**Weighed and declined:** **GPL-3.0-or-later**, because "or later"
+delegates the definition of future terms to a third party — the one
+thing an owner reserving relicensing rights should not do — and the
+assignment policy already closes the door that flexibility would have
+held open. **AGPL-3.0-only**, which closes a narrow hosted-service
+gap at the price of the many corporate policies that refuse AGPL
+outright; a testing library wants to be usable.
+
+**Relicensing is reserved, and nothing is planned.** The owner holds
+copyright in the whole work and reserves the right to relicense on
+any terms. There is no second licence and nothing in preparation; the
+reservation exists so the option is not lost by default, and it is
+framed as relicensing rather than dual licensing deliberately —
+naming one particular use of the right would advertise an intention
+the project does not have. The reservation is stated openly in
+README.md, CONTRIBUTING.md, and CLA.md, together with its binding
+counterweight: CLA.md section 4 makes it a term, not a promise, that
+no relicensing withdraws a release already made under the GPL.
+
+**Contributions are assigned, not merely licensed**, via `CLA.md` —
+assignment with an automatic fallback to an exclusive sublicensable
+licence where a jurisdiction bars assignment (§29 UrhG being the
+standing example), a licence-back so assigning costs a contributor no
+use of their own work, and the reservation disclosed beside the
+requirement it explains. Enforcement standing is the stronger reason:
+only a copyright owner may sue, so consolidated ownership is what
+keeps the GPL on this project enforceable rather than decorative.
+**Assignability replaces licence compatibility as the incoming test**;
+the dependency licence tiers and the vetting bar — every external
+source judged as though the likely relicensing is a commercial dual
+licence, because that is the strictest realistic outcome and vetting
+weaker forfeits the option invisibly — live in AGENTS.md, their
+normative home.
+
+**The vetting round produced three testaferro-specific rulings**, and
+they are the reason this entry is not a bare adoption of D82:
+
+- **The CppUTest derivation is a recorded doctrine exception.** The
+  adapter's grammars and the guest makefile's flags follow CppUTest
+  v4.0's own source (P9) — reading an upstream implementation, which
+  the clean-room doctrine otherwise forbids. It stands on the licence
+  instead: BSD-3-Clause (verified at the v4.0 tag, file by file) is
+  sublicensable, so even read as a derivation it survives the
+  commercial bar with attribution carried. The exception is
+  version-pinned: re-deriving against newer CppUTest source re-opens
+  the licence question at that version.
+- **Nothing GPL may enter SUITE.EXE, so the guest fixture stays
+  BSD.** The checked-in binary statically embeds Open Watcom's DOS
+  runtime, and the Sybase Open Watcom Public License 1.0 has **no
+  runtime exception** — compiled object code is expressly Covered
+  Code, the licence is GPL-incompatible, and no settled reading
+  brings a compiler runtime under GPL's system-library exception. A
+  GPL SUITE.CPP would therefore have made the binary arguably
+  undistributable. Ruled: `SUITE.CPP` and the guest makefile are
+  deliberately BSD-3-Clause in a GPL repository; the binary is
+  annotated as the aggregate it is (Paul + CppUTest + Sybase); the
+  makefile carries the licence's §2.2(d) source-availability notice;
+  `LICENSES/Watcom-1.0.txt` ships. **Weighed and declined:**
+  converting the fixture to GPL anyway (rests a distribution right
+  on an unsettled system-library argument); dropping the checked-in
+  binary (the reproducible-fixture arrangement predates this entry
+  and licensing is no reason to lose it); waiting on Open Watcom's
+  in-progress relicensing to Apache-2.0-with-LLVM-exception (not
+  completed, and the project does not vet against futures).
+- **Reliquary's standing is owner-relicensable, not a tier.**
+  Imported GPL code is refused from any other author; reliquary (GPL
+  from its 0.1.0.dev5; the pinned dev4 predates that, D4) is
+  dependable solely because both projects are the same owner's under
+  the same assignment policy, so any relicensing is one decision
+  licensing both. The vendored assets (P17, D20) are the same fact in
+  file form: copied from the same owner's codex, so no third party
+  exists. Both reasons are recorded in AGENTS.md because they fail
+  differently — the standing dissolves if reliquary ever holds code
+  its owner cannot relicense.
+
+**Folded into:** [../LICENSE](../LICENSE), `../LICENSES/`,
+[../REUSE.toml](../REUSE.toml), [../pyproject.toml](../pyproject.toml),
+[../CLA.md](../CLA.md), [../CONTRIBUTING.md](../CONTRIBUTING.md),
+[../README.md](../README.md), [../AGENTS.md](../AGENTS.md) (the
+"Licensing" and "Prior art and external references" sections, the
+normative home of the tiers and the reference standings),
+[../CHANGELOG.md](../CHANGELOG.md),
+[../tests/integration/guest/](../tests/integration/guest/), and the
+SPDX header of every file in the repository.
 
 ### D20 — testaferro installs its own FreeDOS, once
 

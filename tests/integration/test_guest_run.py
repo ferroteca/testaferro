@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
-# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-License-Identifier: GPL-3.0-only
 """The integration tier: the tests that boot a real guest.
 
 **Nothing here runs unless asked for.** P10 forbids the unit tier
