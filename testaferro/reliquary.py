@@ -48,6 +48,15 @@ from . import cpputest
 from .suite import SuiteBackend
 
 
+# The guest platforms this binding serves, and the one thing about
+# itself a binding tells resolution: which provider runs which
+# platform is a provider's own answer rather than a table kept
+# upstream of it (P1, D11). Resolution reads this to refuse a
+# declaration before importing anything further; `suite_backend()`
+# guards the same ground for a caller who reached the binding
+# directly, exactly as `binfmt` is shared between the two (D16).
+PLATFORMS = ("dos",)
+
 # The blueprint name testaferro writes into each session's private
 # blueprints directory, and the machine created from it.
 _BLUEPRINT_NAME = "testaferro"

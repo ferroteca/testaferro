@@ -84,6 +84,8 @@ class GuestTestFailure(Exception):
 _SETTINGS = (
     ("environment", "name of the test environment claimed suites run "
                     "in"),
+    ("provider", "name of the provider that runs claimed suites; a "
+                 "named environment carries its own"),
     ("boot-image", "boot image for the zero-configuration environment"),
     ("machine-config", "path to a machine document (.rlqb) claimed "
                        "suites run on"),
@@ -396,6 +398,10 @@ def _backend_for(config, path):
         # declaration claims a file, an option claims this run.
         environment=(_setting(config, "environment")
                      or _declared_environment(path.name)),
+        # Only for suites no environment claimed: an environment names
+        # its own provider, and resolution refuses the pair rather than
+        # letting an option overrule a declaration it did not read.
+        provider=_setting(config, "provider"),
         search_from=str(config.rootpath), **options)
 
 

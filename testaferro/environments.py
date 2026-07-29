@@ -12,6 +12,13 @@ untouched and mirrors none of reliquary's schema — validation happens
 when reliquary parses it, and ``platform`` is one of the fields
 passing through rather than a word testaferro speaks (P3).
 
+``provider`` runs the other way: it is the one guest-related word
+testaferro *does* speak, naming what actually runs the suite
+(``reliquary`` today, the default and the only one built), and the
+environment is the one place it is named (P1, P2, D11). So it never
+reaches the blueprint — reliquary's document has no field for who is
+reading it.
+
 Declarations come from ``configure()`` / ``testaferro.config()`` or
 from an optional per-project ``testaferro.ini`` — one section per
 environment, the declarative twin of ``configure()``. ``load_config()``
@@ -53,9 +60,12 @@ _HYPHENATED = types.MappingProxyType({
 })
 
 # Options testaferro consumes itself rather than passing to the
-# blueprint: how long one guest command may take, and which files
-# this environment's guest suites are.
-_TESTAFERRO_KEYS = frozenset({"timeout", "suites"})
+# blueprint: which provider runs this environment, how long one guest
+# command may take, and which files this environment's guest suites
+# are. `provider` is testaferro's own word and reliquary's document
+# has no field for it, which is exactly why it belongs here rather
+# than passing through (P1, P3, D11).
+_TESTAFERRO_KEYS = frozenset({"provider", "timeout", "suites"})
 
 _environments = {}
 # Standard-catalog documents materialized on first use: the documents
@@ -76,16 +86,19 @@ class EnvironmentSpec:
     ``spec.drives``), with underscores standing in for the hyphens the
     blueprint spells (``spec.backend_settings``).
 
-    ``timeout`` and ``suites`` are testaferro's own rather than
-    blueprint fields: how long one guest command may take, and the
-    file-name masks saying which executables are this environment's
-    guest suites — what a collection scan needs to know that a file is
-    a suite at all, and which environment runs it.
+    ``provider``, ``timeout`` and ``suites`` are testaferro's own
+    rather than blueprint fields: which provider runs this environment
+    (``None`` until one is named, the default being resolution's to
+    apply), how long one guest command may take, and the file-name
+    masks saying which executables are this environment's guest
+    suites — what a collection scan needs to know that a file is a
+    suite at all, and which environment runs it.
     """
 
-    __slots__ = ("_fields", "_media", "timeout", "suites")
+    __slots__ = ("_fields", "_media", "provider", "timeout", "suites")
 
-    def __init__(self, machine, media=(), timeout=None, suites=()):
+    def __init__(self, machine, media=(), timeout=None, suites=(),
+                 provider=None):
         fields = {_HYPHENATED.get(key, key): value
                   for key, value in machine.items()
                   if key not in ("type", "name")}
@@ -94,6 +107,7 @@ class EnvironmentSpec:
         object.__setattr__(self, "_fields", types.MappingProxyType(fields))
         object.__setattr__(self, "_media", tuple(dict(spec)
                                                  for spec in media))
+        object.__setattr__(self, "provider", _provider(provider))
         object.__setattr__(self, "timeout", timeout)
         object.__setattr__(self, "suites", _masks(suites))
 
@@ -139,7 +153,9 @@ def configure(name, machine_config=None, template=None, boot_image=None,
     ``platform``, ``memory``, ``drives``, ``boot`` and friends — which
     pass through untouched for reliquary to validate (P3).
 
-    ``timeout`` and ``suites`` are testaferro's own rather than
+    ``provider`` names what actually runs this environment's guests —
+    ``reliquary`` today, the default and the only one built (P1, D11).
+    It, ``timeout`` and ``suites`` are testaferro's own rather than
     blueprint fields, so they may be said beside a complete template
     as well as beside constructed fields.
     """
@@ -173,21 +189,39 @@ def configure(name, machine_config=None, template=None, boot_image=None,
             fields.setdefault("boot", ["floppy0"])
         machine_config = EnvironmentSpec(fields, media,
                                          timeout=options.get("timeout"),
-                                         suites=options.get("suites", ()))
+                                         suites=options.get("suites", ()),
+                                         provider=options.get("provider"))
     else:
         machine_config = _coerce_machine_config(machine_config)
         if own:
-            # A template says nothing about timeouts or which files
-            # are suites, so those are said here — as a fresh spec
-            # rather than a mutation, an EnvironmentSpec being
-            # immutable and often shared between names.
+            # A template is the provider's own document, so it says
+            # nothing about which provider reads it, about timeouts, or
+            # about which files are suites: those are said here — as a
+            # fresh spec rather than a mutation, an EnvironmentSpec
+            # being immutable and often shared between names.
             machine_config = EnvironmentSpec(
                 dict(machine_config.fields), machine_config.media,
                 timeout=own.get("timeout", machine_config.timeout),
-                suites=own.get("suites", machine_config.suites))
+                suites=own.get("suites", machine_config.suites),
+                provider=own.get("provider", machine_config.provider))
 
     _environments[name] = machine_config
     return machine_config
+
+
+def _provider(value):
+    """Normalize a declared ``provider`` name, or None when unsaid.
+
+    Case-folding here is testaferro's own vocabulary being tidied, not
+    a provider's document being touched (P3): ``provider`` is a word
+    this project defines and reliquary's blueprint has no field for.
+    Unsaid stays None — which provider a nameless environment gets is
+    resolution's answer, said in one place rather than defaulted here
+    and again there.
+    """
+    if value is None:
+        return None
+    return str(value).strip().lower()
 
 
 def _masks(value):

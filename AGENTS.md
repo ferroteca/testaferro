@@ -15,8 +15,10 @@ which is its programmatic layer. Both resolve through the same seam.
 Built and working under its unit tier — though no guest has run since
 the migration to the blueprint model, so end-to-end proof is owed
 (see "Unit and integration" below). Reliquary is the only supported
-execution provider (P1, pledged) — the provider is a declared choice
-in the vision (D11), and reliquary is the one binding built;
+execution provider (P1, pledged), and the provider is now a choice a
+tester actually **declares** rather than one only the vision
+described (D11): `provider=` has all three spellings, dispatch is
+keyed by it, and reliquary is the default and the one binding built.
 testaferro's pluggable aspect is the guest unit-test framework
 (U6).
 
@@ -55,7 +57,13 @@ Package layout (each module states its contract in its docstring):
   word rather than testaferro's (P2) — and reliquary validates them
   when it parses the document. Keys hyphenated in the blueprint
   (`backend-settings`, `control-planes`) are written with underscores
-  in Python and INI and normalized on construction. `select()`
+  in Python and INI and normalized on construction. **`provider`,
+  `timeout` and `suites` are testaferro's own** and never reach the
+  blueprint: `provider` names what runs the guest (P1, D11), and
+  reliquary's document has no field for who is reading it, which is
+  exactly why it is declared beside the machine spec rather than
+  inside it. It is left `None` when unsaid — the default belongs to
+  `resolution.py`, said in one place. `select()`
   resolves a *name* against those declarations first and the standard
   catalog second (D10); the platform *inferred* from the executable
   matches declarations only, so zero configuration stays zero (P8).
@@ -97,6 +105,8 @@ Package layout (each module states its contract in its docstring):
   still a reliquary *machine*, which is why `machine_config=` keeps
   that word while the noun a suite writes is an environment: it names
   the provider's own document, passing through as `platform` does.
+  `PLATFORMS` is the one thing it tells resolution about itself — the
+  guests this provider serves, its own answer to give.
   `suite_backend()` guards with `binfmt.classify()`
   (rejections name the format and architecture) and returns a
   `ReliquarySuiteBackend`, with `framework` defaulting to the CppUTest
@@ -157,11 +167,19 @@ Package layout (each module states its contract in its docstring):
   backend-resolution seam: `resolve_backend()` is the single place
   where an executable plus options becomes a `Backend`, and every
   entry point calls it. Config search, format classification,
-  environment selection, binding import (`_PLATFORM_PROVIDERS`) and
-  option validation live here, so they answer the same way whoever
-  asked. `platform` reaches it only as a field on the selected
-  environment or as what the format inferred, and is read to pick the
-  binding — nothing a consumer says (P2). It is deliberately
+  environment selection, binding import and option validation live
+  here, so they answer the same way whoever asked. **Dispatch keys by
+  provider** (P1, D11): the environment names one or takes
+  `_DEFAULT_PROVIDER`, and the name selects the sibling module of the
+  same name, a binding being named for the provider it binds (D16).
+  `_PROVIDERS` is the gate on that — a name outside it is refused
+  rather than turned into an import. `platform` reaches resolution
+  only as a field on the selected environment or as what the format
+  inferred, and no longer picks anything: it is checked against the
+  binding's own `PLATFORMS`, because which guests a provider serves is
+  the provider's answer and not a table kept upstream of it. Neither
+  word is one a consumer types about an emulator (P2). It is
+  deliberately
   entry-point-neutral: `search_from` — where the `testaferro.ini`
   search begins — is a parameter, because nothing here can know how
   the caller was reached. Its imports stay stdlib-only;
@@ -209,7 +227,8 @@ built ahead of a second concrete adapter — so a divergence there is
 a bug rather than unbuilt work. Consumers see none of the backend classes: the public
 surface is `testaferro.config()` / `testaferro.load_config()` for
 named test environments (including `testaferro.ini`) and
-`testaferro.guest_suite()` for `environment=` selection. A prebuilt
+`testaferro.guest_suite()` for `environment=` selection or a
+`provider=` said inline. A prebuilt
 `Backend` remains the custom escape hatch. End-to-end proof belongs in
 a consuming project that runs real guest tests through the facade,
 both batched and `-k`-narrowed.

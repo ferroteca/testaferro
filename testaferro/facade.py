@@ -64,7 +64,7 @@ class ResultBroker:
 
 
 def guest_suite(target, framework=None, enumerator=None,
-               environment=None, **environment_options):
+               environment=None, provider=None, **environment_options):
     """Return a pytest test function with one parameterized item per
     test in the referenced suite. Assign it to a test_-prefixed
     module attribute:
@@ -79,9 +79,13 @@ def guest_suite(target, framework=None, enumerator=None,
     runs in — one declared with testaferro.config() or testaferro.ini
     (searched upward from this call site), or one of the standard
     environments testaferro curates, such as "freedos". Naming none
-    lets the executable's own format select one. Any further keyword
-    is environment-specific and validated by the selected binding:
-    today, `boot_image=` or `machine_config=` for DOS.
+    lets the executable's own format select one. `provider` names what
+    runs the guest for an environment declared inline here —
+    "reliquary" today, the default and the only one built — and a
+    named environment carries its own, so the two do not combine. Any
+    further keyword is environment-specific and validated by the
+    selected binding: today, `boot_image=` or `machine_config=` for
+    DOS.
 
     Enumeration (backend.list_tests()) happens at import/collection
     time, in a guest session of its own — unless `enumerator` supplies
@@ -114,11 +118,14 @@ def guest_suite(target, framework=None, enumerator=None,
         search_from = (None if call_site is None
                        else os.path.dirname(call_site[0]))
         backend = resolve_backend(target, environment=environment,
+                                  provider=provider,
                                   search_from=search_from, **options)
     else:
         given = sorted(options)
-        if environment is not None:
-            given.append("environment")
+        for name, value in (("environment", environment),
+                            ("provider", provider)):
+            if value is not None:
+                given.append(name)
         if given:
             raise TypeError(
                 "keyword options apply only when passing an "

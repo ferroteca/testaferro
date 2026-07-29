@@ -33,6 +33,14 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   every worker collects. A missing twin falls back to the guest, and a list read inside the guest now warns
   (`GuestEnumerationWarning`) that it may be short rather than passing itself off as complete.
 
+- **`provider` — the execution provider is now something you declare.** `reliquary` is the default and the only one
+  built, and until now nothing spelled it at all. It joins the declaration vocabulary in all three spellings —
+  `guest_suite(..., provider=...)`, `provider =` in a `testaferro.ini` section, and `--testaferro-provider` /
+  `testaferro-provider` — and it is testaferro's own word rather than reliquary's, so it sits beside the blueprint
+  fields and never reaches the document: reliquary's schema has no field for who is reading it. A named environment
+  carries its own provider, so the two are not combined. An unknown name is refused before anything is imported,
+  listing what testaferro binds.
+
 - **Standard environments, by name**: `guest_suite(..., environment="freedos")` selects an environment testaferro
   itself curates — the zero-configuration DOS guest, made nameable — so a suite can say which one it means without the
   project declaring one. A name resolves against the project's own declarations first and the standard catalog second,
@@ -41,6 +49,12 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ### Changed
 
+- **Backend dispatch keys by provider rather than by guest OS.** Resolution used to hold a table saying which binding
+  ran which platform; it now selects the binding the declaration named and asks *it* which platforms it serves, because
+  that is the provider's own answer and not a fact to keep upstream of it. What a run sees is a better refusal: an
+  environment the provider cannot run is now turned away naming the provider and what it does run — *test environment
+  'warp' declares platform 'os2', which the 'reliquary' provider does not run; it runs: dos* — where before it said
+  only that no binding here ran it.
 - **A suite names a test environment, and that is the whole guest-facing vocabulary.** `machine=` is now
   `environment=` at `guest_suite()`, and `--testaferro-machine` / `testaferro-machine` are now
   `--testaferro-environment` / `testaferro-environment`. `machines.py` is `environments.py` and `MachineSpec` is

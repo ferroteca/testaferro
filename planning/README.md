@@ -86,11 +86,13 @@ the same artifacts in different states. A thing in `proposed/` moves
 to `pledged/`, and **the commit that moves it is the record**. Each
 mirrored file appears in `pledged/` with its first promoted entry
 rather than standing empty, and leaves again when its last one
-does. All three are there today. `FEATURES.md` has done the whole
-round trip already: it held F7 and F8, went when both were delivered
-and their numbers evaporated, and came back with F11 and F12 — which
-is the file behaving exactly as intended rather than churn. F11 has
-since been delivered too, leaving F12 alone in it.
+does. Two are there today. `FEATURES.md` has done the round trip
+twice: it held F7 and F8, went when both were delivered and their
+numbers evaporated, came back with F11 and F12, and has gone again
+now that both of those are delivered too — which is the file behaving
+exactly as intended rather than churn. **No feature is pledged**, so
+what the project owes is two principles and one use case, and nothing
+that is unbuilt capability.
 
 **The planning root holds what does not move.** The map, the rule,
 the record and the queue are machinery rather than proposals, and

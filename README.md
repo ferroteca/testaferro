@@ -89,9 +89,10 @@ nothing. A binary this host can run itself (a plain Windows PE) is never claimed
 claims one, because nothing about the file can tell testaferro that the situation demands a VM.
 
 Every declaration keyword has a command-line and ini spelling, kebab-cased: `--testaferro-environment`,
-`--testaferro-boot-image`, `--testaferro-machine-config` (and `testaferro-environment`, `testaferro-boot-image`, … in
-pytest's ini). The command line wins over the ini, and both win over a declaration. Blueprint fields — `memory`,
-`drives`, `platform` — have no option of their own: they are reliquary's words in a declaration, not testaferro's.
+`--testaferro-provider`, `--testaferro-boot-image`, `--testaferro-machine-config` (and `testaferro-environment`,
+`testaferro-provider`, … in pytest's ini). The command line wins over the ini, and both win over a declaration.
+Blueprint fields — `memory`, `drives`, `platform` — have no option of their own: they are reliquary's words in a
+declaration, not testaferro's.
 
 **Enumerating costs a guest boot**, once per suite — and once per xdist worker, since every worker collects. If you
 also build the suite for the host, point testaferro at that twin and collection stops booting anything:
@@ -160,6 +161,7 @@ boot_image = images/msdos.img
 memory = 32
 
 [custom]
+provider = reliquary
 machine_config = machines/custom.rlqb
 ```
 
@@ -171,6 +173,12 @@ Relative `boot_image` / `machine_config` / `template` paths resolve from the ini
 fields (`drives`, `boot`, `scripts`, `backend_settings`, `control_planes`, `parameters`) accept JSON values; a bare
 integer stays an integer, so `memory = 32` and `memory = 32M` are both accepted. Call `testaferro.load_config(path)` to
 load an explicit file, or `load_config()` to search upward from the current directory.
+
+**`provider` names what actually runs the suite** — `reliquary` today, the default and the only one built — and it is
+the one guest-related word testaferro speaks for itself. So it sits *beside* the blueprint fields rather than among
+them: reliquary's document has no field for who is reading it. Declare nothing and you get reliquary; name one that
+does not exist and the run is refused up front, listing what testaferro binds. A named environment carries its own, so
+`provider=` and `environment=` are not combined — whichever environment you named has already answered.
 
 A declaration is a template, never a running machine: every guest session creates a fresh machine from it, so runs do
 not share guest state. What that costs per session is the blueprint's own business — reliquary's `materialize` mode on

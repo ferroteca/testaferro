@@ -90,7 +90,8 @@ said **platform** and **test machine**, the pair D3 made the
 consumer's vocabulary; `platform` is reliquary's own word, reaching
 testaferro as configuration passing through (P3) rather than as
 something a suite says. D3 was retired by D18, which pledged the
-amendment; F11 delivered the noun and F12 owes the provider axis.]*
+amendment; F11 delivered the noun and F12 the provider axis, so both
+halves of it are built.]*
 
 ## The interfaces
 
@@ -110,8 +111,8 @@ named here follows that rule.
    declaration, whichever spelling carries it: blueprint machine
    fields passed through untouched (P3), `platform` among them, plus
    testaferro's own spellings around them — `environment=`,
-   `boot_image=`, `machine_config=`, and the underscore-for-hyphen
-   normalization of blueprint keys.
+   `provider=`, `boot_image=`, `machine_config=`, and the
+   underscore-for-hyphen normalization of blueprint keys.
 3. **`testaferro.ini`** — the authored per-project file: its
    section-per-environment shape, its scalar and JSON value
    spellings, its relative-path resolution, and the upward search
@@ -150,8 +151,9 @@ the pledge that owed it. P1 and P2 — pledged by D18 — make a
 declaration a *test environment* rather than a machine, and this
 enumeration went on naming a machine until the code did otherwise,
 because it is looked up to answer "does this change an interface?"
-and so must name the surfaces as they exist. `provider=` joins the
-second surface the same way, when F12 lands.
+and so must name the surfaces as they exist. `provider=` joined the
+second surface the same way, when F12 landed it in all three
+spellings.
 
 **testaferro currently has no norms.** Each surface above should name
 the artifact that says exactly what it *is* and that the

@@ -47,6 +47,38 @@ class EnvironmentConfigurationTests(unittest.TestCase):
             environments.configure("win98", platform="win9x",
                                    machine_config=template)
 
+    def test_provider_is_testaferros_own_word_not_a_blueprint_field(self):
+        # The mirror image of `platform` above: reliquary's document
+        # has no field for who is reading it, so this one is declared
+        # beside the blueprint fields and never among them (P1, P3).
+        config = environments.configure("msdos", provider="reliquary",
+                                        memory=64)
+
+        self.assertEqual(config.provider, "reliquary")
+        self.assertEqual(dict(config.fields),
+                         {"platform": "dos", "memory": 64})
+        self.assertNotIn("provider", config.document("msdos")[0])
+
+    def test_an_unnamed_provider_stays_unsaid(self):
+        # Defaulting is resolution's answer, said in one place; a
+        # declaration reports what was written and nothing more.
+        config = environments.configure("msdos", memory=64)
+
+        self.assertIsNone(config.provider)
+
+    def test_provider_is_said_beside_a_complete_template(self):
+        # A template is the provider's own document, so it cannot name
+        # the provider reading it — which is why this is one of the
+        # keys admitted beside a template, as timeout and suites are.
+        template = environments.EnvironmentSpec({"platform": "dos"})
+
+        config = environments.configure("msdos", machine_config=template,
+                                        provider="reliquary")
+
+        self.assertEqual(config.provider, "reliquary")
+        self.assertEqual(dict(config.fields), {"platform": "dos"})
+        self.assertIsNone(template.provider)
+
     def test_inference_reports_ambiguity(self):
         environments.configure("freedos", platform="dos")
         environments.configure("msdos", platform="dos")

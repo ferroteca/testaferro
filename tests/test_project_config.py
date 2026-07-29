@@ -144,6 +144,22 @@ class ProjectConfigTests(unittest.TestCase):
         self.assertEqual(config.platform, "win9x")
         self.assertEqual(config.memory, 64)
 
+    def test_provider_has_an_ini_spelling_like_every_keyword(self):
+        # The declarative twin of config(provider=...): one vocabulary,
+        # spelled here as it is spelled in Python (P16).
+        ini = self._write(
+            "testaferro.ini",
+            "[msdos]\n"
+            "provider = reliquary\n"
+            "memory = 64\n")
+
+        environments.load_config(ini)
+
+        config = environments.configured()["msdos"]
+        self.assertEqual(config.provider, "reliquary")
+        self.assertEqual(dict(config.fields),
+                         {"platform": "dos", "memory": 64})
+
 
 if __name__ == "__main__":
     unittest.main()

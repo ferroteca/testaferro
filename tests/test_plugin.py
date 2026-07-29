@@ -88,6 +88,9 @@ def suite_backend(exe_path, **options):
 
 fake = types.ModuleType("testaferro.reliquary")
 fake.suite_backend = suite_backend
+# A binding says which platforms it serves; resolution asks before it
+# hands anything over, so a stand-in has to answer too.
+fake.PLATFORMS = ("dos",)
 sys.modules["testaferro.reliquary"] = fake
 testaferro.reliquary = fake
 '''
@@ -201,6 +204,38 @@ class PluginTests(unittest.TestCase):
         self.assertIn("takes a number of seconds",
                       result.stdout + result.stderr)
         self.assertNotIn("Vring", result.stdout)
+
+    def test_the_provider_option_is_read_and_not_passed_onward(self):
+        # The third spelling of `provider` (P16). It selects the
+        # binding, so the seam consumes it: a binding is never told
+        # which binding it is.
+        self.suite()
+
+        self.pytest("SUITE.EXE", "--collect-only",
+                    "--testaferro-provider=reliquary")
+
+        self.assertIn("resolve:", self.recorded())
+        self.assertNotIn("provider", self.recorded())
+
+    def test_an_unknown_provider_is_refused_from_the_command_line(self):
+        self.suite()
+
+        result = self.pytest("SUITE.EXE", "--collect-only",
+                             "--testaferro-provider=vagrant")
+
+        self.assertIn("unknown provider 'vagrant'",
+                      result.stdout + result.stderr)
+        self.assertNotIn("Vring", result.stdout)
+
+    def test_the_provider_has_a_pytest_ini_spelling_too(self):
+        self.write("pytest.ini",
+                   "[pytest]\ntestaferro-provider = vagrant\n")
+        self.suite()
+
+        result = self.pytest("SUITE.EXE", "--collect-only")
+
+        self.assertIn("unknown provider 'vagrant'",
+                      result.stdout + result.stderr)
 
     def test_a_scan_claims_what_a_declaration_opts_in(self):
         self.write("testaferro.ini",
