@@ -86,13 +86,15 @@ the same artifacts in different states. A thing in `proposed/` moves
 to `pledged/`, and **the commit that moves it is the record**. Each
 mirrored file appears in `pledged/` with its first promoted entry
 rather than standing empty, and leaves again when its last one
-does. Two are there today. `FEATURES.md` has done the round trip
+does. **One is there today**, and that is the machinery working
+rather than emptying out. `FEATURES.md` has done the round trip
 twice: it held F7 and F8, went when both were delivered and their
 numbers evaporated, came back with F11 and F12, and has gone again
-now that both of those are delivered too — which is the file behaving
-exactly as intended rather than churn. **No feature is pledged**, so
-what the project owes is two principles and one use case, and nothing
-that is unbuilt capability.
+now that both of those are delivered too. `ARCHITECTURE.md` has done
+it once, holding P1 and P2 from D18 until F12 built what they
+promised and both armed. So what the project owes is **one use
+case** — U4, built and waiting on proof — and nothing else at all:
+no principle, and no unbuilt capability.
 
 **The planning root holds what does not move.** The map, the rule,
 the record and the queue are machinery rather than proposals, and
@@ -118,11 +120,13 @@ because they are claims about the code as it exists today:
 `USE-CASES.md`, every entry met by the code, and
 [`ARCHITECTURE.md`](../ARCHITECTURE.md), the P-numbered architectural
 principles, every one honored by the code. The whole-system view
-belongs there too and has not followed yet: it describes a consumer
-vocabulary that is pledged but unbuilt (P1, P2, D18), so it is not a
-claim about the code, and the interface enumeration beside it is what
-the vetting rule looks up. Each moves when it can be asserted on its
-own terms. Together with the normative
+belongs there too and has not followed yet — but its reason for
+waiting has gone: it described a consumer vocabulary that was pledged
+and unbuilt (P1, P2, D18), and both are now armed and built, so the
+view is a claim about the code and moving it is a promotion nobody
+has made rather than a condition nobody has met. The interface
+enumeration beside it stays regardless, being what the vetting rule
+looks up. Together with the normative
 specifications they are the project's **vision**: the standing
 statement of what testaferro is and is for.
 
@@ -142,11 +146,14 @@ number. A use case still reaches the root list only on full
 delivery and a principle only on being honored as a rule. **P16 was
 the first entry of any kind to arm**, and P10 and P4 followed it one
 at a time; P6, P7, P8, P9, P11, P12, P13 and P17 then armed together,
-on the same bar applied to each. Root `ARCHITECTURE.md` now carries eleven
-in-force claims, and the drafted list is down to four. Most of them
-went straight from drafted to in force without a pledge, as P4 did:
-the pledged shelf holds what is owed, and a principle the code
-already honors is owed nothing. No use
+on the same bar applied to each; and P1 and P2 armed once F12 built
+what they promised. Root `ARCHITECTURE.md` now carries thirteen
+in-force claims and the drafted list is down to four, so **no
+principle is pledged at all**. Most went straight from drafted to in
+force without a pledge, as P4 did — the pledged shelf holds what is
+owed, and a principle the code already honors is owed nothing — while
+P1 and P2 took the long route the shelf is for, pledged by D18 with
+the work owing and armed when it landed. No use
 case has armed — none can until a guest runs — so the honest answer
 to "what does testaferro promise *a user*?" is still *no journey yet
 stated*, however much the architecture now asserts. Several drafted

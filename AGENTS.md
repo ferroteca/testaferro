@@ -15,9 +15,8 @@ which is its programmatic layer. Both resolve through the same seam.
 Built and working under its unit tier — though no guest has run since
 the migration to the blueprint model, so end-to-end proof is owed
 (see "Unit and integration" below). Reliquary is the only supported
-execution provider (P1, pledged), and the provider is now a choice a
-tester actually **declares** rather than one only the vision
-described (D11): `provider=` has all three spellings, dispatch is
+execution provider (P1, in force), and the provider is a choice a
+tester **declares**: `provider=` has all three spellings, dispatch is
 keyed by it, and reliquary is the default and the one binding built.
 testaferro's pluggable aspect is the guest unit-test framework
 (U6).
@@ -260,15 +259,17 @@ both batched and `-k`-narrowed.
   code was written (D7), so its vision began wholly drafted in
   [planning/proposed/](planning/proposed/); U4 and P16 were pledged
   first (D13), then P1 and P2 (D18), and nothing had reached the
-  root lists until P16 armed, followed by P10 and P4 one at a time
-  and then by P6, P7, P8, P9, P11, P12, P13 and P17 together. Root
-  [ARCHITECTURE.md](ARCHITECTURE.md) carries eleven principles —
-  P4, P6, P7, P8, P9, P10, P11, P12, P13, P16, P17 — and root
+  root lists until P16 armed, followed by P10 and P4 one at a time,
+  then by P6, P7, P8, P9, P11, P12, P13 and P17 together, and then by
+  P1 and P2 once F12 built what they promised. Root
+  [ARCHITECTURE.md](ARCHITECTURE.md) carries thirteen principles —
+  P1, P2, P4, P6 through P13, P16 and P17 — and root
   `USE-CASES.md` still does not exist, so **the architecture binds
   and no use case does**. Four principles stay drafted: P3 and P5,
   each contradicted by a small piece of the code and each saying so
   at its own entry, and P14 and P15, which govern conduct rather
-  than code. A principle may arm without
+  than code. **No principle is pledged**, so a P-number now names
+  either a rule in force or an argument. A principle may arm without
   ever being pledged, as most of these did — the pledged shelf holds
   what is owed, not a stop every entry makes. Cite a U- or
   P-number knowing it names a draft, unless it sits in

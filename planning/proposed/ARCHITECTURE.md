@@ -12,8 +12,8 @@ SPDX-License-Identifier: BSD-3-Clause
 > adopted the planning model (D7). An entry leaves for
 > [pledged/](../pledged/) when the project undertakes it and for
 > [root `ARCHITECTURE.md`](../../ARCHITECTURE.md) when the code
-> honors it — that root file now holds most of them (P4, P6, P7, P8,
-> P9, P10, P11, P12, P13, P16, P17), and a
+> honors it — that root file now holds all but four of them (P1, P2,
+> P4, P6 through P13, P16 and P17), and a
 > divergence from anything in it is a bug rather than unbuilt work.
 > Nothing in *this* file carries that weight. Numbering comes from one
 > global P-sequence, never reused, and an entry keeps its number all
@@ -147,7 +147,8 @@ joins as its own small surface when it lands: verbs over machines
 and caches, never over test runs.
 
 **The second and third surfaces were renamed by the work**, not by
-the pledge that owed it. P1 and P2 — pledged by D18 — make a
+the pledge that owed it. P1 and P2 — pledged by D18, since armed —
+make a
 declaration a *test environment* rather than a machine, and this
 enumeration went on naming a machine until the code did otherwise,
 because it is looked up to answer "does this change an interface?"
@@ -238,11 +239,13 @@ governance posture at all is a question about what the file is for,
 and it has not been asked. Nothing is wrong with either pair sitting
 here; drafted is where a principle waits, not where it fails.
 
-**Principles that moved on have left this file** — pledged ones for
-[../pledged/ARCHITECTURE.md](../pledged/ARCHITECTURE.md), in-force
-ones for [root `ARCHITECTURE.md`](../../ARCHITECTURE.md), and P4 went
-straight to the second without stopping at the first, as P6, P7, P8,
-P9, P11, P12, P13 and P17 later did together. A gap in the
+**Principles that moved on have left this file** for
+[root `ARCHITECTURE.md`](../../ARCHITECTURE.md). Most went straight
+there without stopping at `pledged/` — P4 first, then P6, P7, P8, P9,
+P11, P12, P13 and P17 together — while P1 and P2 took the long route,
+pledged by D18 and armed once F12 built what they promised. That
+shelf now holds no principle at all, which is why
+`pledged/ARCHITECTURE.md` is gone. A gap in the
 numbering here is where one went. The whole-system view above and
 the interface enumeration stay here whatever moves, because the
 vetting rule looks the interfaces up in this file.

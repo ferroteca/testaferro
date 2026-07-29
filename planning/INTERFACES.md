@@ -24,22 +24,24 @@ are numbered so a decision, review, or specification section can
 cite the use case or principle it serves — and so a proposed change
 can be rejected by naming what it costs.
 
-**The principles are mostly in force; no use case is.** The
+**The principles are in force; no use case is.** The
 root lists hold only what the code delivers and honors today, so root
 `USE-CASES.md` does not exist while root
-[`ARCHITECTURE.md`](../ARCHITECTURE.md) holds eleven principles: P4,
-P6, P7, P8, P9, P10, P11, P12, P13, P16 and P17. Everything else is
-drafted, in
-[proposed/USE-CASES.md](proposed/USE-CASES.md) and
-[proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md), or pledged, in
+[`ARCHITECTURE.md`](../ARCHITECTURE.md) holds thirteen principles:
+P1, P2, P4, P6 through P13, P16 and P17. **No principle is pledged
+any more** — what stays drafted is P3, P5, P14 and P15, so a
+P-citation now points either at a rule in force or at an argument,
+and never at something merely owed. Use cases are drafted in
+[proposed/USE-CASES.md](proposed/USE-CASES.md) or pledged in
 [pledged/](pledged/) — so read a citation by where it points: an
 in-force entry binds, a pledged one is owed, and a drafted one names
-an argument. **Most principle costs can now be named as in-force
-costs**, which is the point of arming: a change that would erode
-zero configuration, add a third dependency, or make a grammar
-answerable to a captured sample is refused against a rule rather
-than argued against a draft. Every use-case cost still reads as a
-draft. Both files number from the same global
+an argument. **A principle cost is now almost always an in-force
+cost**, which is the point of arming: a change that would erode zero
+configuration, add a third dependency, ask a consumer for an
+emulator, or make a grammar answerable to a captured sample is
+refused against a rule rather than argued against a draft. Every
+use-case cost still reads as a draft. Both files number from the
+same global
 sequences and keep their numbers when they move. A number is never
 reused.
 

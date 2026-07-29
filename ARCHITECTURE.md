@@ -21,29 +21,119 @@ SPDX-License-Identifier: BSD-3-Clause
 **This file holds principles.** The whole-system view and the
 interface enumeration stay in
 [planning/proposed/ARCHITECTURE.md](planning/proposed/ARCHITECTURE.md),
-deliberately and for two different reasons. The view describes a
-system whose consumer vocabulary is pledged and only half built (P1,
-P2, D18) — a suite names an environment today, and nothing yet names
-the provider — so it is not yet a claim about the code; and the
-enumeration is what
+and only one of them still has a reason to. The enumeration is what
 the interface-change rule looks up to answer "does this change an
-interface?", which keeps working best from one unmoving place. Each
-follows when it can be asserted on its own terms.
+interface?", which keeps working best from one unmoving place. **The
+view's reason has expired**: it described a consumer vocabulary that
+was pledged and half built, and with P1 and P2 armed below, a suite
+names an environment and an environment names its provider — so it
+can now be asserted on its own terms, and moving it is a promotion
+waiting to be made rather than a condition waiting to be met.
 
 The **use cases** are the other half of the decision surface and carry
 equal weight. None is in force yet: root `USE-CASES.md` does not
 exist, because a use case arms on *full delivery* and no guest has run
 since the migration to the blueprint model. So testaferro still
 promises no user a *journey* — what the entries below bind is the
-shape of the thing, never a trip through it. Several of them do speak
-past the maintainers: P4 tells whoever writes a framework adapter what
-one is, P7 and P8 tell whoever runs a suite what will be refused and
-what will keep working, P12 tells whoever depends on the library what
-it will never learn about them, and P17 tells whoever names a standard
-environment whose content they are getting. The rest are about how
-this project is built and verified.
+shape of the thing, never a trip through it. Most of them do speak
+past the maintainers: P1 and P2 are the whole guest-facing
+vocabulary, and say what a suite writes and how far it reaches; P4
+tells whoever writes a framework adapter what one is; P7 and P8 tell
+whoever runs a suite what will be refused and what will keep working;
+P12 tells whoever depends on the library what it will never learn
+about them; and P17 tells whoever names a standard environment whose
+content they are getting. The rest are about how this project is
+built and verified.
 
 ## The principles
+
+- **P1 — The execution provider is a declared choice, and reliquary
+  is the only supported one.** A **provider** is whatever actually
+  runs a guest suite — reliquary today, with vagrant, dosbox and wine
+  the shape of the others. They occupy one layer — a test environment
+  uses one *or* another, and the environment names which (D11);
+  testaferro carries that provider's own configuration to it, for the
+  provider to validate (P3). *[Amended from "guest-machine provider"
+  and pledged by D18: not every provider boots a machine — wine and
+  dosbox run a program without one — so the layer is named for what
+  it does, which is also why a suite names an environment rather than
+  a machine (P2).]* The axis is testaferro's own: a future provider is
+  a new binding here, never capability pushed upstream.
+
+  **What resolution asks of a binding is two names.**
+  `suite_backend()` returns a `Backend` for one executable, and
+  `PLATFORMS` says which guests this provider serves — asked rather
+  than tabulated upstream of it, because what a provider runs is its
+  own answer to give. What D1 refused stays refused: no structural
+  runner contract, no conformance kit, no mirrored configuration
+  hierarchy, and no abstraction built ahead of a second concrete
+  provider; a prebuilt `Backend` remains the escape hatch, and the
+  seam a provider implements.
+
+  **Where the axis stops short, it says so.** `testaferro.start()`
+  and `stop()` reach `testaferro/reliquary.py` by name, so a *run* —
+  one staged image and one sweep area — is one provider's today. That
+  is not a divergence while one provider exists: generalizing it now
+  is precisely the abstraction-ahead-of-need D1 refused. It is the
+  first place to look the day a second binding lands.
+
+  **The split governs verification as much as implementation**: a
+  property of the guest machine is the provider's to guarantee and to
+  test, so doubting one produces an upstream bug report — never a
+  local audit of its internals, and never a defensive workaround
+  here. (D1, D11, D18.)
+
+  *[Amended before arming, twice. "Passes that provider's own
+  configuration through untouched" restated P3's absolute in passing —
+  a rule this entry does not own and cannot keep in step, P3 being
+  drafted and saying at its own entry where the code touches a
+  document after all. The citation stays; the restatement goes. And
+  the binding surface is named, F12 having made it two names rather
+  than one, together with where the axis does not reach yet.]*
+
+- **P2 — Suites name test environments.** A **test environment** is
+  what a suite runs in, and naming one is the whole of what a
+  suite-facing consumer writes: a **standard** environment testaferro
+  authors and names (U9, D10, P17), or a **custom** one the tester
+  declares. **The environment is the one place a provider is named**
+  (P1, D11), and that is enforced rather than merely said: a
+  `provider=` beside a named environment is refused, the environment
+  having answered already.
+
+  **How deep a custom environment goes is the tester's to choose,
+  and it goes as deep as the provider does.** A name and nothing
+  else, or a complete provider document — a reliquary blueprint with
+  its drives, its provisioning scripts, its `backend-settings` —
+  carried to the provider for it to validate (P3, D4, U7). Precision
+  is never rationed here, and a tester who needs the provider's most
+  specific knob reaches it by writing the provider's own document.
+
+  What testaferro declines is not depth but **vocabulary**: it names
+  providers and never what a provider drives underneath. It asks no
+  consumer for an emulator, keys no table by one, and interprets no
+  field below the provider's own — `platform` included, which is a
+  blueprint field the tester wrote (P3) rather than a word testaferro
+  speaks. A `backend-settings` block naming QEMU is the tester
+  configuring *reliquary*, and testaferro carries it without opinion
+  or comprehension.
+
+  Inference must still pick something when a tester declares nothing,
+  so the executable's own format picks among the environments the
+  project **declared** — testaferro reading a binary, not a
+  vocabulary the consumer writes in. Declaring none leaves the
+  zero-configuration guest, which is the same guest `freedos` names;
+  the catalog itself is reached by asking for it and never by falling
+  into it (P8).
+
+  *[Amended twice before being pledged by D18. First: this made
+  **platform** and **machine** the consumer's pair, per D3, which
+  D18 retires. Then "and nothing underneath one" was struck, having
+  read as a limit on what a tester may configure when it was only
+  ever about what testaferro says. Amended again before arming: the
+  "untouched" restatements of P3 became citations of it, for the
+  reason given at P1; and inference was said to select "a standard
+  environment", which P8 — since armed — contradicts, the catalog
+  being reachable by name alone.]*
 
 - **P4 — The guest test framework is testaferro's own axis, and
   CppUTest is the only adapter built.** A **framework adapter** is
