@@ -22,8 +22,9 @@ what demands it.
 
 ## F13 — The first end-to-end run
 
-Serves **U4** (pledged), and U1, U2 and U3 behind it. **One real
-suite, booting one real machine, reporting one real failure.** No
+Serves **U4** (pledged) and **P9**, with U1, U2 and U3 behind them.
+**One real suite, booting one real machine, reporting one real
+failure.** No
 guest has run since the migration to the blueprint model (D4), so
 nothing this project says about a guest has ever been observed. The
 feature adds no capability — it converts claims into evidence, which
@@ -35,18 +36,31 @@ it and a tier with nothing to run are each meaningless alone. Its work
 items therefore carry the one ordering that binds: the suite, the
 tier, then the run.
 
-Three things were left to decide at the pledge, and are decided here.
+Three things were left to decide at the pledge and are decided here —
+the first of them reversed, once its open question turned out to have
+been closed all along.
 
-**The suite is authored, not built with CppUTest.** A small DOS
-program that answers `-ln` with a CppUTest-shaped test list and `-v`
-with CppUTest-shaped verbose output, failing one test on purpose so a
-real failure has something to be. Building CppUTest itself for a
-16-bit DOS target is a separate question with its own feasibility
-risk, and it is **F14** — pledging it now would pledge something
-nobody can yet size. What the authored suite cannot prove is stated
-plainly rather than glossed: it proves the machinery end to end, and
-it does not discharge what P9 names as its own cost, since a grammar
-answering to a fixture testaferro wrote is answering to itself.
+**The suite is a real CppUTest build, not an authored stand-in.**
+CppUTest ships DOS support of its own — `platforms/Dos/` and
+`src/Platforms/Dos/UtestPlatform.cpp` upstream — built with Open
+Watcom for **16-bit real mode**: `wcl -bt=dos -ml -zm`, linked
+`wlink system dos`, with memory-leak detection and the standard C++
+library disabled. Real mode is what makes it cheap here, because
+there is no DPMI host to stage beside the suite: it runs on the same
+FreeDOS boot floppy zero configuration already downloads. The same
+sources build a host twin (`-bt=nt`), so a host-built enumerator
+arrives for free rather than as separate work.
+
+*This reverses the call made when F6 was cut.* The split issued
+**F14** to hold what looked like an open feasibility question —
+whether CppUTest builds for a DOS target at all — and planned an
+authored stand-in here meanwhile. The question was already answered
+upstream, so F14 is absorbed into this feature and **its number
+retires unreused**, having never named separable work. The gain is
+not merely one fewer entry: a stand-in testaferro authored would
+leave the grammars answering to themselves, where a real build
+discharges the cost **P9** states against itself in the same run that
+proves the machinery.
 
 **The tier is stdlib `unittest`, under `tests/integration/`, skipped
 unless asked for.** Tests here are stdlib `unittest` and that
@@ -62,8 +76,20 @@ wording is corrected with this work.
 **A checked-in binary is covered in `REUSE.toml`.** It cannot carry an
 SPDX header, and the licensing rule admits exactly that case. The
 suite's source and its build recipe are checked in beside it, so the
-binary is reproducible rather than magical, and P12 holds throughout:
-this is testaferro's own fixture and names no consuming project.
+binary is reproducible rather than magical, and Open Watcom is a
+*maintainer's* prerequisite rather than a dependency in **P11**'s
+sense — nothing a consumer installs, and that distinction wants
+saying wherever the recipe lands, because it reads the other way too
+easily. **P12 holds throughout**: this fixture is testaferro's own,
+and neither it nor the recipe names a consuming project. Where the
+CppUTest flags need a source, that source is CppUTest's own
+`platforms/Dos`, which is a public fact about the framework.
+
+**What CppUTest itself costs** is the one thing left open, and
+deliberately: whether its sources are vendored here, or the fixture is
+built elsewhere and only the binary lands, is a question about this
+repository's weight rather than about the run, and it is answered when
+the work is picked up. Neither answer changes anything above.
 
 **What the run must show** is the whole point, so it is enumerated:
 the guest boots from the cached image, the work drive carries the

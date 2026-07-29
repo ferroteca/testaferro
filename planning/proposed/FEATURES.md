@@ -49,8 +49,15 @@ hierarchy is how a feature list turns into a schedule.
   slice, and that slice is **F13**, now pledged — one real suite,
   one real machine, one real failure. What it could not carry became
   **F14** (CppUTest's own output) and **F15** (the remaining
-  journeys), both below, because neither can be sized until F13 has
-  shown what an integration test costs to write and to run.
+  journeys), the latter still below.
+
+**F14 retired without ever being separate work.** It was issued to
+hold an open question — whether CppUTest builds for a DOS target at
+all — which turned out to be answered upstream, in CppUTest's own
+`platforms/Dos`. With that settled there was nothing left in F14 that
+F13 was not already doing, so it was absorbed and its number retires
+unreused like any other. A number is a handle for work; where the work
+turns out not to exist apart, neither does the handle.
 
 A gap in the numbering here is where one of them went.
 
@@ -130,27 +137,6 @@ Serves **U7**. Two levels, both declared, both optional:
 
 The prep vocabulary is new declaration surface (the second
 interface) and lands through the interface-change rule.
-
-## F14 — CppUTest's own output, proven
-
-A suite built with **real CppUTest** for a DOS target, run end to end,
-so the output grammars answer to the framework rather than to a
-fixture testaferro authored. This is what discharges the cost **P9**
-states against itself: grammars derive from CppUTest's own source and
-source-derived fixtures cannot prove a real run, so until a genuine
-build has been read, every grammar claim rests on reading rather than
-on evidence. F13's authored suite deliberately does not do this, and
-says so.
-
-> **Not sizeable yet**, and the reason is a question rather than a
-> quantity: whether CppUTest builds for a 16-bit DOS target at all,
-> and with which toolchain. Answer that first — the answer may make
-> this a sprint, or may make it a different feature entirely.
-
-A build tool is not a dependency in **P11**'s sense: it is what a
-maintainer needs to regenerate a checked-in fixture, not something a
-consumer installs. That distinction should be stated wherever the
-recipe lands, because it is easy to read the other way.
 
 ## F15 — The remaining journeys, proven
 
