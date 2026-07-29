@@ -97,18 +97,39 @@ Touches `ResultBroker`, the `Backend` seam, and the CppUTest argv
 builders — so it changes an enumerated interface (the `Backend` ABC)
 and takes the argued route regardless of its size.
 
-## F4 — A specified insertion point
+## F4 — Test placement: files, location, program
 
-Replaces the testaferro-supplied hostdir work drive (D5) with an
-explicit insertion point in the declaration — a slot plus a guest
-directory, e.g. `hdd0:\TESTS\`.
+Grew from "a specified insertion point" into the general placement
+surface, designed in
+[design/test-placement.md](design/test-placement.md) (owner,
+2026-07-29). Replaces the testaferro-supplied hostdir work drive
+(D5) with three declarations beside the machine spec — the **file
+set** staged into the guest, the **location** it lands at, stated in
+guest terms (`D:\TESTDIR` — a letter, not a slot: the spelling
+staging validates and the command needs), and the **program** to run
+there, the adapter still composing argv onto it (P4). Each is
+defaulted, so a single suite executable with nothing else said
+still runs (P8): the one-line `pytest tests/SUITE.EXE` is the
+fully-defaulted corner of this surface, not a case beside it. The
+placement is also **reported**: a consumer can ask where their
+harness landed and is answered in guest terms, the same answer
+whether they declared the location or testaferro chose it — the
+design's reporting contract.
 
-Waits on reliquary maturity, and the blocker is concrete: writing
-into an image drive would be testaferro's own offline work, since
-reliquary blesses writes to a stopped machine's `drives/` but
-provides no FAT writer, and `insert_media()` covers only floppy and
-cdrom slots, never `hdd`. A FAT-writing dependency is what this
-feature costs today, which P11 is exactly the rule for weighing.
+The blocker the earlier shape named is spent: reliquary
+0.1.0.dev5's at-rest file verbs write a stopped machine's drives,
+FAT volumes included, so staging becomes `put_files` between
+`create_machine` and `start_machine` and the attach-time snapshot
+rule retires with the drive that needed it. What remains asked of
+the provider is one thing, argued downstream in
+[design/reliquary-drive-geometry-proposal.md](design/reliquary-drive-geometry-proposal.md):
+a public drive-geometry report for a created, stopped machine —
+drives, volumes, and the volume-to-guest-namespace mapping — whose
+letter-map slice is what *defaulting* the location takes; the facts
+are the provider's to read, the choice is testaferro's to make.
+Landing this supersedes
+D5 and moves the reliquary pin to the release carrying both the
+at-rest verbs and that map — the deliberate act D4 makes it.
 
 ## F5 — A second guest platform binding
 
