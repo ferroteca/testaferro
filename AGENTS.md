@@ -240,12 +240,18 @@ both batched and `-k`-narrowed.
   and the plan is realigned. testaferro adopted this model after the
   code was written (D7), so its vision began wholly drafted in
   [planning/proposed/](planning/proposed/); U4 and P16 were pledged
-  first (D13), then P1 and P2 (D18), and nothing has reached the
-  root lists until P16 armed, followed by P10 and P4; root
-  [ARCHITECTURE.md](ARCHITECTURE.md) carries all three, and root
-  `USE-CASES.md` still does not exist. A principle may arm without
-  ever being pledged, as P4 did — the pledged shelf holds what is
-  owed, not a stop every entry makes. Cite a U- or
+  first (D13), then P1 and P2 (D18), and nothing had reached the
+  root lists until P16 armed, followed by P10 and P4 one at a time
+  and then by P6, P7, P8, P9, P11, P12, P13 and P17 together. Root
+  [ARCHITECTURE.md](ARCHITECTURE.md) carries eleven principles —
+  P4, P6, P7, P8, P9, P10, P11, P12, P13, P16, P17 — and root
+  `USE-CASES.md` still does not exist, so **the architecture binds
+  and no use case does**. Four principles stay drafted: P3 and P5,
+  each contradicted by a small piece of the code and each saying so
+  at its own entry, and P14 and P15, which govern conduct rather
+  than code. A principle may arm without
+  ever being pledged, as most of these did — the pledged shelf holds
+  what is owed, not a stop every entry makes. Cite a U- or
   P-number knowing it names a draft, unless it sits in
   [planning/pledged/](planning/pledged/), where it names something
   the project owes and has not yet delivered, or at the root, where
@@ -292,10 +298,11 @@ both batched and `-k`-narrowed.
 ## Constraints
 
 These are the standing engineering constraints, and most of them are
-also drafted principles — the P-numbers point at
-[planning/proposed/ARCHITECTURE.md](planning/proposed/ARCHITECTURE.md),
-which becomes their canonical home once in force. Until then this
-section is the operative statement.
+now **in-force principles** — the P-numbers point at root
+[ARCHITECTURE.md](ARCHITECTURE.md), which is their canonical home, so
+breaking one here is a bug rather than a preference ignored. This
+section restates them in working terms; where the two differ, the
+principle governs.
 
 - Python code: stdlib plus two declared dependencies (P11) — pytest (the
   facade's host surface, imported lazily) and reliquary (the only

@@ -12,7 +12,8 @@ SPDX-License-Identifier: BSD-3-Clause
 > adopted the planning model (D7). An entry leaves for
 > [pledged/](../pledged/) when the project undertakes it and for
 > [root `ARCHITECTURE.md`](../../ARCHITECTURE.md) when the code
-> honors it — that root file exists now, holding P4, P10 and P16, and a
+> honors it — that root file now holds most of them (P4, P6, P7, P8,
+> P9, P10, P11, P12, P13, P16, P17), and a
 > divergence from anything in it is a bug rather than unbuilt work.
 > Nothing in *this* file carries that weight. Numbering comes from one
 > global P-sequence, never reused, and an entry keeps its number all
@@ -172,50 +173,41 @@ anything that looks normative is written.
   hyphenated blueprint keys are written with underscores in Python
   and INI and normalized on construction, neither host spelling
   admitting a hyphen. (D4, D11.)
+
+  **What stops this arming is the word "single".** The code does
+  three further things to an authored document, each small and each
+  deliberate: `EnvironmentSpec` case-folds `platform` and supplies
+  `"dos"` where the author wrote none; the binding supplies a memory
+  default, the boot floppy and its own work drive (D5); and
+  `_work_drive()` reads the `hdd<n>` slot keys and mirrors a
+  letter-assignment rule reliquary owns and does not expose. None of
+  them mirrors reliquary's *schema* — no field is validated, no shape
+  restated, and a new blueprint field still needs no testaferro
+  change — so the spirit holds while the sentence does not. Arming it
+  means either widening the exception clause to name what testaferro
+  authors on the tester's behalf, or dropping the case-fold and the
+  `platform` default and letting the provider see what was written.
+  Which of those is right is a decision, not a residue to file.
 - **P5 — The guest side is testaferro's, and hermetic.** Every
   session pins its own reliquary home, cache and asset root under
   testaferro's cache, so resolution sees only what testaferro
   authored: never the user's reliquary home, never the built-in
   codex, and never their boot image, which is read and never written.
   (D6.)
-- **P6 — A running machine is stopped before anything is swept.** A
-  machine outlives the call that booted it, so every backend holding
-  a live guest is tracked and stopped before any directory is
-  removed — by `stop()` and by the `atexit` failsafe alike. Sweeping
-  first deletes the disk out from under a running guest and leaks the
-  process, so any new exit path goes through the same stop.
-- **P7 — Fail before the guest boots.** A provably foreign binary —
-  the host build of the suite passed by mistake — an ambiguous
-  machine selection, or an unusable option is rejected up front,
-  naming what was found and what the choices were. Nothing that can
-  be known cheaply is discovered by booting a machine and watching it
-  fail. Where nothing can be proven — a headerless `.com`-style
-  image carries no header to judge — it passes through for the guest
-  itself to judge, which is honesty about the limit rather than an
-  exception to the rule.
-- **P8 — Zero configuration is an entry point, not a demo.** Every
-  configuration surface added leaves the no-declaration path working:
-  a suite executable and nothing else still runs. (U2.)
-- **P9 — Grammars derive from source, never from samples.** A
-  framework adapter's argv builders and output grammars are derived
-  from that framework's own source, and its unit fixtures are
-  source-derived rather than captured. The cost is stated plainly:
-  source-derived fixtures cannot prove a real run, so a grammar
-  change warrants a real end-to-end run before it is trusted.
-- **P11 — The standard library, plus two dependencies at named
-  seams.** pytest and reliquary are the whole dependency list; pytest
-  is imported lazily in the facade, and reliquary only in the guest
-  binding and in `environments.py` for its JSONC reader. Python 3.9 and
-  newer. A third dependency is argued, never added.
-- **P12 — The library never names its consumers.** No consuming
-  project appears in source, tests, human documentation, or
-  repository guidance; consumers and runners are referred to in
-  general instructional terms. A library that knows who uses it has
-  acquired a dependency in the wrong direction.
-- **P13 — No backward compatibility before 1.0.** Changes land
-  coherently and completely — every affected surface, document,
-  example and test moved to the new shape, the old one deleted rather
-  than bridged. Cheap execution does not make the decision cheap.
+
+  **The last clause is the one that is not true yet.** A `boot_image=`
+  given to one suite is attached to the guest **in place** —
+  `materialize: "use"`, with no `read-only` on the drive — so a guest
+  that writes to A: writes the tester's own file. The run-level
+  `start(boot_image=…)` path is safe, because it copies the image
+  into the run's area first; the per-suite path never acquired the
+  same protection. That is a defect to fix rather than a sentence to
+  soften, and fixing it is what arms this principle. Two smaller
+  things go with it: "asset root" names the `assets=` knob reliquary
+  retired in 0.1.0.dev3 — the pin is home, cache, blueprints
+  directory and `autoseed=False` now (D6, restated) — and "every
+  session" wants D15's qualifier, since what pins a context is a
+  guest session.
 - **P14 — Interface and principle changes are vetted.** Every
   interface-changing decision triages by its impact on the use cases
   *and* the principles, under the interface-change rule
@@ -233,30 +225,22 @@ anything that looks normative is written.
   work's quality or its author. Governance authority may compress the
   steps into one PR — compressed in time, never reduced in content.
   (D7.)
-- **P17 — What testaferro offers, testaferro authors.** Every
-  environment testaferro puts a name on — the standard catalog's
-  own (U9, D10), and any blueprint, script or medium shipped
-  with one — is authored here and complete in itself: the document,
-  the drives it declares, and the media those locate. **Nothing
-  testaferro offers is a name resolved out of the provider's own
-  shipped content**: reliquary's codex is not an input to a test
-  run, at resolution or at materialization, and neither is the
-  user's reliquary home (D6). This is P5's hermeticity read forward
-  from the session to the catalog — P5 governs what a run may
-  *reach*, this governs what testaferro may *offer* — and the reason
-  is the same twice: a test run depends only on state testaferro
-  authored or the project checked in, and a curated environment
-  leaning on a provider's catalog inherits that catalog's
-  versioning, availability and install cost while owning none of
-  them (D10: an install per session is not a price a test run pays).
-  Provider content stays reachable the way everything else does —
-  the tester declares it (P1, P3), which is their choice to make and
-  never testaferro's default to drift into.
+
+**Four are left, and for two different reasons.** P3 and P5 describe
+the code and do not yet describe it accurately — each has a residue
+naming itself, recorded at the entry. P14 and P15 describe the
+project's *conduct* rather than its code, and the in-force list says
+of every entry that "the code honors it": a rule about how a decision
+is argued has no code to be honored by, so whether that list carries
+governance posture at all is a question about what the file is for,
+and it has not been asked. Nothing is wrong with either pair sitting
+here; drafted is where a principle waits, not where it fails.
 
 **Principles that moved on have left this file** — pledged ones for
 [../pledged/ARCHITECTURE.md](../pledged/ARCHITECTURE.md), in-force
 ones for [root `ARCHITECTURE.md`](../../ARCHITECTURE.md), and P4 went
-straight to the second without stopping at the first. A gap in the
+straight to the second without stopping at the first, as P6, P7, P8,
+P9, P11, P12, P13 and P17 later did together. A gap in the
 numbering here is where one went. The whole-system view above and
 the interface enumeration stay here whatever moves, because the
 vetting rule looks the interfaces up in this file.

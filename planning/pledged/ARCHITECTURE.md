@@ -14,7 +14,8 @@ SPDX-License-Identifier: BSD-3-Clause
 > the same shortfall against the root list would be a bug. Numbering
 > comes from one global P-sequence, never reused, and an entry keeps
 > its number every time it moves. **P16 has left for the root list**,
-> the first entry of any kind to arm.
+> the first entry of any kind to arm; eleven principles sit there now,
+> and the two below are what the project owes rather than claims.
 
 **The whole-system view and the interface enumeration are not here.**
 They stay in
@@ -25,10 +26,12 @@ principle here is an undertaking rather than a claim about the code.
 
 **P1 and P2 are pledged severed** (D18), on the reading D13 used for
 U4: the rule against leaning on a proposal tests **completion**, not
-citation, and every drafted entry they cite — P3, P8, P17, U9 —
-names behaviour the code ships today. U7 is cited only to illustrate
-how deep a provider document may go, which blueprint pass-through
-already allows.
+citation, and every drafted entry they cited — P3, P8, P17, U9 —
+named behaviour the code ships today. P8 and P17 have since armed and
+are cited below as in-force rules; P3 and U9 remain drafted, and the
+severance argument is what it always was. U7 is cited only to
+illustrate how deep a provider document may go, which blueprint
+pass-through already allows.
 
 - **P1 — The execution provider is a declared choice, and
   reliquary is the only supported one.** A **provider** is whatever

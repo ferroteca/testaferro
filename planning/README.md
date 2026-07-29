@@ -138,18 +138,28 @@ features among them have been delivered — **which arms nothing**.
 Features carry no vision; delivering one leaves code and retires a
 number. A use case still reaches the root list only on full
 delivery and a principle only on being honored as a rule. **P16 was
-the first entry of any kind to arm**, and P10 and P4 followed it, so
-root `ARCHITECTURE.md` now carries three in-force claims. Two speak
-to maintainers, about how this project is built and verified; P4
-speaks to whoever writes a framework adapter, and went straight from
-drafted to in force without a pledge, the pledged shelf being for
-what is owed rather than a stop everything makes. No use
+the first entry of any kind to arm**, and P10 and P4 followed it one
+at a time; P6, P7, P8, P9, P11, P12, P13 and P17 then armed together,
+on the same bar applied to each. Root `ARCHITECTURE.md` now carries eleven
+in-force claims, and the drafted list is down to four. Most of them
+went straight from drafted to in force without a pledge, as P4 did:
+the pledged shelf holds what is owed, and a principle the code
+already honors is owed nothing. No use
 case has armed — none can until a guest runs — so the honest answer
 to "what does testaferro promise *a user*?" is still *no journey yet
-stated*. Several drafted entries describe
+stated*, however much the architecture now asserts. Several drafted
+entries describe
 code that already exists; that makes their route short, not
 automatic — the pledge is still an act, and delivery still has to be
 true.
+
+**What did not arm is worth naming, because the bar is what makes
+the root list mean anything.** P3 and P5 each describe the code, and
+each is contradicted by a small piece of it — recorded at the entry,
+where whoever reads the principle meets it. P14 and P15 are about how
+this project argues rather than about what it built, and the in-force
+list asserts of every entry that the code honors it, which a rule of
+conduct gives nothing to check.
 
 Each mirrored artifact appears in **both** directories, because use
 cases and principles have **three** states, not two: drafted →

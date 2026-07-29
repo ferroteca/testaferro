@@ -34,10 +34,14 @@ The **use cases** are the other half of the decision surface and carry
 equal weight. None is in force yet: root `USE-CASES.md` does not
 exist, because a use case arms on *full delivery* and no guest has run
 since the migration to the blueprint model. So testaferro still
-promises no user a *journey*. P4 is the first entry here to bind
-anything on their side of the seam — it tells whoever writes a
-framework adapter what one is — and the rest speak to maintainers,
-about how this project is built and verified.
+promises no user a *journey* — what the entries below bind is the
+shape of the thing, never a trip through it. Several of them do speak
+past the maintainers: P4 tells whoever writes a framework adapter what
+one is, P7 and P8 tell whoever runs a suite what will be refused and
+what will keep working, P12 tells whoever depends on the library what
+it will never learn about them, and P17 tells whoever names a standard
+environment whose content they are getting. The rest are about how
+this project is built and verified.
 
 ## The principles
 
@@ -100,6 +104,48 @@ about how this project is built and verified.
   adapter supplies, which side owns verification, and why that
   surface needs no base class under it.]*
 
+- **P6 — A running machine is stopped before anything is swept.** A
+  machine outlives the call that booted it, so every backend holding
+  a live guest is tracked and stopped before any directory is
+  removed — by `stop()` and by the `atexit` failsafe alike. Sweeping
+  first deletes the disk out from under a running guest and leaks the
+  process, so any new exit path goes through the same stop.
+
+- **P7 — Fail before the guest boots.** A provably foreign binary —
+  the host build of the suite passed by mistake — an ambiguous
+  environment selection, or an unusable option is rejected up front,
+  naming what was found and what the choices were. Nothing that can
+  be known cheaply is discovered by booting a machine and watching it
+  fail. Where nothing can be proven — a headerless `.com`-style
+  image carries no header to judge — it passes through for the guest
+  itself to judge, which is honesty about the limit rather than an
+  exception to the rule.
+
+  *[Amended before arming: this said "an ambiguous **machine**
+  selection", D3-era vocabulary P2 has since retired. The rule is
+  unchanged — what can be ambiguous is which declared *environment*
+  runs the executable, which is what `environments.select()` refuses
+  and what its message lists.]*
+
+- **P8 — Zero configuration is an entry point, not a demo.** Every
+  configuration surface added leaves the no-declaration path working:
+  a suite executable and nothing else still runs. (U2.)
+
+  **What arms here is the rule, not a proof of the journey.** That
+  each surface leaves the path intact is checked on this side of the
+  line — an inferred platform matches declarations only, so the
+  catalog is reached by asking for it and never by falling into it —
+  while the boot that path ends in waits on the integration tier,
+  with U2 (F6, P10). Arming this asserts that the entry point is kept
+  open, which is the part a new option can close by accident.
+
+- **P9 — Grammars derive from source, never from samples.** A
+  framework adapter's argv builders and output grammars are derived
+  from that framework's own source, and its unit fixtures are
+  source-derived rather than captured. The cost is stated plainly:
+  source-derived fixtures cannot prove a real run, so a grammar
+  change warrants a real end-to-end run before it is trusted.
+
 - **P10 — testaferro's own unit tier never starts a guest.** This
   one is about *this repository's* tests of itself, and not about a
   consumer's tests of their suite — whose whole business is starting
@@ -129,6 +175,23 @@ about how this project is built and verified.
   purpose: a provider that runs a program without booting a machine
   starts a guest all the same, and testaferro's unit tests may
   not.]*
+
+- **P11 — The standard library, plus two dependencies at named
+  seams.** pytest and reliquary are the whole dependency list; pytest
+  is imported lazily in the facade, and reliquary only in the guest
+  binding and in `environments.py` for its JSONC reader. Python 3.9 and
+  newer. A third dependency is argued, never added.
+
+- **P12 — The library never names its consumers.** No consuming
+  project appears in source, tests, human documentation, or
+  repository guidance; consumers and runners are referred to in
+  general instructional terms. A library that knows who uses it has
+  acquired a dependency in the wrong direction.
+
+- **P13 — No backward compatibility before 1.0.** Changes land
+  coherently and completely — every affected surface, document,
+  example and test moved to the new shape, the old one deleted rather
+  than bridged. Cheap execution does not make the decision cheap.
 
 - **P16 — One vocabulary, three spellings.** Every consumer-facing
   option is one vocabulary spelled three ways: a `guest_suite()`
@@ -167,3 +230,36 @@ about how this project is built and verified.
   from one list in `testaferro/plugin.py` so they cannot drift; a
   keyword added to one and not the others is the bug this principle
   names.
+
+- **P17 — What testaferro offers, testaferro authors.** Every
+  environment testaferro puts a name on — the standard catalog's
+  own (U9, D10), and any blueprint, script or medium shipped
+  with one — is authored here and complete in itself: the document,
+  the drives it declares, and the media those locate. **Nothing
+  testaferro offers is a name resolved out of the provider's own
+  shipped content**: reliquary's codex is not an input to a test
+  run, at resolution or at materialization, and neither is the
+  user's reliquary home (D6). This is P5's hermeticity read forward
+  from the guest session to the catalog — P5 governs what a run may
+  *reach*, this governs what testaferro may *offer* — and the reason
+  is the same twice: a test run depends only on state testaferro
+  authored or the project checked in, and a curated environment
+  leaning on a provider's catalog inherits that catalog's
+  versioning, availability and install cost while owning none of
+  them (D10: an install per session is not a price a test run pays).
+  Provider content stays reachable the way everything else does —
+  the tester declares it (P1, P3), which is their choice to make and
+  never testaferro's default to drift into.
+
+  **An entry declaring nothing is still complete.** `freedos` names
+  only its platform and takes the binding's zero-configuration boot
+  image, which is testaferro's own authored media definition —
+  a URL and its hashes, written in `testaferro/reliquary.py` — and
+  not a name looked up anywhere. What this principle forbids is
+  reaching into the provider's shipped content for a name, not
+  declaring little. *[Amended before arming: "from the session to
+  the catalog" is written "from the guest session" above, D15 having
+  since taken the unqualified word for pytest's own span. The second
+  paragraph is added — `catalog.py` has always read this way, and
+  the first paragraph alone could be read as requiring every entry
+  to spell out a boot medium.]*
