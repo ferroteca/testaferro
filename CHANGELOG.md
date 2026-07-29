@@ -47,6 +47,14 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   so a project declaring `freedos` still gets its own; the catalog is reached by name and never by inference, leaving
   the no-declaration path exactly as it was. Nothing resolves from the user's reliquary home.
 
+### Fixed
+
+- **A boot image you supply is no longer writable by the guest.** `boot_image=` attached your file to the machine in
+  place, so a guest writing to `A:` — which DOS does for reasons of its own — edited the image you handed over. What
+  boots is now testaferro's own copy inside that guest's disposable home, staged before boot exactly as the suite
+  executable is. Two suites in one run no longer share a floppy either of them can change, either. Setting the
+  blueprint's `read-only` flag would not have fixed it: reliquary parses the field without passing it to QEMU.
+
 ### Changed
 
 - **The reliquary pin moves to 0.1.0.dev4**, and testaferro stops mirroring a rule it never owned. `drive_letters()`

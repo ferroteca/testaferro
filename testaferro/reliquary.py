@@ -378,8 +378,12 @@ class ReliquarySuiteBackend(SuiteBackend):
         # attached, so the executable is staged before the machine
         # boots, not on the first run.
         shutil.copy2(self._exe, os.path.join(work, self._program()))
+        # And the boot image for the same reason, one drive over: what
+        # boots is testaferro's copy, so the tester's own file is read
+        # and never written (P5).
+        boot = self._stage_boot_image()
 
-        document, self._letter = self._blueprint(work)
+        document, self._letter = self._blueprint(work, boot)
         with open(os.path.join(blueprints, _BLUEPRINT_NAME + ".rlqb"),
                   "w", encoding="utf-8") as handle:
             json.dump(document, handle)
@@ -429,7 +433,7 @@ class ReliquarySuiteBackend(SuiteBackend):
                               timeout=self._timeout)
         return "\n".join(rows) + "\n"
 
-    def _blueprint(self, work):
+    def _blueprint(self, work, boot=None):
         """The blueprint document for this backend session.
 
         The declaration (or the zero-configuration default) plus
@@ -438,6 +442,11 @@ class ReliquarySuiteBackend(SuiteBackend):
         to reliquary, which owns materialization: a declaration stays
         a template because reliquary materializes a fresh machine from
         it each session.
+
+        `work` and `boot` are both **already staged** — locations,
+        not sources. Nothing is copied here: this authors a document,
+        and a document that copied files would be doing it after the
+        point where the backend snapshots them.
         """
         spec = self._machine_config
         fields = dict(spec.fields) if spec is not None else {}
@@ -445,7 +454,7 @@ class ReliquarySuiteBackend(SuiteBackend):
         fields.setdefault("memory", _DEFAULT_MEMORY)
         drives = dict(fields.get("drives") or {})
         if not drives:
-            image = self._declared_boot_image()
+            image = boot
             if image is not None:
                 # A tester's own boot floppy (U3), booted as given.
                 drives["floppy0"] = {
@@ -497,3 +506,22 @@ class ReliquarySuiteBackend(SuiteBackend):
         if _run_area is not None and _run_area["boot_image"]:
             return _run_image()
         return None
+
+    def _stage_boot_image(self):
+        """This guest's own copy of the declared boot image, or None.
+
+        **The tester's image is read and never written** (P5), so what
+        boots is testaferro's copy inside this guest's home — staged
+        before boot exactly as the suite executable is, and for the
+        same reason: a drive attached in place is one the guest may
+        write to, and DOS writes to A: for reasons of its own. Before
+        this, a suite that did so edited the image its tester handed
+        over. Copying per guest session also stops two suites in one
+        run sharing a floppy either of them can change.
+        """
+        image = self._declared_boot_image()
+        if image is None:
+            return None
+        staged = os.path.join(self._home, "boot.img")
+        shutil.copy2(image, staged)
+        return staged

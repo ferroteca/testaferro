@@ -188,6 +188,16 @@ Package layout (each module states its contract in its docstring):
     free disk slot. The backend snapshots that directory when the
     drive is attached, so staging must happen before
     `start_machine()`, never lazily on first run.
+  - **A declared boot image is staged too, and for a different
+    reason.** What boots is testaferro's copy inside the guest home,
+    because the tester's own file is read and never written (P5). A
+    drive attached in place is one the guest may write to, and
+    reliquary parses a media's `read-only` without passing it to
+    QEMU, so the flag would look like protection and be none.
+    `_blueprint()` therefore authors over locations that are
+    **already staged** — it copies nothing, which is what keeps the
+    snapshot rule above from being quietly broken by a document
+    builder.
   - **`_work_drive()` chooses the slot and asks for the letter.**
     The slot is testaferro's — the lowest free disk — and the letter
     is reliquary's to say: `platform_dos.drive_letters()` places every

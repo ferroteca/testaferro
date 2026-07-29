@@ -249,6 +249,46 @@ class ReliquarySuiteBackendTests(_BindingFixture):
             finally:
                 backend.stop_guest()
 
+    def test_the_testers_boot_image_is_read_and_never_written(self):
+        # P5's promise, and it was not kept: the image was attached in
+        # place, so a guest writing to A: — which DOS does for reasons
+        # of its own — edited the file its tester handed over. What
+        # boots is testaferro's copy inside the guest's own home.
+        backend = binding.suite_backend(self.exe, boot_image=self.image)
+
+        with self._fake_machine():
+            backend.start_guest()
+            try:
+                booted = self._blueprint(
+                    backend._home)["drives"]["floppy0"]["location"]["local"]
+                home = backend._home
+            finally:
+                backend.stop_guest()
+
+        self.assertNotEqual(pathlib.Path(booted), pathlib.Path(self.image))
+        self.assertEqual(pathlib.Path(booted).parent, pathlib.Path(home))
+        # and it is a copy, not an empty placeholder
+        self.assertEqual(pathlib.Path(self.image).read_bytes(), b"custom dos")
+
+    def test_two_guest_sessions_do_not_share_a_writable_floppy(self):
+        # One run, two suites: each gets its own copy, so neither can
+        # hand the other a floppy it has changed.
+        binding.start(boot_image=self.image)
+        self.addCleanup(binding.stop)
+        booted = []
+
+        for _ in range(2):
+            backend = binding.suite_backend(self.exe)
+            with self._fake_machine():
+                backend.start_guest()
+                try:
+                    booted.append(self._blueprint(backend._home)
+                                  ["drives"]["floppy0"]["location"]["local"])
+                finally:
+                    backend.stop_guest()
+
+        self.assertNotEqual(booted[0], booted[1])
+
     def test_the_default_system_is_built_once_and_then_reused(self):
         # `_build_default_image()` performs a real FreeDOS install, so
         # it is stubbed here and belongs to integration — the seam to
@@ -435,20 +475,24 @@ class WorkDrivePlacementTests(unittest.TestCase):
 class BlueprintAuthoringTests(_BindingFixture):
     """The document testaferro composes, without materializing it."""
 
-    def _document(self, backend):
-        document, letter = backend._blueprint("/work")
+    def _document(self, backend, boot=None):
+        # `_blueprint` authors over locations that are already staged,
+        # so a boot image reaches it as a path rather than being
+        # copied out of the backend here.
+        document, letter = backend._blueprint("/work", boot)
         return document[0], document[1:], letter
 
     def test_zero_configuration_boots_the_chosen_image(self):
         backend = binding.suite_backend(self.exe, boot_image=self.image)
 
-        machine, media, letter = self._document(backend)
+        machine, media, letter = self._document(backend, "/guest/boot.img")
 
         self.assertEqual(machine["type"], "machine")
         self.assertEqual(machine["platform"], "dos")
         self.assertEqual(machine["boot"], ["floppy0"])
+        # The staged copy, not the tester's own file (P5).
         self.assertEqual(machine["drives"]["floppy0"]["location"],
-                         {"local": str(self.image)})
+                         {"local": "/guest/boot.img"})
         self.assertEqual(machine["drives"]["hdd0"]["location"],
                          {"local": "/work"})
         self.assertEqual((media, letter), ([], "C"))

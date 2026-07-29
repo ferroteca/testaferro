@@ -203,15 +203,16 @@ anything that looks normative is written.
   codex, and never their boot image, which is read and never written.
   (D6.)
 
-  **The last clause is the one that is not true yet.** A `boot_image=`
-  given to one suite is attached to the guest **in place** —
-  `materialize: "use"`, with no `read-only` on the drive — so a guest
-  that writes to A: writes the tester's own file. The run-level
-  `start(boot_image=…)` path is safe, because it copies the image
-  into the run's area first; the per-suite path never acquired the
-  same protection. That is a defect to fix rather than a sentence to
-  soften, and fixing it is what arms this principle. Two smaller
-  things go with it: "asset root" names the `assets=` knob reliquary
+  **The last clause is true now, and was not.** A `boot_image=` was
+  attached to the guest **in place** — `materialize: "use"`, and
+  reliquary parses a media's `read-only` without passing it to QEMU —
+  so a guest writing to A: wrote the tester's own file. What boots is
+  now testaferro's copy inside the guest's own home, staged before
+  boot exactly as the suite executable is; two suites in one run no
+  longer share a floppy either can change either.
+
+  **Two wording corrections stand between this and arming**, and
+  neither is a defect: "asset root" names the `assets=` knob reliquary
   retired in 0.1.0.dev3 — the pin is home, cache, blueprints
   directory and `autoseed=False` now (D6, restated) — and "every
   session" wants D15's qualifier, since what pins a context is a
