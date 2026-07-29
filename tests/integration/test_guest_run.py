@@ -21,8 +21,10 @@ where everything passes proves only that output was parsed.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -110,6 +112,42 @@ class GuestCollectionTests(unittest.TestCase):
         # One deliberate failure, and the rest passing: a run that is
         # all green would not show the failure path works at all.
         self.assertEqual(result.returncode, 1, output)
+        self.assertIn("1 failed", output)
+
+    def test_a_project_ini_claims_the_suite_and_its_environment_boots(self):
+        """U4's declaration clause, proved by a guest rather than a
+        stub.
+
+        A `testaferro.ini` beside the project is what makes the trial
+        and the embedded run the same execution: it says which files
+        are guest suites and which environment runs them, and nothing
+        about the suite has to be named on the command line. Unit
+        tests prove the file is found and the environment selected;
+        only a boot proves the environment it selected actually runs
+        the suite.
+        """
+        with tempfile.TemporaryDirectory() as project:
+            root = Path(project)
+            shutil.copy2(SUITE, root / SUITE.name)
+            # One section, one environment: declaring only a platform
+            # is what the standard catalog's own entry does, so this
+            # runs on testaferro's installed system exactly as naming
+            # nothing would (P8).
+            (root / "testaferro.ini").write_text(
+                "[project-dos]\nplatform = dos\nsuites = *.EXE\n",
+                encoding="utf-8")
+            (root / "pytest.ini").write_text("[pytest]\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "-m", "pytest", "-p", "no:cacheprovider",
+                 "-v"],
+                capture_output=True, text=True, check=False, cwd=str(root))
+            output = result.stdout + result.stderr
+
+        # Claimed by the declaration's mask, with no file named on the
+        # command line at all, and run in the environment it declared.
+        self.assertIn("SUITE.EXE::Guest-Runs", output, output)
+        self.assertIn("SUITE.EXE::Guest-Fails", output, output)
         self.assertIn("1 failed", output)
 
 

@@ -17,14 +17,18 @@ SPDX-License-Identifier: BSD-3-Clause
 > `USE-CASES.md`.
 
 **Pledging and delivery are different events.** An entry moves to
-`pledged/` when the project undertakes it, and to root `USE-CASES.md`
-only when the code meets it in full. Several entries below already
-describe working code, which makes their route short but not
-automatic: root is an implementation claim, and this project cannot
-currently make it. There is no integration suite, so no guest has run
-since the migration to the blueprint model (D4) — U1, U2, U3 and U5
-are implemented but **unproven**, and end-to-end proof is owed before
-any of them is armed.
+`pledged/` when the project undertakes it, and to
+[root `USE-CASES.md`](../../USE-CASES.md) only when the code meets it
+in full. Several entries below already describe working code, which
+makes their route short but not automatic: root is an implementation
+claim, and each entry has to be met clause by clause.
+
+**A guest runs now**, so what these wait on has changed. The
+integration tier exists and U4 has armed on the strength of it, but
+one boot does not arm four journeys: U1, U2, U3 and U5 are exercised
+in passing by that proof rather than met in full by it — U5's
+parallelism is not exercised at all — so each still owes the clauses
+nobody has asserted.
 
 Reconstructed drafts, so read them for accuracy first: these are the
 owner's use cases put into words by an agent, not dictated by him.
@@ -33,9 +37,11 @@ will; only an in-force one may not. Reshaping a clause a *pledged*
 entry leans on is still allowed and no longer free: it re-opens what
 that pledge rests on (D13).
 
-**Pledged entries have left this file.**
-[../pledged/USE-CASES.md](../pledged/USE-CASES.md) holds them, and a
-gap in the numbering here is where one went.
+**Entries that moved on have left this file**, and a gap in the
+numbering here is where one went. There is one so far: U4 was pledged
+by D13, waited on the pledged shelf for a guest to run its journey,
+and is now in force at [root `USE-CASES.md`](../../USE-CASES.md) — the
+whole route, in the order the machinery intends.
 
 - **U1 — Unit tests that can only run on the target OS, surfaced as
   ordinary pytest items.** A developer maintains code whose unit

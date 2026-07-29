@@ -10,7 +10,7 @@ SPDX-License-Identifier: BSD-3-Clause
 > P-numbered so use cases, decisions, designs and commits can cite
 > them — reconstructed from the project's own prose when testaferro
 > adopted the planning model (D7). An entry leaves for
-> [pledged/](../pledged/) when the project undertakes it and for
+> the `pledged/` shelf when the project undertakes it and for
 > [root `ARCHITECTURE.md`](../../ARCHITECTURE.md) when the code
 > honors it — that root file now holds all but four of them (P1, P2,
 > P4, P6 through P13, P16 and P17), and a

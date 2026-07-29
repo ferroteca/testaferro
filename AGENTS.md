@@ -332,18 +332,20 @@ both batched and `-k`-narrowed.
   P1 and P2 once F12 built what they promised. Root
   [ARCHITECTURE.md](ARCHITECTURE.md) carries thirteen principles —
   P1, P2, P4, P6 through P13, P16 and P17 — and root
-  `USE-CASES.md` still does not exist, so **the architecture binds
-  and no use case does**. Four principles stay drafted: P3 and P5,
+  [USE-CASES.md](USE-CASES.md) now exists, carrying **U4**, armed once
+  a guest ran the journey it describes. **Nothing is pledged any
+  more**: `planning/pledged/` is empty and gone, so a U- or P-number
+  names either a rule in force or an argument, never something merely
+  owed. Four principles stay drafted: P3 and P5,
   each contradicted by a small piece of the code and each saying so
   at its own entry, and P14 and P15, which govern conduct rather
-  than code. **No principle is pledged**, so a P-number now names
-  either a rule in force or an argument. A principle may arm without
-  ever being pledged, as most of these did — the pledged shelf holds
-  what is owed, not a stop every entry makes. Cite a U- or
-  P-number knowing it names a draft, unless it sits in
-  [planning/pledged/](planning/pledged/), where it names something
-  the project owes and has not yet delivered, or at the root, where
-  a divergence is a bug rather than unbuilt work.
+  than code. An entry may arm without ever being pledged, as most of
+  the principles did — the pledged shelf holds what is *owed*, not a
+  stop every entry makes, which is why it can stand empty while the
+  project is far from finished. Cite a U- or P-number knowing it
+  names a draft unless it sits at the root, where a divergence is a
+  bug rather than unbuilt work; `planning/pledged/` returns the day
+  something is undertaken and undelivered again.
 - **Interface changes are vetted** by
   [planning/INTERFACES.md](planning/INTERFACES.md), and the
   enumeration it scopes over is
@@ -539,9 +541,11 @@ the default system takes `hdd0`, so the work drive is `D:`.
 **The integration tier exists and passes** — `tests/integration/`,
 holding testaferro's own CppUTest DOS suite (`guest/`, with its
 source, its Open Watcom makefile and the built `SUITE.EXE`) and the
-cases that boot it. Five of them: the guest enumerates, runs batched
-and singly, replays a failure with the guest's own file and line, and
-`pytest SUITE.EXE` collects and runs for real. About a minute.
+cases that boot it. Six of them: the guest enumerates, runs batched
+and singly, replays a failure with the guest's own file and line,
+`pytest SUITE.EXE` collects and runs for real, and a `testaferro.ini`
+beside a project claims the suite and boots the environment it
+declares with nothing named on the command line. Under two minutes.
 
 Three defects fell out of building it, which is what it was for. A
 grammar that ended a failure message on a blank line the transport

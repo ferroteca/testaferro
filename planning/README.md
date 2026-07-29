@@ -86,14 +86,17 @@ the same artifacts in different states. A thing in `proposed/` moves
 to `pledged/`, and **the commit that moves it is the record**. Each
 mirrored file appears in `pledged/` with its first promoted entry
 rather than standing empty, and leaves again when its last one
-does. **One is there today.** `FEATURES.md` has done the round trip
-three times over — F7 and F8, then F11 and F12, then F13 alone — and
-is gone again now that F13 has delivered, which is the file behaving
-exactly as intended rather than churn. `ARCHITECTURE.md` has done it
-once, holding P1 and P2 from D18 until F12 built what they promised
-and both armed. So what the project owes is **one use case and
-nothing else at all**: no feature, no principle, and no unbuilt
-capability. U4 waited on proof, and the proof has run.
+does. **`pledged/` is empty today, and so it is not there at all.**
+`FEATURES.md` did the round trip three times over — F7 and F8, then
+F11 and F12, then F13 alone. `ARCHITECTURE.md` did it once, holding
+P1 and P2 from D18 until F12 built what they promised. `USE-CASES.md`
+did it once and longest, holding U4 from D13 until a guest ran the
+journey it describes. Each left when its last entry armed or
+delivered, which is the machinery working rather than churn.
+
+**An empty shelf says the project owes nothing it has undertaken —
+not that it is finished.** Plenty waits in `proposed/`; none of it has
+been pledged. The directory returns the day something is.
 
 **The planning root holds what does not move.** The map, the rule,
 the record and the queue are machinery rather than proposals, and
@@ -116,7 +119,7 @@ none of them has a lifecycle state to be in:
 
 The in-force artifacts belong at the **repository root**, not here,
 because they are claims about the code as it exists today:
-`USE-CASES.md`, every entry met by the code, and
+[`USE-CASES.md`](../USE-CASES.md), every entry met by the code, and
 [`ARCHITECTURE.md`](../ARCHITECTURE.md), the P-numbered architectural
 principles, every one honored by the code. The whole-system view
 belongs there too and has not followed yet — but its reason for
@@ -129,7 +132,7 @@ looks up. Together with the normative
 specifications they are the project's **vision**: the standing
 statement of what testaferro is and is for.
 
-**Root `ARCHITECTURE.md` exists; root `USE-CASES.md` does not.**
+**Both root lists exist now, and one of them took months.**
 testaferro adopted this model
 after the code was written (D7), so its whole vision was drafted at
 once into [proposed/](proposed/):
@@ -137,9 +140,9 @@ once into [proposed/](proposed/):
 [proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md) — which carries
 the interface enumeration the vetting rule looks up, and keeps it
 whatever else moves — and
-[proposed/FEATURES.md](proposed/FEATURES.md). The first entries have
-since been pledged into [pledged/](pledged/) (D13), and the two
-features among them have been delivered — **which arms nothing**.
+[proposed/FEATURES.md](proposed/FEATURES.md). The first entries were
+pledged onto the `pledged/` shelf (D13), and the two
+features among them were delivered — **which arms nothing**.
 Features carry no vision; delivering one leaves code and retires a
 number. A use case still reaches the root list only on full
 delivery and a principle only on being honored as a rule. **P16 was
@@ -152,12 +155,17 @@ principle is pledged at all**. Most went straight from drafted to in
 force without a pledge, as P4 did — the pledged shelf holds what is
 owed, and a principle the code already honors is owed nothing — while
 P1 and P2 took the long route the shelf is for, pledged by D18 with
-the work owing and armed when it landed. No use
-case has armed — none can until a guest runs — so the honest answer
-to "what does testaferro promise *a user*?" is still *no journey yet
-stated*, however much the architecture now asserts. Several drafted
-entries describe
-code that already exists; that makes their route short, not
+the work owing and armed when it landed.
+
+**Then a guest ran, and U4 armed** — the first use case of any kind
+to, and the reason root `USE-CASES.md` exists at all. For as long as
+nothing had booted, the honest answer to "what does testaferro promise
+*a user*?" was *no journey yet stated*, however much the architecture
+asserted; a use case arms on delivery, and delivery is a journey
+working rather than code existing. **Nothing is pledged now**:
+`pledged/` is empty and gone, which says the project owes nothing it
+has undertaken — not that it is finished. Several drafted entries
+describe code that already exists; that makes their route short, not
 automatic — the pledge is still an act, and delivery still has to be
 true.
 

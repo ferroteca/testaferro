@@ -7,7 +7,8 @@ SPDX-License-Identifier: BSD-3-Clause
 
 > **Status: in force.** Every principle below is honored by the code
 > as it stands today — that is the whole content of a principle being
-> here rather than in [planning/pledged/](planning/pledged/).
+> here rather than on the pledged shelf (`planning/pledged/`, which
+> stands empty and therefore absent).
 > **A divergence from any of them is a bug**, to be reported and
 > fixed, and not unbuilt work to be scheduled. That is the difference
 > arming makes, and it is why a principle reaches this file only when
@@ -31,11 +32,13 @@ can now be asserted on its own terms, and moving it is a promotion
 waiting to be made rather than a condition waiting to be met.
 
 The **use cases** are the other half of the decision surface and carry
-equal weight. None is in force yet: root `USE-CASES.md` does not
-exist, because a use case arms on *full delivery* and no guest has run
-since the migration to the blueprint model. So testaferro still
-promises no user a *journey* — what the entries below bind is the
-shape of the thing, never a trip through it. Most of them do speak
+equal weight, and they are now at [USE-CASES.md](USE-CASES.md) — one
+of them, U4, armed once a guest actually ran the journey it describes.
+The two halves arm on different events by design: a principle moves
+when the code honors it as a rule, a use case only on *full delivery*,
+which is why this file filled up first and why testaferro promised no
+user a journey for so long. What the entries below bind is the shape
+of the thing rather than a trip through it. Most of them do speak
 past the maintainers: P1 and P2 are the whole guest-facing
 vocabulary, and say what a suite writes and how far it reaches; P4
 tells whoever writes a framework adapter what one is; P7 and P8 tell

@@ -164,10 +164,13 @@ class _PytestTreeCase(unittest.TestCase):
         return self.write(name, plain_dos_exe_bytes()
                           if content is None else content)
 
-    def pytest(self, *args):
+    def pytest(self, *args, cache=False):
+        # The cache plugin is off by default so no run leaves state
+        # for the next; `--lf` is the one thing that needs it, and
+        # asks for it.
+        cache_args = [] if cache else ["-p", "no:cacheprovider"]
         result = subprocess.run(
-            [sys.executable, "-m", "pytest", "-p", "no:cacheprovider",
-             "-q", *args],
+            [sys.executable, "-m", "pytest", *cache_args, "-q", *args],
             cwd=str(self.root), capture_output=True, text=True,
             check=False)
         return result
@@ -376,6 +379,47 @@ class PluginTests(_PytestTreeCase):
         self.assertIn("1 passed", result.stdout)
         self.assertIn("run_test:Vring:Wraps", self.recorded())
         self.assertNotIn("run_all", self.recorded())
+
+    def test_exitfirst_stops_the_session_at_a_guest_failure(self):
+        # `-x` is pytest's own and needs no help from testaferro —
+        # which is the claim, so it is worth proving rather than
+        # assuming (U4). Two suites, so stopping is visible: the
+        # first one's failure has to keep the second from running at
+        # all.
+        self.write("pytest.ini",
+                   "[pytest]\ntestaferro-suites = *.EXE *.COM\n")
+        self.suite()
+        self.suite("OTHER.COM")
+
+        result = self.pytest("-x")
+
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("stopping after 1 failures", result.stdout)
+        # both suites were enumerated; only one was ever run
+        self.assertEqual(self.recorded().count("list"), 2)
+        self.assertEqual(self.recorded().count("run_all"), 1)
+
+    def test_last_failed_reruns_only_the_guest_test_that_failed(self):
+        # `--lf` keys on node ids, so it works exactly because the
+        # ids are pytest's own and testaferro produces them (U4).
+        self.suite()
+
+        first = self.pytest("SUITE.EXE", cache=True)
+        self.assertIn("1 failed, 1 passed", first.stdout)
+        before = len(self.recorded())
+
+        again = self.pytest("SUITE.EXE", "--lf", cache=True)
+
+        # One item selected and one deselected: `--lf` picked the
+        # guest test that failed, by its node id. Whether it passes on
+        # the rerun is the fake's business — this stand-in always
+        # passes a single run_test — and not what is under test.
+        self.assertIn("1 deselected", again.stdout)
+        rerun = self.recorded()[before:]
+        # narrowed to one item, so the broker asks for that one test
+        # rather than batching the suite it did not select
+        self.assertIn("run_test:Vring:Fails", rerun)
+        self.assertNotIn("run_all", rerun)
 
     def test_a_guest_home_is_swept_unless_asked_for(self):
         self.suite()
