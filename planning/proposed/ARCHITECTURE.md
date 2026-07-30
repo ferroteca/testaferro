@@ -262,12 +262,20 @@ anything that looks normative is written.
   other way round, which is the direction the error travels in.
 
   **Residue, named because arming needs it filed:** the code does
-  not honor this yet. `requires-python = ">=3.12"` is a bracket
-  whose claim exceeds what is run — 3.13 is claimed and never
-  exercised, and every future 3.x is claimed too — and no support
-  matrix is written down anywhere for the checks to iterate. Arming
-  this means the set exists, the checks run it, and the published
-  range is derived from it.
+  not honor this yet, in two places. `requires-python = ">=3.12"` is
+  a bracket whose claim exceeds what is run — 3.13 is claimed and
+  never exercised, and every future 3.x is claimed too. And
+  `dependencies = ["pytest", …]` is the same defect one layer over,
+  unbounded in *both* directions while the suite runs exactly one
+  pytest; the committed `uv.lock` makes that narrowing less visible
+  rather than more, since without it the version would at least
+  drift and a break would eventually be noticed. **Not packaging the
+  suite raises the stakes on the second**: a downstream packager can
+  no longer run this project's tests against their own pytest, so
+  the specifier is the only compatibility signal they get. No
+  support matrix is written down anywhere for the checks to iterate.
+  Arming this means the set exists, the checks run its ends, and the
+  published specifiers are derived from it.
 
 **Five are left, and for three different reasons.** P3 and P5 describe
 the code and do not yet describe it accurately — each has a residue

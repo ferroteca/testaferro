@@ -809,6 +809,25 @@ ships `assets/*.rlqb` and `assets/*.rlqs` — the recipe, not what it
 builds — and that distinction is the thing to re-check whenever the
 asset list grows.
 
+**The suite is not packaged either**, in either artifact, which is
+what [MANIFEST.in](MANIFEST.in)'s `prune tests` is for. The same call
+was made in reliquary the same day (D96 there, which forbids its
+suite *and* its `planning/` tree in both artifacts), so this is a
+standing rule across these projects rather than a testaferro
+preference. Setuptools'
+default sdist picks up the top-level `tests/*.py` and nothing under
+`tests/integration/`, so before that line the sdist shipped *half* a
+suite — the unit files without the tier carrying most of the real
+coverage, and without the guest fixture. Half a suite is worse than
+none: it looks runnable and proves nothing. Not packaging it also
+keeps the distribution single-licensed, since
+`tests/integration/guest/` is deliberately BSD-3-Clause and would
+otherwise travel inside a GPL-3.0-only artifact. Whoever wants to run
+the suite clones the repository, which is the only way to get a guest
+run anyway — the integration tier needs QEMU and an installed FreeDOS
+system, and no sdist can carry either. **Re-check this whenever a test
+directory is added**, because the default is to include, not exclude.
+
 **Publishing is `uv publish`**, which uploads `dist/*` to PyPI. With
 no CI there is no trusted-publishing path, so it takes a token
 (`UV_PUBLISH_TOKEN` or `--token`), and `uv publish --dry-run` walks

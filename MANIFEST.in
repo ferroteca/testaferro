@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 Paul Galbraith
+# SPDX-License-Identifier: GPL-3.0-only
+
+# The suite is not packaged, in either artifact. Setuptools' default
+# sdist picks up the top-level `tests/*.py` and nothing under
+# `tests/integration/`, which shipped half a suite: unit files without
+# the tier that carries most of the real coverage, and without the
+# guest fixture either tier's integration cases need. Half a suite is
+# worse than none — it looks runnable and proves nothing.
+#
+# It also keeps the distribution single-licensed. `tests/integration/
+# guest/` is deliberately BSD-3-Clause, because SUITE.EXE statically
+# embeds Open Watcom's GPL-incompatible runtime (see AGENTS.md); not
+# packaging the suite means that mixture never has to travel with a
+# GPL-3.0-only artifact at all.
+#
+# Whoever wants to run the suite clones the repository, which is also
+# the only way to get a guest run: the integration tier needs QEMU and
+# an installed FreeDOS system, neither of which a sdist can carry.
+prune tests

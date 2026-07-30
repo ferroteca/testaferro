@@ -4,9 +4,32 @@ All notable changes to testaferro are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0.dev7] - 2026-07-30
+
+**The licence changes, and the suite goes where you say.** testaferro is GPL-3.0-only from this release — what went out
+under BSD stays under BSD, and nothing is taken back retroactively — so a distributed work incorporating it must now be
+copyleft too. Functionally this is the release where placement stops being testaferro's secret: `files=`, `location=`
+and `program=` say what is staged into the guest, where it lands and what runs there, each defaulted so a lone suite
+executable still needs none of them. The drive testaferro used to add to every machine is gone from the surface with
+them — staging happens at rest, into a drive the machine already has, so a zero-configuration guest is now a one-disk
+machine with its suite at `C:\TESTS`. The provider pin moves to reliquary 0.1.0.dev6, which is what made that possible:
+the drive letter is read off the created machine rather than inferred, and inference retires everywhere. The supported
+Python floor rises to 3.12 with it.
 
 ### Changed
+
+- **The test suite is no longer packaged.** Through `0.1.0.dev6` the
+  sdist carried the nine top-level `tests/*.py` files and nothing
+  under `tests/integration/` — half a suite, missing both the tier
+  that holds most of the real coverage and the guest fixture, so it
+  looked runnable and proved nothing. `MANIFEST.in` now prunes it from
+  both artifacts. Nothing a consumer imports changes; what goes is
+  dead weight in the sdist. It also keeps the distribution
+  single-licensed, since the guest fixture is deliberately
+  BSD-3-Clause and no longer travels inside a GPL-3.0-only artifact.
+  Running the suite means cloning the repository, which was already
+  true of any guest run — the integration tier needs QEMU and an
+  installed FreeDOS system.
 
 - **BREAKING: the supported Python floor is now 3.12**, raised from
   `3.9`. This follows reliquary's own floor (D95 there), and testaferro
