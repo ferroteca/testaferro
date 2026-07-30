@@ -4,6 +4,8 @@ All notable changes to testaferro are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
 ## [0.1.0.dev7] - 2026-07-30
 
 **The licence changes, and the suite goes where you say.** testaferro is GPL-3.0-only from this release — what went out
