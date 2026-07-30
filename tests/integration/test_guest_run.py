@@ -20,6 +20,7 @@ where everything passes proves only that output was parsed.
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -88,6 +89,38 @@ class GuestSessionTests(unittest.TestCase):
         outcome = self.backend.run_test("Guest", "Runs")
 
         self.assertTrue(outcome.passed)
+
+    def test_the_suite_is_staged_at_rest_with_no_work_drive(self):
+        """F4's primary path, which only a guest can prove.
+
+        Zero configuration boots testaferro's own FreeDOS, whose disk
+        is the only one the machine has — so the default location is a
+        directory on it, staged into the drive *image* between create
+        and start, with no drive appended. Everything above this in
+        the class has already run off that placement; this states it.
+        """
+        self.assertEqual(self.backend.location, "C:\\TESTS")
+
+        blueprint = Path(self.backend._home) / "blueprints"
+        document = json.loads(
+            (blueprint / "testaferro.rlqb").read_text(encoding="utf-8"))
+        drives = document[0]["drives"]
+
+        # One disk, the system's own: the work drive D5 supplied is
+        # gone rather than merely unused.
+        self.assertEqual(sorted(drives), ["hdd0"])
+        self.assertEqual(drives["hdd0"]["materialize"], "difference")
+
+    def test_the_guest_reads_the_suite_back_from_where_it_was_staged(self):
+        # The staging is real on the guest's side of the glass: DOS
+        # itself lists the file at the address testaferro reports.
+        import reliquary
+
+        rows = reliquary.exec(f"DIR {self.backend.location}",
+                              machine=self.backend._machine,
+                              context=self.backend._ctx, timeout=60)
+
+        self.assertIn("SUITE", "\n".join(rows).upper())
 
 
 @requires_guest

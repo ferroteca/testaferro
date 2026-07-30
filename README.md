@@ -104,8 +104,9 @@ nothing. A binary this host can run itself (a plain Windows PE) is never claimed
 claims one, because nothing about the file can tell testaferro that the situation demands a VM.
 
 Every declaration keyword has a command-line and ini spelling, kebab-cased: `--testaferro-environment`,
-`--testaferro-provider`, `--testaferro-boot-image`, `--testaferro-machine-config` (and `testaferro-environment`,
-`testaferro-provider`, … in pytest's ini). The command line wins over the ini, and both win over a declaration.
+`--testaferro-provider`, `--testaferro-boot-image`, `--testaferro-machine-config`, `--testaferro-files`,
+`--testaferro-location`, `--testaferro-program` (and `testaferro-environment`, `testaferro-provider`, … in pytest's
+ini). The command line wins over the ini, and both win over a declaration.
 Blueprint fields — `memory`, `drives`, `platform` — have no option of their own: they are reliquary's words in a
 declaration, not testaferro's.
 
@@ -148,10 +149,28 @@ and installs from it — a few minutes, once, into the cache. Every run after th
 seconds, layering its own copy-on-write overlay so no run can disturb the system the others share. Pass `boot_image=`
 to boot a DOS floppy image of your own instead, which skips all of that.
 
-The suite executable reaches the guest on a work drive testaferro adds to the machine: a host directory served into the
-guest as a FAT volume, with the executable staged into it before boot. It takes the lowest free disk slot, so the guest
-calls it `D:` beside the installed FreeDOS system, or `C:` when you booted a floppy of your own — and testaferro runs it
-there by name. Nothing is written into your boot image.
+**The suite is staged into the guest's own drives before it boots**, and testaferro runs it where it put it. With
+nothing declared that is `C:\TESTS` — a directory on the machine's last drive — and you can say otherwise:
+
+```python
+testaferro.config(
+    "freedos",
+    files=["fixtures/CASE.DAT"],   # staged beside the suite
+    location=r"D:\TESTDIR",        # where it all lands, in the guest's terms
+    program=r"{location}\RUNNER.EXE",   # what to run there
+)
+```
+
+All three default, which is why the one-liner above needs none of them: the executable alone, at `C:\TESTS`, run by its
+own name. A location you declare is checked by the staging itself, against the machine's real disks, so a wrong one
+fails **before the guest boots** rather than as a missing program inside it. Nothing is ever written into your own boot
+image — what boots is testaferro's copy.
+
+Host-side code can ask where its harness landed, in the same words a declaration uses:
+
+```python
+backend.location        # 'C:\\TESTS'
+```
 
 ### Named test environments
 

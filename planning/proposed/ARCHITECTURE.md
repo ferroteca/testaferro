@@ -235,9 +235,45 @@ anything that looks normative is written.
   steps into one PR — compressed in time, never reduced in content.
   (D7.)
 
-**Four are left, and for two different reasons.** P3 and P5 describe
+- **P18 — A supported version is one that was run. The set is
+  enumerated, never bracketed.** What testaferro claims to work with
+  — Python interpreters, and the provider it pins — is the set of
+  versions somebody actually ran the suite against, written down as
+  a set. A range is refused as the *source* of that claim: `>=X`
+  asserts something about every version above X, including versions
+  that do not exist yet, and nobody ran those.
+
+  **The ground is that capability is not monotonic in version
+  number.** Reliquary 0.1.0.dev5 read FAT32 at rest; 0.1.0.dev6
+  refuses it by name, so `reliquary>=0.1.0.dev5` is a false
+  statement about the capability F4's staging depends on. The same
+  two releases also deleted autoseeding, the search family,
+  `check-script` and `--builtin`. Newer is not a superset, so no
+  bound — floor or ceiling — expresses what is supported, and only
+  an enumeration can. This is the reading behind the floor check
+  already in AGENTS.md, generalized from the boundary to the whole
+  set.
+
+  **Packaging metadata is a lossy projection of the set, and the set
+  is the truth.** PEP 440 specifiers have no OR, so a disjoint set
+  cannot be written as a requirement; what ships is a range, with
+  exclusions where they are needed. That makes the tested matrix the
+  authority and `requires-python` a derived artifact — never the
+  other way round, which is the direction the error travels in.
+
+  **Residue, named because arming needs it filed:** the code does
+  not honor this yet. `requires-python = ">=3.12"` is a bracket
+  whose claim exceeds what is run — 3.13 is claimed and never
+  exercised, and every future 3.x is claimed too — and no support
+  matrix is written down anywhere for the checks to iterate. Arming
+  this means the set exists, the checks run it, and the published
+  range is derived from it.
+
+**Five are left, and for three different reasons.** P3 and P5 describe
 the code and do not yet describe it accurately — each has a residue
-naming itself, recorded at the entry. P14 and P15 describe the
+naming itself, recorded at the entry. P18 does not describe the code
+at all yet: it is a rule the project has adopted and not built to,
+with its own residue filed above. P14 and P15 describe the
 project's *conduct* rather than its code, and the in-force list says
 of every entry that "the code honors it": a rule about how a decision
 is argued has no code to be honored by, so whether that list carries

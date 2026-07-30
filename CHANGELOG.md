@@ -8,6 +8,62 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ### Changed
 
+- **BREAKING: the supported Python floor is now 3.12**, raised from
+  `3.9`. This follows reliquary's own floor (D95 there), and testaferro
+  cannot claim a floor below the provider it requires. The floor is now
+  **tested rather than asserted** — `uv run --python 3.12` joins the
+  required checks, which is the correction reliquary's own experience
+  argues for: it published `>=3.9` unexercised, and 3.9, 3.10 and 3.11
+  all failed the day someone ran them.
+
+- **uv provisions the development environment and publishes releases.**
+  `uv sync` replaces the `venv` + `pip install -e .` setup and
+  `uv.lock` is now committed rather than ignored, so the environment
+  the suite passes in is reproducible — which matters because with no
+  CI the local suite *is* the gate. `uv build` and `uv publish` replace
+  `python -m build` and `twine`; `twine check` goes with them, its
+  rendering job being an RST problem this markdown readme does not
+  have. AGENTS.md gains the build and publish section it never had,
+  including the rule that no FreeDOS media may enter either artifact —
+  the recipe ships, never what it builds.
+
+- **Reliquary is pinned to `0.1.0.dev6`, and the drive letter is no
+  longer inferred anywhere** (D4). The pin had been held at
+  `0.1.0.dev4` deliberately, across two releases: `0.1.0.dev5` stopped
+  assuming one volume per disk (D78 there) — a disk takes one letter
+  per volume it *actually holds*, read off the image at rest — which
+  ended the only way testaferro had to derive its work drive's letter
+  while authoring a blueprint, before any machine or image exists.
+  Nothing downstream could answer that honestly, and a consumer-side
+  bridge asserting volume counts of its own was implemented, rejected
+  and reverted rather than shipped. `0.1.0.dev6` answers it:
+  `describe_drives()` reports a created machine's drives and the
+  letter map over them (D83 there).
+
+  So the question moved to the one moment it can be answered.
+  `_work_drive()` is now `_work_slot()`, which chooses the disk slot
+  and stops there — all that authoring decides — and `_placed_letter()`
+  asks the created machine, between `create_machine()` and
+  `start_machine()`, where images exist to read and reliquary will
+  still read them at rest. What the guest is told is what the provider
+  placed. A drive the report leaves unplaced is refused **carrying
+  reliquary's own reason and id**, because an unreadable disk ahead of
+  the work drive shifts every letter behind it and only the specific
+  refusal says which disk and why.
+
+  **A machine whose disk holds two volumes is now simply supported.**
+  The old inference could not survive one and refused it outright; the
+  report places it, and testaferro reads the answer.
+
+- **Autoseeding is no longer pinned off, because it no longer exists.**
+  The guest context passed `autoseed=False` so that a host process
+  which turned reliquary's process-global on could not reach into a
+  test run's resolution. `0.1.0.dev6` deleted autoseeding outright
+  (D88 there) rather than defaulting it — the blueprints and scripts
+  directories are the sole sources, and a name they do not hold is
+  refused. The guarantee testaferro was pinning per guest session is
+  now structural, so the argument is gone rather than weakened.
+
 - **BREAKING: testaferro is now GPL-3.0-only.** The project was
   BSD-3-Clause through `0.1.0.dev7`; every release from here is copyleft.
   Anyone may still run, study, modify, and redistribute it, but a
@@ -51,6 +107,95 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   clean-room doctrine and its one recorded exception (the CppUTest
   adapter's source-derived grammars), and what the checked-in integration
   binary embeds.
+
+### Added
+
+- **Test placement: `files=`, `location=` and `program=`** (F4,
+  superseding D5). Where a suite lands in the guest is now something
+  you can **say**, in the guest's own terms, with all three spellings
+  every declaration has (P16) — keyword, `testaferro.ini`, and
+  `--testaferro-…`:
+
+  - `files=` — host paths staged into the guest beside the suite. A
+    named directory contributes its contents, so `files=["fixtures"]`
+    lands the fixtures where a guest program looks for them.
+  - `location=` — the guest address the set lands at (`D:\TESTDIR`);
+    a letter, not a slot.
+  - `program=` — the guest address of what to run there, in which
+    `{location}` stands for the location however it was settled. The
+    framework adapter still composes argv onto it (P4), so this names
+    what to invoke and never how.
+
+  **Each defaults, so nothing above is required**: `pytest
+  tests/SUITE.EXE` is the fully-defaulted corner of this surface
+  rather than a case beside it (P8). The default is the executable
+  alone, at the **last** letter of the machine's drive map in a
+  `\TESTS` directory, run by its own name — last rather than first
+  because a default must not scatter files across the root of a disk
+  somebody else owns.
+
+  **Where a run landed can be asked**, in the same terms a
+  declaration uses: `backend.location` answers a guest address, and
+  answers the same whether you declared it or testaferro chose it —
+  who chose is deliberately not part of the answer. It refuses before
+  the placement is settled rather than guessing.
+
+- **Staging happens at rest, and the work drive is gone from the
+  surface.** The suite used to reach the guest on a host-directory
+  drive testaferro added to every blueprint, because that was the
+  only way bytes got in. Reliquary's at-rest file verbs write a
+  stopped machine's drives, so the set is now written with
+  `put_files()` **between `create_machine()` and `start_machine()`**,
+  into a drive the machine already has. A zero-configuration guest is
+  now a **one-disk machine**, and its suite lives at `C:\TESTS`.
+
+  The address is **stated once, staged against, and spelled**: the
+  staging validates it by resolving it against a real disk, and the
+  command spells the same value, so a run cannot be launched from
+  somewhere the files did not go. A declared address that will not
+  work fails **before any boot**, carrying reliquary's own refusal.
+  A machine whose disk holds two volumes — refused outright under the
+  old one-volume assumption — is simply supported.
+
+  **The old drive survives as a fallback only**, for a machine
+  offering no writable room of its own (an unreadable disk, a FAT
+  reliquary does not claim). Only a *defaulted* location falls back
+  that way; a declared one surfaces the refusal, because the consumer
+  named that address and is the only one who can correct it.
+
+- **`--testaferro-keep-guest-home` now retrieves what the run left
+  behind.** With staging inside a drive image, keeping the home alone
+  would keep everything except the part worth looking at, so the
+  location comes back to `retrieved/` under the kept home after the
+  guest stops — which means it holds what the run *wrote*, not only
+  what was staged. Best-effort: a retrieval that fails leaves the
+  home and its images rather than failing the run.
+
+- **The at-rest surface staging depends on is now covered against a
+  real disk** (`tests/integration/test_at_rest.py`). It layers over
+  the FreeDOS system testaferro already installs, so no image is
+  checked in and the disk under test is the one users actually get —
+  and because at-rest work needs no boot, eleven cases cost about
+  what one boot does. They pin what the provider *answers*: the
+  letter map, FAT16 recognition, `put_files` creating its own
+  directory, a copy that does not mirror what a run left, and a bad
+  address refusing by **rule id** rather than by prose. The unit
+  suite's stubbed reports could not have caught any of those moving.
+
+- **Unit tests now prove the blueprints testaferro authors are ones
+  reliquary accepts**, using `create_machine(dry_run=True)`
+  (`0.1.0.dev5`). The existing authoring tests read back testaferro's
+  own dict, which proves it consistent with itself and cannot fail the
+  way that matters: a document reliquary has stopped accepting passes
+  them unmoved. A dry create runs the whole preflight — media
+  resolution, drive and controller assignment, boot validation, the
+  schema — and builds none of it.
+
+  This puts the **zero-configuration document in the unit tier for the
+  first time.** Its system disk is materialized `difference`, so a real
+  create reaches for qcow2 tooling and the case had to live in
+  integration (P10); a dry create never touches an image, so a
+  placeholder file stands in for the built system.
 
 ## [0.1.0.dev6] - 2026-07-29
 

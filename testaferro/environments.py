@@ -61,11 +61,24 @@ _HYPHENATED = types.MappingProxyType({
 
 # Options testaferro consumes itself rather than passing to the
 # blueprint: which provider runs this environment, how long one guest
-# command may take, and which files this environment's guest suites
-# are. `provider` is testaferro's own word and reliquary's document
-# has no field for it, which is exactly why it belongs here rather
-# than passing through (P1, P3, D11).
-_TESTAFERRO_KEYS = frozenset({"provider", "timeout", "suites"})
+# command may take, which files this environment's guest suites are,
+# and where a test run lands in the guest. `provider` is testaferro's
+# own word and reliquary's document has no field for it, which is
+# exactly why it belongs here rather than passing through (P1, P3,
+# D11) — and `files`, `location` and `program` are the same argument
+# made three more times: reliquary's document has no field for what a
+# test run stages, where it puts it, or what it invokes there (F4).
+_TESTAFERRO_KEYS = frozenset({"provider", "timeout", "suites",
+                              "files", "location", "program"})
+# Path-valued and list-valued: staged sources are host paths, so an
+# INI one resolves against the config file like any other path.
+_PATH_LIST_KEYS = frozenset({"files"})
+# Guest addresses, which are **text and never parsed**. They would
+# otherwise collide with the structured-literal heuristic below:
+# `program = {location}\RUNNER.EXE` opens with a brace and is not
+# JSON, and reading it as JSON is how a placeholder would become a
+# parse error instead of a program.
+_ADDRESS_KEYS = frozenset({"location", "program"})
 
 _environments = {}
 # Standard-catalog documents materialized on first use: the documents
@@ -93,12 +106,23 @@ class EnvironmentSpec:
     masks saying which executables are this environment's guest
     suites — what a collection scan needs to know that a file is a
     suite at all, and which environment runs it.
+
+    ``files``, ``location`` and ``program`` are testaferro's own for
+    the same reason and describe **test placement** (F4): the host
+    files staged into the guest beside the suite, the guest address
+    they land at (``D:\\TESTS`` — a letter, not a slot), and the guest
+    address of what to run there. Each is ``None``/empty when unsaid
+    and defaulted by the binding, which is what keeps a lone suite
+    executable a one-liner (P8). They are said *beside* the machine
+    spec and never inside it: reliquary's document has no field for
+    what a test run stages.
     """
 
-    __slots__ = ("_fields", "_media", "provider", "timeout", "suites")
+    __slots__ = ("_fields", "_media", "provider", "timeout", "suites",
+                 "files", "location", "program")
 
     def __init__(self, machine, media=(), timeout=None, suites=(),
-                 provider=None):
+                 provider=None, files=(), location=None, program=None):
         fields = {_HYPHENATED.get(key, key): value
                   for key, value in machine.items()
                   if key not in ("type", "name")}
@@ -110,6 +134,9 @@ class EnvironmentSpec:
         object.__setattr__(self, "provider", _provider(provider))
         object.__setattr__(self, "timeout", timeout)
         object.__setattr__(self, "suites", _masks(suites))
+        object.__setattr__(self, "files", _paths(files))
+        object.__setattr__(self, "location", _address(location))
+        object.__setattr__(self, "program", _address(program))
 
     def __getattr__(self, name):
         try:
@@ -190,7 +217,10 @@ def configure(name, machine_config=None, template=None, boot_image=None,
         machine_config = EnvironmentSpec(fields, media,
                                          timeout=options.get("timeout"),
                                          suites=options.get("suites", ()),
-                                         provider=options.get("provider"))
+                                         provider=options.get("provider"),
+                                         files=options.get("files", ()),
+                                         location=options.get("location"),
+                                         program=options.get("program"))
     else:
         machine_config = _coerce_machine_config(machine_config)
         if own:
@@ -203,7 +233,10 @@ def configure(name, machine_config=None, template=None, boot_image=None,
                 dict(machine_config.fields), machine_config.media,
                 timeout=own.get("timeout", machine_config.timeout),
                 suites=own.get("suites", machine_config.suites),
-                provider=own.get("provider", machine_config.provider))
+                provider=own.get("provider", machine_config.provider),
+                files=own.get("files", machine_config.files),
+                location=own.get("location", machine_config.location),
+                program=own.get("program", machine_config.program))
 
     _environments[name] = machine_config
     return machine_config
@@ -237,6 +270,44 @@ def _masks(value):
         return tuple(mask for mask in
                      value.replace(",", " ").split() if mask)
     return tuple(str(mask) for mask in value)
+
+
+def _paths(value):
+    """Normalize declared ``files`` to a tuple of host path strings.
+
+    One path or several, and written either way — a list, or one
+    string separating them by commas. **Commas only**, unlike
+    ``suites``: a file-name mask has no spaces in it and a host path
+    routinely does, so splitting on whitespace here would break
+    exactly the paths a Windows tester writes.
+    """
+    if value is None:
+        return ()
+    if isinstance(value, (str, os.PathLike)):
+        text = os.fspath(value)
+        return tuple(part.strip() for part in text.split(",")
+                     if part.strip())
+    return tuple(os.fspath(path) for path in value)
+
+
+def _address(value):
+    """Normalize a declared guest address, or None when unsaid.
+
+    Guest addresses are the guest's own words (P17), so nothing is
+    validated here beyond emptiness: what a valid address *is*
+    belongs to the platform, and the one party that can truly answer
+    is the provider resolving it against a real disk. A blank
+    declaration is refused rather than silently defaulted, because a
+    consumer who wrote the key meant to say something.
+    """
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        raise ValueError(
+            "a declared location or program cannot be blank; omit the "
+            "declaration to take testaferro's default")
+    return text
 
 
 def _media_specs(value):
@@ -409,6 +480,12 @@ def _section_options(section, base_dir):
         value = _parse_option(key, raw)
         if key in _PATH_KEYS and isinstance(value, str):
             value = _resolve_path(base_dir, value)
+        elif key in _PATH_LIST_KEYS:
+            # Staged sources are host paths, so they resolve against
+            # the config file exactly as a single path key does — a
+            # `files` written beside testaferro.ini means beside it.
+            value = tuple(_resolve_path(base_dir, path)
+                          for path in _paths(value))
         options[key] = value
     return options
 
@@ -416,6 +493,8 @@ def _section_options(section, base_dir):
 def _parse_option(key, raw):
     if key in _JSON_KEYS:
         return json.loads(raw)
+    if key in _ADDRESS_KEYS:
+        return raw.strip()
     stripped = raw.strip()
     if key in _FLOAT_KEYS:
         return float(stripped)

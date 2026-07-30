@@ -11,7 +11,7 @@ version = "0.1.0.dev7"
 description = "pytest plugin for DOS-based CppUTest unit testing, run in a reliquary guest"
 readme = "README.md"
 authors = [{ name = "Paul Galbraith", email = "paul@galbraiths.ca" }]
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 license = "GPL-3.0-only"
 license-files = ["LICENSE"]
 keywords = ["pytest", "cpputest", "reliquary", "dos", "testing", "guest"]
@@ -25,7 +25,7 @@ classifiers = [
 ]
 # pytest is the facade's host surface (testaferro.facade). The provider binding
 # requires reliquary, which is included as a dependency.
-dependencies = ["pytest", "reliquary==0.1.0.dev4"]
+dependencies = ["pytest", "reliquary==0.1.0.dev6"]
 
 [project.urls]
 Repository = "https://github.com/ferroteca/testaferro"

@@ -111,6 +111,27 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D22 — Supported versions are enumerated, not bracketed
+
+**Decided** owner, 2026-07-30. **Adopts** P18 (drafted), which
+carries the rule and its residue; this entry records only what
+adopting it settled.
+
+**Weighed and declined: a range as the source of the claim** —
+`requires-python = ">=3.12"`, `reliquary>=0.1.0.dev6` — on the
+ground that **capability is not monotonic in version number**, so no
+bound expresses support in either direction. The evidence arrived
+with F4: reliquary 0.1.0.dev5 read FAT32 at rest and 0.1.0.dev6
+refuses it by name, which makes `>=0.1.0.dev5` a false claim about
+the capability F4's staging runs on, while a ceiling would exclude a
+later release that works. A range remains what *ships*, PEP 440
+having no OR — the decision is that it is derived from the tested
+set rather than standing as the claim itself.
+
+**What would reopen it:** a packaging ecosystem that can express a
+disjoint set directly, or a provider whose releases are additive by
+policy, which would make a floor true rather than merely convenient.
+
 ### D21 — testaferro is GPL-3.0-only, relicensing is reserved, and contributions are assigned
 
 **Decided** owner, 2026-07-29. **Supports** (none): no use case or
@@ -979,6 +1000,21 @@ module contract), [AGENTS.md](../AGENTS.md).
 ### D5 — testaferro supplies the work drive itself
 
 **Decided** owner, 2026-07-27. **Supports** U1, U3 (drafted).
+**Superseded** 2026-07-30 by the delivery of F4, whose design is
+[proposed/design/test-placement.md](proposed/design/test-placement.md).
+The surface no longer promises a drive; it promises a **location**,
+and the suite is staged there at rest with reliquary's file verbs
+between `create_machine` and `start_machine`. Both constraints named
+below dissolved rather than transferring: staging happens after
+materialization, so the attach-time snapshot rule is gone with the
+drive that needed it, and the letter is **read off the created
+machine** rather than mirrored — reliquary 0.1.0.dev6's
+`describe_drives()` answers it, so the mirror this entry accepted as
+a cost is deleted. What survives is the fallback: a machine offering
+no writable room of its own still gets a testaferro-supplied
+directory-source drive, now an implementation detail rather than the
+promise. The "eventual shape (F4)" this entry named is the shape
+that landed.
 
 The suite executable reaches the guest on a host-directory drive
 that **testaferro adds to the blueprint**, at the lowest free disk

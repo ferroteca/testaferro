@@ -146,8 +146,8 @@ Package layout (each module states its contract in its docstring):
   zero configuration could not have worked; nothing had looked until
   an integration run did. `boot_image=` is unchanged and still boots a
   tester's own floppy (U3) — what changed is only what happens when
-  nobody says. With the system on `hdd0` the work drive takes the next
-  slot, so the guest calls it **D:**.
+  nobody says. The system is the machine's one disk, so the suite is
+  staged into it and the guest reads it at **`C:\TESTS`**.
 
   `suite_backend()` guards with `binfmt.classify()`
   (rejections name the format and architecture) and returns a
@@ -175,19 +175,41 @@ Package layout (each module states its contract in its docstring):
 
   - **The reliquary context is hermetic.** Each guest session pins
     `reliquary.Context(home_dir=…, cache_dir=…,
-    blueprints_dir=<guest home>, autoseed=False)`, so resolution
-    sees only what testaferro authored for that run — never the
-    user's reliquary home or the built-in codex. Autoseeding is off
-    by default in reliquary's embedding API; pinning it per guest
-    is what keeps a host process that turned the process-global on
-    from reaching in. Reaching a blueprint by name from the user's
-    home is a deliberate decision, not a default to drift into.
-  - **The work drive is testaferro's, and it is staged before boot.**
-    The suite executable reaches the guest on a drive whose media is
-    located at a host directory, added to the blueprint at the lowest
-    free disk slot. The backend snapshots that directory when the
-    drive is attached, so staging must happen before
-    `start_machine()`, never lazily on first run.
+    blueprints_dir=<guest home>)`, so resolution sees only what
+    testaferro authored for that run — never the user's reliquary
+    home or the built-in codex. Reaching a blueprint by name from
+    the user's home is a deliberate decision, not a default to
+    drift into. The second half of that guarantee used to be pinned
+    here as `autoseed=False`; 0.1.0.dev6 deleted autoseeding
+    outright (D88 there) rather than defaulting it, so the
+    blueprints and scripts directories are now the sole sources by
+    construction and there is no process-global left to fence off.
+  - **Staging happens at rest, and the surface promises a location
+    rather than a drive** (F4, superseding D5). The set is gathered
+    host-side into `<guest home>/work`, then written into the
+    machine's own drives with `put_files()` **between
+    `create_machine()` and `start_machine()`** — the window where
+    images exist and reliquary will still touch them. The address is
+    **stated once, staged against, and spelled**: `_place()` settles
+    it, `put_files` validates it by resolving it against a real disk,
+    and `_run_in_guest` spells the command off the same value, so the
+    command cannot name somewhere the files did not go.
+
+    Three declarations drive it, each testaferro's own word and none
+    of them a blueprint field: `files=` (host paths staged beside the
+    suite), `location=` (the guest address they land at) and
+    `program=` (what to run, `{location}` substituted). Each defaults,
+    which is what keeps `pytest tests/SUITE.EXE` a one-liner (P8) —
+    the executable alone, at the **last** letter of the drive map in
+    `\TESTS`, run by its own name.
+
+    **The old work drive survives only as the fallback.** A machine
+    offering no writable room — an unreadable disk, a FAT reliquary
+    does not claim, a backend without at-rest write — makes
+    testaferro append the directory-source drive, recreate and stage
+    there. Only a **defaulted** location may fall back: a declared one
+    surfaces reliquary's refusal, because the consumer named that
+    address and is the only one who can correct it.
   - **A started machine is not a ready guest, and testaferro waits.**
     `start_machine()` launches a machine and never claimed to wait for
     the guest inside it. Reliquary ships **no readiness script on
@@ -212,16 +234,20 @@ Package layout (each module states its contract in its docstring):
     **already staged** — it copies nothing, which is what keeps the
     snapshot rule above from being quietly broken by a document
     builder.
-  - **`_work_drive()` chooses the slot and asks for the letter.**
-    The slot is testaferro's — the lowest free disk — and the letter
-    is reliquary's to say: `platform_dos.drive_letters()` places every
-    drive as of 0.1.0.dev4, so the local mirror of that rule is gone
-    and with it testaferro's own copy of the one-volume-per-disk
-    assumption. A drive reliquary will not place — mixed controller
-    types leave even the first disk unplaceable — is refused rather
-    than guessed at. The obligation written here when the mirror
-    existed — prefer a public call the day reliquary can determine
-    the rest — is discharged.
+  - **`_work_slot()` chooses the slot; `_placed_letter()` reads the
+    letter off the created machine.** The slot is testaferro's — the
+    lowest free disk — and it is all authoring decides. The letter is
+    reliquary's to say and **is not inferred anywhere**: 0.1.0.dev5
+    stopped assuming one volume per disk (D78 there), which ended the
+    derivation, and 0.1.0.dev6 supplied `describe_drives()` in its
+    place (D83 there). So the question is asked between
+    `create_machine()` and `start_machine()` — the window where
+    images exist to read and reliquary will still read them at rest —
+    and the answer is what the guest is told. A drive the report
+    leaves unplaced is refused **carrying reliquary's own reason and
+    id**, never a summary: an unreadable disk ahead of this one
+    shifts every letter behind it, and only the specific refusal says
+    which disk and why.
 
   Guest output is whatever `reliquary.exec()` returns: the visible
   screen, as rows. A command that scrolls past a screenful leaves
@@ -263,7 +289,13 @@ Package layout (each module states its contract in its docstring):
   (`tests/SUITE.EXE::Group-Name`). Options and ini keys are declared
   from one list (`_SETTINGS`) so the two spellings cannot drift (P16);
   `--testaferro-keep-guest-home` and the enumerator are the
-  exploration-only exceptions. Execution guests are stopped in
+  exploration-only exceptions. **What keep-guest-home keeps changed
+  with F4**: staging lands inside a drive image now, so the binding
+  retrieves the location back to `retrieved/` under the kept home
+  after the stop — best-effort, because a failed retrieval must not
+  turn inspection into a failed run, and the images are the fallback
+  evidence. It shows what the run *wrote*, not only what was staged.
+  Execution guests are stopped in
   `pytest_sessionfinish`, deliberately **not** through
   `config.add_cleanup`: config cleanups run after the terminal
   summary, so a kept guest home would be reported before the guest
@@ -398,7 +430,7 @@ principle governs.
   facade's host surface, imported lazily) and reliquary (the only
   supported guest-machine provider, imported by `testaferro/reliquary.py` for the
   machine lifecycle and by `testaferro/environments.py` for its JSONC
-  reader alone). Support Python 3.9 and newer; keep lines near 79
+  reader alone). Support Python 3.12 and newer; keep lines near 79
   columns.
 - Reliquary is pinned to an exact version in
   [pyproject.toml](pyproject.toml) (D4). Its API is still moving fast and
@@ -707,12 +739,40 @@ a known standing instead of an assumption. pytest-xdist appears in
 README usage advice as a consumer-side tool (MIT); it is not a
 dependency and nothing of it enters this codebase.
 
-## Checks
+## The environment
+
+**uv provisions and owns the environment.** One command creates
+`.venv`, installs the project editable, and installs its dependencies:
 
 ```powershell
-python -m compileall -q testaferro tests
-python -m unittest discover -s tests -v
+uv sync
 ```
+
+`uv.lock` is committed, and it is what makes "the environment the
+suite passed in" reproducible — which matters here because with no CI
+the local suite *is* the gate. `uv sync` reproduces the lock exactly;
+`uv lock` is what deliberately moves it. Do not hand-manage `.venv`,
+and do not install tooling globally.
+
+## Checks
+
+Run checks through uv, which uses the locked environment.
+
+```powershell
+uv run python -m compileall -q testaferro tests
+uv run python -m unittest discover -s tests -v
+uv run --python 3.12 python -m unittest discover -s tests
+uv build
+```
+
+**The third line is the floor check, and it is not optional.** The
+supported floor is a published claim (`requires-python`), so it is
+tested rather than asserted — the same reading applied everywhere
+else here, where an untested claim is an unclaimed capability rather
+than a quiet promise (P11). uv installs the interpreter itself, so it
+costs one line. Reliquary learned this the expensive way: it
+published `>=3.9` unexercised, and 3.9, 3.10 and 3.11 all failed the
+day someone ran them (D95 there).
 
 Output-grammar changes additionally warrant a real end-to-end run,
 since the unit fixtures are source-derived and not captured (P9) —
@@ -723,8 +783,39 @@ boots a guest, so it is asked for rather than discovered:
 
 ```powershell
 $env:TESTAFERRO_INTEGRATION = "1"
-python -m unittest discover -s tests/integration -v
+uv run python -m unittest discover -s tests/integration -v
 ```
+
+**A pin move is one of the changes that warrants it**, whatever it
+touches: the provider owns the guest lifecycle, so a release can move
+behaviour no unit fixture observes. Adopting `0.1.0.dev6` was exactly
+that — the unit tier proved the letter read against a
+directory-source drive, and only the guest run proved it against the
+layered qcow2 the zero-configuration journey actually boots.
+
+## Building and publishing
+
+**`uv build` builds an sdist and then a wheel from that sdist**,
+which is what checks the source archive is complete rather than
+merely present. After packaging metadata changes, inspect `PKG-INFO`
+in both artifacts for at least the name, version, Python requirement
+and runtime dependencies.
+
+**Nothing FreeDOS may enter either artifact.** The media and the
+installed image are GPL-incompatible to redistribute here (see the
+licensing section), and they live in the cache rather than the tree
+precisely so a build cannot sweep them up. `[tool.setuptools.package-data]`
+ships `assets/*.rlqb` and `assets/*.rlqs` — the recipe, not what it
+builds — and that distinction is the thing to re-check whenever the
+asset list grows.
+
+**Publishing is `uv publish`**, which uploads `dist/*` to PyPI. With
+no CI there is no trusted-publishing path, so it takes a token
+(`UV_PUBLISH_TOKEN` or `--token`), and `uv publish --dry-run` walks
+the whole path without uploading. `twine check` is deliberately not
+in this list: its rendering job is an RST problem and this readme is
+markdown, the index validates and rejects bad metadata itself, and a
+rejected upload does not consume the version.
 
 ## Unit and integration
 
@@ -770,6 +861,45 @@ do. Unit cases that are about testaferro's own bookkeeping declare a
 refuses `_build_default_image` at module scope so that reaching it
 fails on the spot.
 
+**Integration does not mean "boots a guest"** — it means the fixture
+is expensive, which is a different claim (P10). `tests/integration/
+test_at_rest.py` is the case that makes the distinction earn its
+keep: it needs the installed FreeDOS system, so it belongs on that
+side of the line, but every case runs between `create_machine()` and
+a first start that never happens. Eleven of them cost about fifteen
+seconds together, against roughly fifteen for a *single* boot.
+
+**That file exists because mocks at this seam go stale silently.**
+`PlacementTests` in the unit suite stubs `describe_drives` and holds
+testaferro's policy over the answer; it is only as good as the
+report's shape being right, and a stubbed report cannot notice that
+the real one moved. So the at-rest file pins the provider's actual
+answers against a real qcow2 — the letter map, FAT16 recognition,
+`put_files` creating its own directory, a copy that does not mirror,
+and the refusal's **rule id** rather than its prose. Keep both: the
+unit tier is the always-on guard, and this is what keeps its
+fixtures honest. Reliquary's at-rest answers are machine input that
+testaferro *acts* on, and a wrong reading places a suite on the
+wrong drive — which is the variability-times-blast-radius that earns
+pinned coverage.
+
+**A dry create reaches past that line without crossing it**, and it
+is the unit tier's newest reach. `create_machine(dry_run=True)`
+(0.1.0.dev5) runs the whole preflight — media resolution, drive and
+controller assignment, boot validation, the schema — and builds
+none of it, returning a `DryRun` whose `plan` is the document
+reliquary would have acted on. So the **zero-configuration document
+is now unit-testable**: a placeholder file stands in for the built
+system, because nothing reads it. `BlueprintAcceptanceTests` is that
+suite, and it exists because `BlueprintAuthoringTests` structurally
+cannot fail the way that matters — reading back testaferro's own
+dict proves testaferro consistent with itself, and a document
+reliquary has since stopped accepting passes it unmoved. Prefer a
+dry create whenever the question is *would reliquary take this*; it
+costs under a second. What a dry run cannot answer is anything read
+off a materialized image — the drive report is created-only by the
+provider's ruling (D83 there), so letters are never asked of it.
+
 **That guard exists because the same mistake happened twice.** Six
 tests once launched real VMs while appearing mocked, costing ~10s
 of a 12s suite. Then the default became an install, and the case
@@ -789,17 +919,37 @@ jump outside `test_plugin.py` means something crossed the line;
 `--durations` finds it quickly, and a jump into the *minutes* means
 an install did.
 
-`_work_drive()` chooses the slot and **asks reliquary for the
-letter**. It used to mirror the letter rule locally because
-`platform_dos.drive_letters()` placed only the first disk; since
-0.1.0.dev4 it places every drive, so the mirror is gone and the
-assumption underneath it (one volume per hard disk) sits with the
-party that owns it — which is what P1 asks for. A letter reliquary
-will not determine is refused rather than guessed: a suite run off
-the wrong drive fails as a missing program and explains nothing.
-`WorkDrivePlacementTests` still states every slot case, and now holds
-the returned pair to the one reliquary placed. A real guest agrees:
-the default system takes `hdd0`, so the work drive is `D:`.
+`_work_slot()` chooses the slot; `_placed_letter()` **reads the
+letter off the created machine**. Inference is retired: through
+0.1.0.dev4 the letter was derived while authoring the blueprint,
+which 0.1.0.dev5 ended by reading volumes off the image at rest
+(D78 there) and 0.1.0.dev6 answered with `describe_drives()` (D83
+there). The ask happens between `create_machine()` and
+`start_machine()`, and a drive the report leaves unplaced is refused
+carrying reliquary's own reason and id — a suite run off the wrong
+drive fails as a missing program and explains nothing.
+`WorkDrivePlacementTests` states every slot case and **no letters at
+all**, which is the point; `PlacedLetterTests` holds the reading,
+including the two-volume disk the old inference could not survive
+and the refusal path. Both now serve the **fallback** drive alone
+(F4), which is the only thing that still takes a slot.
+
+**Placement is where the letter is actually used**, and it is tested
+in three places for three different reasons. `PlacementTests` stubs
+the provider and holds the *policy* — last letter, `\TESTS`,
+`{location}` substitution, and the refusal when letters cannot be
+determined. `DeclaredPlacementTests` runs the real session flow with
+`put_files` stubbed, and holds the rules a policy cannot state: a
+declared address is never defaulted over, never falls back, and is
+the address the command spells. The integration tier holds the thing
+neither can reach — a real guest, staged at rest into a qcow2 with
+**no drive appended at all**, reading its suite back from `C:\TESTS`
+with DOS's own `DIR`.
+
+The unit fixture's boot image is ten bytes of text rather than a FAT
+volume, so `_BindingFixture` exercises the fallback path by
+construction — worth knowing before reading a failure there as a
+staging bug.
 
 **The integration tier exists and passes** — `tests/integration/`,
 holding testaferro's own CppUTest DOS suite (`guest/`, with its

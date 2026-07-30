@@ -5,6 +5,17 @@ SPDX-License-Identifier: GPL-3.0-only
 
 # Proposal: surface a stopped machine's drive geometry
 
+> **Answered 2026-07-30.** Reliquary 0.1.0.dev6 ships
+> `describe_drives()` / `refresh_drives()` under its own D83, which
+> retired the F29 it had entered for this ask. The shape is the
+> provider's, as this proposal asked it to be: one report rather
+> than two, answered from a record read at every start, with the
+> at-rest recognition claim narrowed to FAT12/FAT16/FAT16B in the
+> same change. testaferro consumes the letter-map slice and has
+> moved its pin; the closing paragraph below — that it stays on
+> 0.1.0.dev4 until a release carries the surface — is spent, and
+> kept because it records the terms the pin was held on.
+
 A **downstream proposal to reliquary**, from testaferro, its
 consumer. It serves F4 (test placement, designed in
 [test-placement.md](test-placement.md)), and it is written the way

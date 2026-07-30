@@ -25,11 +25,17 @@ boots one machine from it, and every guest run is one `reliquary.exec`
 against that machine. Guest homes sit inside the active **run**'s
 area when `start()` opened one (`runs/run-*/guests/guest-*`) and
 directly under the cache otherwise; the two spans and why neither is
-called a "session" on its own are D15. The suite executable reaches the guest on a
-work drive whose media is located at a host directory (vvfat is how
-such a media attaches), which testaferro adds to the blueprint and
-stages before boot. Zero configuration is seeded from the
-caller-supplied `boot_image` or a cached FreeDOS image.
+called a "session" on its own are D15.
+
+The suite reaches the guest by being **staged at rest** (F4): the set
+is gathered host-side, then written into the machine's own drives
+with `put_files()` between `create_machine()` and `start_machine()`,
+at a **location** the consumer either declared or testaferro chose
+off the drive map. A machine offering no writable room of its own
+falls back to a host-directory drive testaferro appends — which is
+all that survives of D5, and an implementation detail rather than
+the promise. Zero configuration is seeded from the caller-supplied
+`boot_image` or a cached FreeDOS image.
 """
 
 from __future__ import annotations
@@ -60,9 +66,20 @@ PLATFORMS = ("dos",)
 # The blueprint name testaferro writes into each session's private
 # blueprints directory, and the machine created from it.
 _BLUEPRINT_NAME = "testaferro"
-# The host-directory drive carrying the suite executable to the guest.
+# The host-directory drive carrying the suite executable to the guest
+# — the **fallback** since F4, used only for a machine offering no
+# writable room of its own. Staging is otherwise at rest, into a drive
+# the machine already has.
 _WORK_MEDIA_NAME = "testaferro-work"
 _BOOT_MEDIA_NAME = "testaferro-boot"
+# The directory a defaulted location puts the staged set in, under the
+# last letter of the guest's drive map. Eight characters and no dot,
+# because DOS 8.3 is what has to read it back.
+_STAGED_DIR = "TESTS"
+# What `program=` may say before the location is known. `{stem}` and
+# `{name}` in the enumerator template are the precedent; this joins
+# that vocabulary rather than inventing a second one (F4).
+_LOCATION_PLACEHOLDER = "location"
 # testaferro's installed FreeDOS system, shared by every guest session
 # that declared nothing of its own.
 _SYSTEM_MEDIA_NAME = "testaferro-freedos"
@@ -97,7 +114,8 @@ _READY_VAR = "ready"
 
 
 def suite_backend(exe_path, framework=cpputest, enumerator=None,
-                  boot_image=None, machine_config=None, timeout=None):
+                  boot_image=None, machine_config=None, timeout=None,
+                  files=(), location=None, program=None):
     """Interrogate the referenced suite executable and return the
     backend matching its format — a ReliquarySuiteBackend for a DOS
     program. Raises FileNotFoundError for a missing file and
@@ -106,7 +124,16 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
 
     `timeout` is seconds one guest command may take, and overrides
     what a declaration says: it is the caller speaking about this
-    run, and a declaration speaks about the environment."""
+    run, and a declaration speaks about the environment.
+
+    `files`, `location` and `program` are **test placement** (F4),
+    and each overrides a declaration for the same reason. `files` is
+    host paths staged into the guest beside the suite; `location` is
+    the guest address they land at (`D:\\TESTS`); `program` is the
+    guest address of what to run, in which `{location}` stands for
+    the location however it was settled. Saying none of them is the
+    one-liner case: the executable alone, at testaferro's default
+    location, run by its own name."""
     exe_path = os.fspath(exe_path)
     fmt = binfmt.classify(exe_path)
     if fmt.platform != "dos":
@@ -127,7 +154,8 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
                                  enumerator=enumerator,
                                  boot_image=boot_image,
                                  machine_config=machine_config,
-                                 timeout=timeout)
+                                 timeout=timeout, files=files,
+                                 location=location, program=program)
 
 
 # The active testaferro run opened by start(), or None: its
@@ -279,11 +307,18 @@ def _build_default_image(destination):
 def _context(home, blueprints, scripts=None):
     """A reliquary context pinned to one disposable testaferro home.
 
-    The blueprints directory and `autoseed=False` keep the resolution
-    hermetic: only what testaferro wrote for this run, never the user's
-    own reliquary home or the built-in codex. Autoseeding is off by
-    default in the embedding API; pinning it says so per session, so a
-    host process that turned the process-global on cannot reach in.
+    The pinned directories keep the resolution hermetic: only what
+    testaferro wrote for this run, never the user's own reliquary home
+    or the built-in codex.
+
+    **The second half of that used to be testaferro's to pin, and is
+    now the provider's to guarantee.** Through 0.1.0.dev4 this passed
+    `autoseed=False`, so a host process that turned the process-global
+    on could not reach in. 0.1.0.dev6 deleted autoseeding outright
+    (D88 there) rather than defaulting it: the blueprints and scripts
+    directories are the sole sources, and a name they do not hold is
+    refused. So the knob is gone because the hazard is, and what this
+    pinned per session is now structural.
 
     `scripts` is pinned only where one is actually run — building the
     default image — and points at testaferro's own `assets/` for the
@@ -292,28 +327,18 @@ def _context(home, blueprints, scripts=None):
     return reliquary.Context(home_dir=home,
                              cache_dir=os.path.join(home, "cache"),
                              blueprints_dir=blueprints,
-                             scripts_dir=scripts,
-                             autoseed=False)
+                             scripts_dir=scripts)
 
 
-def _work_drive(drives):
-    """Place testaferro's work drive and ask what letter it gets.
+def _work_slot(drives):
+    """Choose the disk slot testaferro's work drive will occupy.
 
     The slot is testaferro's to choose — the lowest free disk — and
-    the **letter is reliquary's to say**. Since 0.1.0.dev4
-    `platform_dos.drive_letters()` places every drive rather than only
-    the first disk, so the local mirror of that rule is gone and this
-    asks instead. The assumption underneath it (one volume per hard
-    disk) did not disappear; it moved to the party that owns it, which
-    is the whole of what P1 asks for.
-
-    A letter reliquary will not determine — mixed controller types
-    leave even the first disk unplaceable — is refused here rather
-    than guessed at, because a suite run off the wrong drive fails as
-    a missing program and says nothing about why.
+    that is *all* this decides. **The letter is reliquary's to say,
+    and is no longer asked for here**, because at this point there is
+    nothing to ask about: this authors a document, and a letter is a
+    fact about a machine that does not exist yet.
     """
-    from reliquary import platform_dos
-
     used = sorted({int(key[len("hdd"):] or 0)
                    for key in drives if key.startswith("hdd")})
     free = [slot for slot in range(_HDD_SLOTS) if slot not in used]
@@ -322,51 +347,167 @@ def _work_drive(drives):
             "the machine declares every disk slot; testaferro needs one "
             "free slot for the work drive that carries the suite "
             "executable into the guest")
-    key = f"hdd{free[0]}"
-    state = {name: _drive_state(name) for name in (*drives, key)}
-    if key in platform_dos.undetermined_letters(state):
-        raise ValueError(
-            f"this machine's drives leave {key} without a determined "
-            "letter, so testaferro cannot tell the guest where its "
-            "suite is; declare one fewer controller type, or name the "
-            "drive testaferro should use")
-    for letter, placed in platform_dos.drive_letters(state).items():
-        if placed == key:
-            return key, letter
-    raise ValueError(
-        f"reliquary placed no letter for {key}")
+    return f"hdd{free[0]}"
 
 
-def _drive_state(key):
-    """A blueprint drive key as reliquary records it on a machine.
+def _placed_letter(key, machine, context):
+    """Ask the created machine what letter its work drive got.
 
-    Medium and slot are what `drive_letters()` reads, and a blueprint
-    key already carries both — `hdd1` is the second disk by its own
-    name — so this is a spelling change rather than a second opinion.
+    **Inference is retired here** (D78 upstream). Through 0.1.0.dev4
+    testaferro derived the letter while authoring the blueprint, from
+    `platform_dos.drive_letters()` over the declared drives alone.
+    0.1.0.dev5 ended that: a disk takes one letter per volume it
+    *actually holds*, read off the image at rest, so the declaration
+    stopped being enough to answer from and the derivation stopped
+    being possible before materialization. 0.1.0.dev6 supplies the
+    answer instead — `describe_drives()` reports a created machine's
+    drives and the letter map over them (D83 there).
+
+    So the question moves to the one moment it can be answered: after
+    `create_machine()`, when images exist to read, and before
+    `start_machine()`, while reliquary will still read them. What the
+    guest is told is what the provider placed — never a rule
+    testaferro keeps a copy of, which is exactly the mirror D78
+    deleted upstream.
+
+    A drive left unplaced is refused **carrying reliquary's own
+    reason**, not a summary of it: an unreadable disk ahead of this
+    one shifts every letter behind it, and the specific refusal is
+    the only thing that says which disk and why. A suite run off the
+    wrong drive fails as a missing program and says nothing at all.
     """
-    medium = key.rstrip("0123456789")
-    return {"medium": medium, "slot": int(key[len(medium):] or 0)}
+    report = reliquary.describe_drives(machine=machine, context=context)
+    mapping = report.get("mapping") or {}
+    for letter, placed in (mapping.get("letters") or {}).items():
+        if placed.get("drive") == key:
+            return letter
+    for entry in mapping.get("undetermined") or ():
+        if entry.get("drive") == key:
+            raise ValueError(
+                f"reliquary left {key} without a letter, so testaferro "
+                "cannot tell the guest where its suite is: "
+                f"{entry.get('reason')} [{entry.get('id')}]")
+    raise ValueError(
+        f"reliquary's drive report names no letter and no refusal for "
+        f"{key}, which testaferro declared as its work drive")
+
+
+def _default_location(machine, context):
+    """Choose where a run lands when nobody said (F4, P8).
+
+    **The facts are the provider's and the choice is testaferro's.**
+    `describe_drives()` says which letters this machine actually has;
+    the policy applied over them is the last letter — the drive
+    testaferro appended when it appended one, the boot disk's own
+    volume when it did not — with the staged set in a directory under
+    it that testaferro names. Last rather than first because the
+    system disk is what a machine declares first and what a guest
+    boots from: landing on top of somebody's `C:\\` root is the one
+    place a default must not put a stranger's files.
+
+    Nothing is inferred: a letter that appears here was read off a
+    materialized image, and a machine whose letters cannot be
+    determined refuses rather than defaulting onto a guess.
+    """
+    report = reliquary.describe_drives(machine=machine, context=context)
+    mapping = report.get("mapping") or {}
+    letters = sorted((mapping.get("letters") or {}))
+    if not letters:
+        undetermined = mapping.get("undetermined") or ()
+        if undetermined:
+            entry = undetermined[0]
+            raise ValueError(
+                "testaferro cannot choose where to put this suite: "
+                f"{entry.get('reason')} [{entry.get('id')}]. Declare "
+                "location= with a guest address to say where it goes")
+        raise ValueError(
+            "this machine has no drive testaferro can stage onto; "
+            "declare location= with a guest address, or give the "
+            "machine a drive to put the suite on")
+    return f"{letters[-1]}:\\{_STAGED_DIR}"
+
+
+def _resolve_program(program, location, exe_name):
+    """The guest address of what to run, defaulted or declared.
+
+    Defaulted it is the staged executable under the location, which
+    is the whole of the one-liner case. Declared it is the consumer's
+    own address, with `{location}` substituted — the location is
+    settled by now whether they stated it or testaferro chose it, and
+    that is precisely what makes one placeholder enough.
+    """
+    if program is None:
+        return _join(location, exe_name)
+    try:
+        return program.format(**{_LOCATION_PLACEHOLDER: location})
+    except KeyError as error:
+        raise ValueError(
+            f"program={program!r} names {{{error.args[0]}}}, which "
+            f"testaferro does not substitute; it knows "
+            f"{{{_LOCATION_PLACEHOLDER}}}") from None
+
+
+def _join(location, name):
+    """Join a guest directory address to a name, DOS-style."""
+    return location.rstrip("\\") + "\\" + name
 
 
 class ReliquarySuiteBackend(SuiteBackend):
     def __init__(self, exe_path, framework=cpputest, enumerator=None,
-                 boot_image=None, machine_config=None, timeout=None):
+                 boot_image=None, machine_config=None, timeout=None,
+                 files=(), location=None, program=None):
         self._boot_image = (None if boot_image is None
                             else os.fspath(boot_image))
         self._home = None
         self._ctx = None
         self._machine = None
-        self._letter = None
+        self._location = None
         self._machine_config = machine_config
         # Nearest speaker wins: this call, then the declaration, then
-        # the default.
-        declared = (None if machine_config is None
-                    else machine_config.timeout)
-        self._timeout = next(
-            (value for value in (timeout, declared) if value is not None),
-            _DEFAULT_TIMEOUT)
+        # the default. The same rule for all four, so a consumer never
+        # has to remember which options overrule a declaration.
+        declared = machine_config
+        self._timeout = self._nearest(timeout, "timeout", _DEFAULT_TIMEOUT)
+        self._declared_location = self._nearest(location, "location")
+        self._declared_program = self._nearest(program, "program")
+        staged = self._nearest(files or None, "files") or ()
+        self._files = tuple(os.fspath(path) for path in staged)
+        del declared
         super().__init__(os.fspath(exe_path), run=self._run_in_guest,
                          framework=framework, enumerator=enumerator)
+
+    def _nearest(self, given, name, default=None):
+        """This call, then the declaration, then the default."""
+        declared = (None if self._machine_config is None
+                    else getattr(self._machine_config, name, None))
+        return next((value for value in (given, declared)
+                     if value not in (None, ())), default)
+
+    @property
+    def location(self):
+        """Where this suite's harness landed, in the guest's terms.
+
+        The **placement reported** (F4): one question, one vocabulary,
+        one answer — a guest address like `C:\\TESTS`, the same terms a
+        declaration uses, so what you could have declared is what you
+        are told. And the same answer whether the consumer stated it
+        or testaferro chose it: who chose is deliberately not part of
+        it, which is the courtesy testaferro asks of the provider one
+        seam down, applied at its own surface.
+
+        Refuses before the location is settled rather than guessing.
+        A declared address settles the moment a guest session opens; a
+        defaulted one settles once the provider's drive map is read,
+        which is also inside `start_guest()` — so in practice this
+        answers for the length of a guest session and refuses outside
+        one.
+        """
+        if self._location is None:
+            raise RuntimeError(
+                "this suite has not been placed yet: the location is "
+                "settled when a guest session opens, so ask between "
+                "start_guest() and stop_guest()")
+        return self._location
 
     def start_guest(self):
         # A guest home sits inside the active run's area, or directly
@@ -380,29 +521,109 @@ class ReliquarySuiteBackend(SuiteBackend):
         work = os.path.join(self._home, "work")
         os.makedirs(blueprints)
         os.makedirs(work)
-        # the backend snapshots the host directory when the drive is
-        # attached, so the executable is staged before the machine
-        # boots, not on the first run.
-        shutil.copy2(self._exe, os.path.join(work, self._program()))
-        # And the boot image for the same reason, one drive over: what
-        # boots is testaferro's copy, so the tester's own file is read
-        # and never written (P5).
+        # The host side of the staged set: the suite executable, plus
+        # whatever `files=` named, gathered into one directory because
+        # `put_files` copies a tree and the set keeps its shape under
+        # the location.
+        self._gather(work)
+        # The boot image is staged host-side too, and for a different
+        # reason: what boots is testaferro's copy, so the tester's own
+        # file is read and never written (P5).
         boot = self._stage_boot_image()
 
-        document, self._letter = self._blueprint(work, boot)
-        with open(os.path.join(blueprints, _BLUEPRINT_NAME + ".rlqb"),
-                  "w", encoding="utf-8") as handle:
-            json.dump(document, handle)
         self._ctx = _context(self._home, blueprints)
         try:
-            self._machine = reliquary.create_machine(
-                _BLUEPRINT_NAME, context=self._ctx)
-            _machine_started(self)
+            self._create(blueprints, boot, work=None)
+            # Between create and start: the drive images exist to be
+            # read and written, and reliquary will still touch them at
+            # rest. Everything below happens in that window, so a
+            # placement that cannot work fails before any boot rather
+            # than as a missing program in the guest.
+            self._place(work, blueprints, boot)
             reliquary.start_machine(self._machine, context=self._ctx)
             self._wait_ready()
         except BaseException:
             self.stop_guest()
             raise
+
+    def _gather(self, work):
+        """Collect the staged set into one host directory.
+
+        The suite executable always, plus each `files=` entry beside
+        it. A named directory contributes its contents rather than
+        itself, which is what makes `files=["fixtures"]` land the
+        fixtures where a guest program will look for them instead of
+        one directory deeper.
+        """
+        shutil.copy2(self._exe, os.path.join(work, self._exe_name()))
+        for source in self._files:
+            if os.path.isdir(source):
+                shutil.copytree(source, work, dirs_exist_ok=True)
+            else:
+                shutil.copy2(source, os.path.join(
+                    work, os.path.basename(source)))
+
+    def _create(self, blueprints, boot, work):
+        """Author this session's blueprint and materialize it."""
+        document, key = self._blueprint(work, boot)
+        with open(os.path.join(blueprints, _BLUEPRINT_NAME + ".rlqb"),
+                  "w", encoding="utf-8") as handle:
+            json.dump(document, handle)
+        self._machine = reliquary.create_machine(
+            _BLUEPRINT_NAME, context=self._ctx)
+        _machine_started(self)
+        return key
+
+    def _place(self, work, blueprints, boot):
+        """Settle the location and stage the set at it, at rest.
+
+        **The address is stated once, staged against, and spelled.**
+        A declared address is validated by the staging itself:
+        `put_files` resolves it against the actual disk at the one
+        moment the answer exists, and a wrong one fails here with
+        reliquary's own refusal naming the cause (P11 by inheritance)
+        — never smoothed over, because the consumer named that address
+        and is the only one who can correct it.
+
+        A **defaulted** address may fall back, and only a defaulted
+        one. Where the chosen drive turns out to be one reliquary
+        cannot write at rest — an unreadable disk, a FAT it does not
+        claim, a backend without the capability — testaferro appends
+        the directory-source drive D5 used to supply and stages there
+        instead. That is the drive surviving as an implementation
+        detail for a machine offering no writable room, exactly as far
+        as the design allows: the surface promises a location, never a
+        drive.
+        """
+        declared = self._declared_location
+        location = declared or _default_location(self._machine, self._ctx)
+        try:
+            reliquary.put_files(work, location, machine=self._machine,
+                                context=self._ctx)
+        except reliquary.ReliquaryError:
+            if declared is not None:
+                raise
+            location = self._fall_back_to_work_drive(work, blueprints, boot)
+        self._location = location
+
+    def _fall_back_to_work_drive(self, work, blueprints, boot):
+        """Append testaferro's own drive and stage onto that instead.
+
+        The machine is recreated rather than amended: a drive is
+        chosen at materialization, and reliquary refuses to regenerate
+        one on an existing machine — rightly, since that is how a
+        stale image would go unnoticed. Nothing is lost by starting
+        again, because none of this has booted.
+        """
+        reliquary.destroy_machine(self._machine, context=self._ctx)
+        _running.discard(self)
+        self._machine = None
+        key = self._create(blueprints, boot, work=work)
+        letter = _placed_letter(key, self._machine, self._ctx)
+        # The drive testaferro just added is a host directory the
+        # backend serves whole, so the set is already at its root:
+        # staging it a second time would copy it into itself.
+        return f"{letter}:\\"
 
     def stop_guest(self):
         if self._home is None:
@@ -412,6 +633,7 @@ class ReliquarySuiteBackend(SuiteBackend):
             if self._machine is not None:
                 reliquary.stop_machine(self._machine,
                                        context=self._ctx)
+                self._retrieve_if_kept()
         finally:
             # The machine's own cache lives under this home, so the
             # sweep takes the whole guest session with it.
@@ -419,7 +641,33 @@ class ReliquarySuiteBackend(SuiteBackend):
             self._home = None
             self._ctx = None
             self._machine = None
-            self._letter = None
+            self._location = None
+
+    def _retrieve_if_kept(self):
+        """Pull the staged location back out for an inspected home.
+
+        **What `--testaferro-keep-guest-home` keeps had to change with
+        F4.** It used to keep a host directory the guest wrote through
+        directly; staging now lands inside a drive image, so keeping
+        the home alone would keep everything except the thing worth
+        looking at. So when the tester asked to see it, the location
+        comes back to `retrieved/` — read at rest after the stop, which
+        is also why it holds what the *run wrote* rather than only what
+        was staged.
+
+        Best-effort by design: a guest that repartitioned its disk, or
+        wrote somewhere reliquary cannot read back, must not turn
+        inspection into a failed test run. The home is kept either way,
+        and it is the machine's images that are the fallback evidence.
+        """
+        if not cache.keeping_guest_homes() or self._location is None:
+            return
+        try:
+            reliquary.get_files(self._location,
+                                os.path.join(self._home, "retrieved"),
+                                machine=self._machine, context=self._ctx)
+        except reliquary.ReliquaryError:
+            pass
 
     def _wait_ready(self):
         """Block until the guest will take a command.
@@ -454,8 +702,8 @@ class ReliquarySuiteBackend(SuiteBackend):
                 "the guest never reported itself ready, so nothing it "
                 "shows can be trusted to be an answer")
 
-    def _program(self):
-        """The suite's guest-side command name."""
+    def _exe_name(self):
+        """The suite executable's own name, as the guest will see it."""
         return os.path.basename(self._exe)
 
     def _run_in_guest(self, exe_path, args):
@@ -465,7 +713,12 @@ class ReliquarySuiteBackend(SuiteBackend):
         # The framework hands over argv tokens; DOS takes one command
         # line, so this is where tokens become one — the guest-OS
         # aspect, which is why it lives here and not in the adapter.
-        command = f"{self._letter}:\\{self._program()}"
+        #
+        # **The address staged against is the address spelled.** Both
+        # come off the same settled location, so the command cannot
+        # name somewhere the files did not go.
+        command = _resolve_program(self._declared_program, self.location,
+                                   self._exe_name())
         if args:
             command += " " + " ".join(args)
         rows = reliquary.exec(command, machine=self._machine,
@@ -476,17 +729,28 @@ class ReliquarySuiteBackend(SuiteBackend):
     def _blueprint(self, work, boot=None):
         """The blueprint document for this backend session.
 
-        The declaration (or the zero-configuration default) plus
-        testaferro's own work drive, which is how the suite executable
-        reaches the guest. Every drive is authored JSON passed through
-        to reliquary, which owns materialization: a declaration stays
-        a template because reliquary materializes a fresh machine from
-        it each session.
+        The declaration, or the zero-configuration default. Every
+        drive is authored JSON passed through to reliquary, which owns
+        materialization: a declaration stays a template because
+        reliquary materializes a fresh machine from it each session.
+
+        **`work` is normally `None` now.** Through F4's predecessor
+        every session appended a host-directory drive here, because
+        that was the only way bytes reached a guest; staging happens
+        at rest instead, into a drive the machine already has. A path
+        arrives only on the fallback path, for a machine offering no
+        writable room of its own, and then this appends the drive as
+        it always did.
 
         `work` and `boot` are both **already staged** — locations,
         not sources. Nothing is copied here: this authors a document,
         and a document that copied files would be doing it after the
         point where the backend snapshots them.
+
+        Returns the document and the appended drive's **key**, or
+        `None` when none was appended. A key is what the caller asks
+        the created machine about (`_placed_letter`); it used to
+        return a letter, and inference is what 0.1.0.dev6 retired.
         """
         spec = self._machine_config
         fields = dict(spec.fields) if spec is not None else {}
@@ -509,9 +773,9 @@ class ReliquarySuiteBackend(SuiteBackend):
                 # FreeDOS system. **Layered, never used in place** —
                 # every guest session gets its own overlay, so a guest
                 # writing to C: cannot reach the one copy each of them
-                # shares. The work drive lands beside it and the guest
-                # calls it D:, which is the first time testaferro's
-                # one-volume-per-disk assumption is worth anything.
+                # shares. The work drive lands beside it in the next
+                # slot; what the guest calls it is read off the created
+                # machine, not assumed from the slot.
                 drives["hdd0"] = {
                     "type": "media",
                     "name": _SYSTEM_MEDIA_NAME,
@@ -519,18 +783,20 @@ class ReliquarySuiteBackend(SuiteBackend):
                     "materialize": "difference",
                 }
                 fields.setdefault("boot", ["hdd0"])
-        key, letter = _work_drive(drives)
-        drives[key] = {
-            "type": "media",
-            "name": _WORK_MEDIA_NAME,
-            "location": {"local": work},
-            "materialize": "use",
-        }
+        key = None
+        if work is not None:
+            key = _work_slot(drives)
+            drives[key] = {
+                "type": "media",
+                "name": _WORK_MEDIA_NAME,
+                "location": {"local": work},
+                "materialize": "use",
+            }
         fields["drives"] = drives
         fields["type"] = "machine"
         fields["name"] = _BLUEPRINT_NAME
         media = list(spec.media) if spec is not None else []
-        return [fields, *media], letter
+        return [fields, *media], key
 
     def _declared_boot_image(self):
         """A boot image somebody actually asked for, or None.

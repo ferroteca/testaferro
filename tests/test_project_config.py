@@ -160,6 +160,53 @@ class ProjectConfigTests(unittest.TestCase):
         self.assertEqual(dict(config.fields),
                          {"platform": "dos", "memory": 64})
 
+    def test_placement_has_ini_spellings_like_every_keyword(self):
+        # The declarative twin of config(files=/location=/program=),
+        # and none of the three reaches the blueprint: reliquary's
+        # document has no field for what a test run stages (F4, P16).
+        ini = self._write(
+            "testaferro.ini",
+            "[msdos]\n"
+            "memory = 64\n"
+            "location = D:\\TESTDIR\n"
+            "program = {location}\\RUNNER.EXE\n")
+
+        environments.load_config(ini)
+
+        config = environments.configured()["msdos"]
+        self.assertEqual(config.location, "D:\\TESTDIR")
+        self.assertEqual(config.program, "{location}\\RUNNER.EXE")
+        self.assertEqual(dict(config.fields),
+                         {"platform": "dos", "memory": 64})
+
+    def test_staged_files_resolve_from_the_ini_directory(self):
+        # `files` names host paths, so a relative one means beside the
+        # declaration — the same rule every other path setting follows.
+        first = self._write("fixtures/CASE.DAT", "case")
+        second = self._write("fixtures/OTHER.DAT", "other")
+        ini = self._write(
+            "testaferro.ini",
+            "[msdos]\n"
+            "files = fixtures/CASE.DAT, fixtures/OTHER.DAT\n")
+
+        environments.load_config(ini)
+
+        config = environments.configured()["msdos"]
+        self.assertEqual(config.files,
+                         (os.path.abspath(first), os.path.abspath(second)))
+
+    def test_a_lone_staged_file_needs_no_comma(self):
+        path = self._write("fixtures/CASE.DAT", "case")
+        ini = self._write(
+            "testaferro.ini",
+            "[msdos]\n"
+            "files = fixtures/CASE.DAT\n")
+
+        environments.load_config(ini)
+
+        self.assertEqual(environments.configured()["msdos"].files,
+                         (os.path.abspath(path),))
+
 
 if __name__ == "__main__":
     unittest.main()

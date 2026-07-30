@@ -94,9 +94,16 @@ _SETTINGS = (
                    "path template: build/host/{stem}.exe"),
     ("timeout", "seconds one guest command may take before the "
                 "provider gives up"),
+    ("files", "host files staged into the guest beside the suite, "
+              "comma-separated"),
+    ("location", "guest address the suite is staged at: D:\\TESTS"),
+    ("program", "guest address of what to run there; {location} "
+                "stands for the staged location"),
 )
 # Settings naming a file, resolved from the rootdir when relative.
 _PATH_SETTINGS = frozenset({"boot-image", "machine-config"})
+# Settings naming several files, each resolved the same way.
+_PATH_LIST_SETTINGS = frozenset({"files"})
 # Settings the binding wants as a number rather than as text.
 _FLOAT_SETTINGS = frozenset({"timeout"})
 
@@ -407,6 +414,19 @@ def _backend_for(config, path):
                 raise pytest.UsageError(
                     f"--testaferro-{name} takes a number of seconds, "
                     f"not {value!r}") from None
+    for name in _PATH_LIST_SETTINGS:
+        value = _setting(config, name)
+        if value is not None:
+            options[name.replace("-", "_")] = tuple(
+                _rooted(config, part.strip())
+                for part in str(value).split(",") if part.strip())
+    # Guest addresses, passed through as written: what a valid one is
+    # belongs to the guest platform, and testaferro never rewrites a
+    # host path into one (P17).
+    for name in ("location", "program"):
+        value = _setting(config, name)
+        if value is not None:
+            options[name] = value
     twin = _twin_for(config, path)
     if twin is not None:
         options["enumerator"] = _twin_enumerator(twin)

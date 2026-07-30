@@ -5,6 +5,22 @@ SPDX-License-Identifier: GPL-3.0-only
 
 # Test placement: the declaration surface and its defaults
 
+> **Delivered 2026-07-30, and F4 retired with it.** What follows is
+> the design as argued, kept because the reasoning is the record;
+> the code is now the truth about behaviour. Four things this
+> document left "settled at the pledge" were settled there: the
+> default location is the **last** letter of the map with the
+> staged set in `\TESTS` under it (eight characters, because DOS
+> 8.3 reads it back); the placeholder is **`{location}`**; the
+> accessor is the **`location` property** on the binding's backend;
+> and `--testaferro-keep-guest-home` **retrieves the location** into
+> `retrieved/` under the kept home, which is how the look-in-a-folder
+> story survives staging moving into the image. This file describes
+> a delivered interface, which `planning/README.md` says nothing here
+> should — where a delivered norm finally lives is the open question
+> in [../../DECISIONS.md](../../DECISIONS.md), and this moves when
+> that is answered.
+
 Serves **F4**, and settles its design (owner, 2026-07-29). The
 trigger was concrete: reliquary 0.1.0.dev5 (D78 there) stopped
 assuming one volume per disk, and with the assumption went the only

@@ -5,7 +5,6 @@ __pycache__/
 .idea/
 dist/
 build/
-uv.lock
 
 # Open Watcom leavings from building the guest suite. SUITE.EXE is
 # checked in deliberately — the objects and the CppUTest library it

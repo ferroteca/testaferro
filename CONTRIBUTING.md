@@ -50,16 +50,20 @@ the facade's batching behavior.
 
 ## Development setup
 
-testaferro supports Python 3.9 and newer. Create and use a
-project-local virtual environment:
+testaferro supports Python 3.12 and newer.
+[uv](https://docs.astral.sh/uv/) provisions the environment — one
+command creates `.venv`, installs the project editable, and installs
+its dependencies from the committed `uv.lock`:
 
 ```powershell
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e .
+uv sync
 ```
 
-This installs the two runtime dependencies, pytest and reliquary.
+Run things with `uv run` (for example `uv run python -m unittest
+discover -s tests`), which uses that environment without activating
+it. Do not hand-manage `.venv` — it is uv's.
+
+That installs the two runtime dependencies, pytest and reliquary.
 Reliquary is pinned to an exact version: its API is still changing
 quickly, so the pin is what keeps a checkout reproducible. Moving it
 is its own change, not a drive-by.

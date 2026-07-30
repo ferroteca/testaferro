@@ -97,40 +97,6 @@ Touches `ResultBroker`, the `Backend` seam, and the CppUTest argv
 builders — so it changes an enumerated interface (the `Backend` ABC)
 and takes the argued route regardless of its size.
 
-## F4 — Test placement: files, location, program
-
-Grew from "a specified insertion point" into the general placement
-surface, designed in
-[design/test-placement.md](design/test-placement.md) (owner,
-2026-07-29). Replaces the testaferro-supplied hostdir work drive
-(D5) with three declarations beside the machine spec — the **file
-set** staged into the guest, the **location** it lands at, stated in
-guest terms (`D:\TESTDIR` — a letter, not a slot: the spelling
-staging validates and the command needs), and the **program** to run
-there, the adapter still composing argv onto it (P4). Each is
-defaulted, so a single suite executable with nothing else said
-still runs (P8): the one-line `pytest tests/SUITE.EXE` is the
-fully-defaulted corner of this surface, not a case beside it. The
-placement is also **reported**: a consumer can ask where their
-harness landed and is answered in guest terms, the same answer
-whether they declared the location or testaferro chose it — the
-design's reporting contract.
-
-The blocker the earlier shape named is spent: reliquary
-0.1.0.dev5's at-rest file verbs write a stopped machine's drives,
-FAT volumes included, so staging becomes `put_files` between
-`create_machine` and `start_machine` and the attach-time snapshot
-rule retires with the drive that needed it. What remains asked of
-the provider is one thing, argued downstream in
-[design/reliquary-drive-geometry-proposal.md](design/reliquary-drive-geometry-proposal.md):
-a public drive-geometry report for a created, stopped machine —
-drives, volumes, and the volume-to-guest-namespace mapping — whose
-letter-map slice is what *defaulting* the location takes; the facts
-are the provider's to read, the choice is testaferro's to make.
-Landing this supersedes
-D5 and moves the reliquary pin to the release carrying both the
-at-rest verbs and that map — the deliberate act D4 makes it.
-
 ## F5 — A second guest platform binding
 
 A guest OS beyond DOS surfacing through the facade: a platform name,
@@ -151,17 +117,19 @@ to reliquary —
 this feature waits on the first of those changes and on the
 deliberate pin move it implies (D4).
 
-- **Per-boot prep**: two declarations, each with the keyword and
-  INI spellings every declaration has (P16), and neither a
-  blueprint field — like `provider` and `timeout` they are
-  testaferro's own words, said beside the machine spec, never
-  inside it.
+- **Per-boot prep**: one declaration now, carrying the keyword and
+  INI spellings every declaration has (P16), and not a blueprint
+  field — like `provider` and `timeout` it is testaferro's own
+  word, said beside the machine spec, never inside it.
 
-  `files=` — host paths staged onto the work drive beside the
-  suite, before boot. The staging D5 already does, extended from
-  one file to a list; the snapshot-before-boot invariant holds
-  exactly, and landing on the work drive is what lets a setup
-  command name a staged file with no path and no letter.
+  **`files=` shipped with F4** and is not owed here. It was always
+  one declaration rather than two spellings, and F4's delivery is
+  where it landed: host paths staged beside the suite, at the
+  location, before boot. What it buys this feature is unchanged —
+  everything arrives in one guest directory, so a setup command
+  names a staged file with no path and no letter, and
+  `{location}` spells that directory for the commands that need it
+  written out.
 
   `setup=` — commands run in the guest in the order given, once
   per **guest session** (D15) — every guest session, an
@@ -179,8 +147,8 @@ deliberate pin move it implies (D4).
   exit code in return. **Weighed and declined:** pre-boot validation of
   `setup` commands against the staged files and a shell-builtin
   list. The builtin list is a vocabulary testaferro would have to
-  keep on the shell's behalf — the kind of mirror `_work_drive()`
-  just paid to delete — and the staged-file check refuses
+  keep on the shell's behalf — the kind of mirror the drive-letter
+  inference paid to delete — and the staged-file check refuses
   legitimate commands naming programs on the system disk, a
   tester's floppy, or `PATH`. Keeping `files` and `setup`
   agreeing is the caller's own obligation, and a typo surfaces as

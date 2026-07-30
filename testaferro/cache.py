@@ -29,6 +29,17 @@ def keep_guest_homes(enabled=True):
     _keep = bool(enabled)
 
 
+def keeping_guest_homes():
+    """Whether homes are being kept, asked *before* one is released.
+
+    `release_guest_home()` answers the same question by acting on it,
+    which is too late for a binding that must do work to make a kept
+    home worth having — retrieving what a run left inside a drive
+    image, which can only happen while the machine still exists.
+    """
+    return _keep
+
+
 def kept_guest_homes():
     """Every guest home preserved so far, in the order made."""
     return tuple(_kept)

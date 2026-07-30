@@ -85,7 +85,11 @@ def guest_suite(target, framework=None, enumerator=None,
     named environment carries its own, so the two do not combine. Any
     further keyword is environment-specific and validated by the
     selected binding: today, `boot_image=` or `machine_config=` for
-    DOS.
+    DOS, plus the placement declarations `files=`, `location=` and
+    `program=` — what is staged into the guest, the guest address it
+    lands at, and what to run there. All three default, so a lone
+    suite executable still needs none of them, and where a run landed
+    is readable afterwards as the backend's `location`.
 
     Enumeration (backend.list_tests()) happens at import/collection
     time, in a guest session of its own — unless `enumerator` supplies
