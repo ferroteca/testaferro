@@ -74,7 +74,7 @@ built and verified.
   seam a provider implements.
 
   **Where the axis stops short, it says so.** `testaferro.start()`
-  and `stop()` reach `testaferro/reliquary.py` by name, so a *run* —
+  and `stop()` reach `src/testaferro/reliquary.py` by name, so a *run* —
   one staged image and one sweep area — is one provider's today. That
   is not a divergence while one provider exists: generalizing it now
   is precisely the abstraction-ahead-of-need D1 refused. It is the
@@ -329,7 +329,7 @@ built and verified.
   ([planning/INTERFACES.md](planning/INTERFACES.md)), and the
   plugin's options are a second presentation of them rather than a
   surface of their own. In the code, the two spellings are declared
-  from one list in `testaferro/plugin.py` so they cannot drift; a
+  from one list in `src/testaferro/plugin.py` so they cannot drift; a
   keyword added to one and not the others is the bug this principle
   names.
 
@@ -356,7 +356,7 @@ built and verified.
   **An entry declaring nothing is still complete.** `freedos` names
   only its platform and takes the binding's zero-configuration boot
   image, which is testaferro's own authored media definition —
-  a URL and its hashes, written in `testaferro/reliquary.py` — and
+  a URL and its hashes, written in `src/testaferro/reliquary.py` — and
   not a name looked up anywhere. What this principle forbids is
   reaching into the provider's shipped content for a name, not
   declaring little. *[Amended before arming: "from the session to

@@ -21,9 +21,10 @@ keyed by it, and reliquary is the default and the one binding built.
 testaferro's pluggable aspect is the guest unit-test framework
 (U6).
 
-Package layout (each module states its contract in its docstring):
+Package layout under `src/` (each module states its contract in its
+docstring):
 
-- [testaferro/backend.py](testaferro/backend.py) — the `Backend`
+- [src/testaferro/backend.py](src/testaferro/backend.py) — the `Backend`
   seam (`TestId`, `TestOutcome`, `GuestOutputError`, the
   five-operation ABC: `start_guest`, `list_tests`, `run_test`,
   `run_all`, `stop_guest`).
@@ -32,15 +33,15 @@ Package layout (each module states its contract in its docstring):
   and `stop_guest()`; a **run** is what `testaferro.start()`/`stop()`
   open — one staged image and one sweep area, holding many guest
   sessions. Nothing but pytest's own is called a session unqualified.
-- [testaferro/cpputest.py](testaferro/cpputest.py) — the CppUTest
+- [src/testaferro/cpputest.py](src/testaferro/cpputest.py) — the CppUTest
   **framework adapter**: argv builders + output grammars, derived
   from CppUTest v4.0's own source, not from observed samples. An
   argv builder returns a **sequence of tokens, never a command
   line** — spelling one belongs to whoever executes, since only
   they know whether the program is reached by a DOS command line or
   an argv list. The two spellings live in
-  [reliquary.py](testaferro/reliquary.py) (`" ".join`) and
-  [plugin.py](testaferro/plugin.py) (a splat into `subprocess.run`).
+  [reliquary.py](src/testaferro/reliquary.py) (`" ".join`) and
+  [plugin.py](src/testaferro/plugin.py) (a splat into `subprocess.run`).
   A string return would satisfy every `for` loop and every join in
   the codebase while meaning something else, which is exactly how it
   went wrong once: the binding joined a string's characters and
@@ -62,7 +63,7 @@ Package layout (each module states its contract in its docstring):
   line stripped, which keeps a difference report's caret under the
   character it indicts. This is what P9 costs, arriving: source-derived
   fixtures could not have shown it, and the first real run did.
-- [testaferro/environments.py](testaferro/environments.py) — named
+- [src/testaferro/environments.py](src/testaferro/environments.py) — named
   test-environment declarations backed by immutable
   `EnvironmentSpec` templates, plus selection and loading of the
   optional per-project `testaferro.ini` (declarative twin of
@@ -82,14 +83,14 @@ Package layout (each module states its contract in its docstring):
   resolves a *name* against those declarations first and the standard
   catalog second (D10); the platform *inferred* from the executable
   matches declarations only, so zero configuration stays zero (P8).
-- [testaferro/catalog.py](testaferro/catalog.py) — the standard
+- [src/testaferro/catalog.py](src/testaferro/catalog.py) — the standard
   environments testaferro curates, reachable by name
   (`environment="freedos"`). Each entry is an authored provider document
   carried through untouched, exactly as a declaration is (P3);
   `freedos` declares only its platform, which is what makes naming it
   and naming nothing run the same guest. Siblings arrive as guests
   grow.
-- [testaferro/suite.py](testaferro/suite.py) — `SuiteBackend`, the
+- [src/testaferro/suite.py](src/testaferro/suite.py) — `SuiteBackend`, the
   internal execution × framework composition. Argv crosses it
   untouched: it joins nothing and quotes nothing, because a
   composition that knows neither aspect cannot know what a command
@@ -99,7 +100,7 @@ Package layout (each module states its contract in its docstring):
   a `backend.GuestOutputError` here, carrying both, for an entry point
   to report (D19). An adapter states its reason and nothing about
   provenance; it never saw the guest.
-- [testaferro/binfmt.py](testaferro/binfmt.py) — stdlib-only
+- [src/testaferro/binfmt.py](src/testaferro/binfmt.py) — stdlib-only
   executable-format classification. `classify()` names the guest OS
   able to run a file — "dos" for plain MZ and headerless/.com
   images, None for a provable PE, NE/LX/LE, ELF, or Mach-O
@@ -107,14 +108,14 @@ Package layout (each module states its contract in its docstring):
   error messages; a future guest extends this by claiming formats
   currently mapped to None. Shared by the facade's dispatch and
   each guest binding's own guard.
-- [testaferro/assets/](testaferro/assets/) — the FreeDOS recipe
+- [src/testaferro/assets/](src/testaferro/assets/) — the FreeDOS recipe
   testaferro authors: a blueprint and the install script that drives
   it. Vendored from the provider's codex deliberately and read only
   from here (P17, D20), and read **once** — what a test run touches is
   the disk the install produced, never this. Shipped inside the
   package (`package-data` in [pyproject.toml](pyproject.toml)) because
   the package reads it at run time.
-- [testaferro/cache.py](testaferro/cache.py) — `cache_root()`,
+- [src/testaferro/cache.py](src/testaferro/cache.py) — `cache_root()`,
   testaferro's durable filespace (LOCALAPPDATA or XDG_CACHE_HOME),
   shared by the guest bindings. Also where a finished guest home is
   handed back: `release_guest_home()` is the single place that sweeps
@@ -124,7 +125,7 @@ Package layout (each module states its contract in its docstring):
   cache root for a guest belonging to no run. That policy is testaferro's, not
   any binding's, which is what lets the plugin read the answer without
   importing a binding — or a provider.
-- [testaferro/reliquary.py](testaferro/reliquary.py) — the reliquary
+- [src/testaferro/reliquary.py](src/testaferro/reliquary.py) — the reliquary
   provider binding, for DOS guests (D16). Named for the provider it
   binds, because that is the layer testaferro talks to: every call in
   it is a reliquary call, and what reliquary drives underneath is its
@@ -252,7 +253,7 @@ Package layout (each module states its contract in its docstring):
   Guest output is whatever `reliquary.exec()` returns: the visible
   screen, as rows. A command that scrolls past a screenful leaves
   only its tail, which is why `enumerator=` matters for real suites.
-- [testaferro/resolution.py](testaferro/resolution.py) — the
+- [src/testaferro/resolution.py](src/testaferro/resolution.py) — the
   backend-resolution seam: `resolve_backend()` is the single place
   where an executable plus options becomes a `Backend`, and every
   entry point calls it. Config search, format classification,
@@ -273,7 +274,7 @@ Package layout (each module states its contract in its docstring):
   search begins — is a parameter, because nothing here can know how
   the caller was reached. Its imports stay stdlib-only;
   `environments` (and so reliquary) is imported inside the call.
-- [testaferro/items.py](testaferro/items.py) — the pytest items
+- [src/testaferro/items.py](src/testaferro/items.py) — the pytest items
   testaferro produces, which is the fifth interface: `item_id()` (the
   dash rule), `failure_text()` (the guest's own file, line and
   assertion) and `guest_output_text()` (the guest's own screen, when
@@ -282,7 +283,7 @@ Package layout (each module states its contract in its docstring):
   rather than in either of them. `guest_output_text()` leads with the
   reason because pytest's short summary quotes a report's first line
   and drops the rest, so that line has to stand alone.
-- [testaferro/plugin.py](testaferro/plugin.py) — the `pytest11`
+- [src/testaferro/plugin.py](src/testaferro/plugin.py) — the `pytest11`
   collection plugin, which **auto-loads on installation** (D13):
   `pytest_collect_file` claims suite executables, and each guest test
   becomes an item under the executable's node
@@ -303,7 +304,7 @@ Package layout (each module states its contract in its docstring):
   part — see the invariant below. Its module imports stay stdlib-only:
   a pytest run that claims no guest suite must not pay for reliquary,
   which is why `environments.py` imports the JSONC reader lazily.
-- [testaferro/facade.py](testaferro/facade.py) — the pytest facade
+- [src/testaferro/facade.py](src/testaferro/facade.py) — the pytest facade
   and public entry point: `guest_suite(path_or_backend, ...)` items
   (re-exported as `testaferro.guest_suite`), selection-aware batching
   (`ResultBroker`), guest-failure replay. A path target is resolved
@@ -428,8 +429,8 @@ principle governs.
 
 - Python code: stdlib plus two declared dependencies (P11) — pytest (the
   facade's host surface, imported lazily) and reliquary (the only
-  supported guest-machine provider, imported by `testaferro/reliquary.py` for the
-  machine lifecycle and by `testaferro/environments.py` for its JSONC
+  supported guest-machine provider, imported by `src/testaferro/reliquary.py` for the
+  machine lifecycle and by `src/testaferro/environments.py` for its JSONC
   reader alone). Support Python 3.12 and newer; keep lines near 79
   columns.
 - Reliquary is pinned to an exact version in
@@ -548,7 +549,7 @@ synchronized with this policy.
 not public-domain-looking snippets, not vendored files. The
 contributor cannot assign what they do not own, and neither can the
 project. Third-party code enters as a declared dependency or not at
-all. (`testaferro/assets/` is vendored from reliquary's codex and is
+all. (`src/testaferro/assets/` is vendored from reliquary's codex and is
 not an exception: reliquary is the same owner's work, so there is no
 third party — see the prior-art section.)
 
@@ -621,7 +622,7 @@ standing is **owner-relicensable** — it is not tier 1, and it fails
 the day reliquary contains code its owner cannot relicense, which
 reliquary's own CLA exists to prevent.
 
-`testaferro/assets/` is *copied* from reliquary's codex (P17, D20) —
+`src/testaferro/assets/` is *copied* from reliquary's codex (P17, D20) —
 the one place this repository carries another repository's files —
 and is not third-party material for the same reason: same owner, so
 title is already consolidated. What reliquary drives underneath is
@@ -638,7 +639,7 @@ individual file named below carry the same three-holder notice
 (Copyright (c) 2007 Michael Feathers, James Grenning and Bas Vodde).
 Two distinct uses, both deliberate:
 
-- **The adapter derives from its source.** `testaferro/cpputest.py`'s
+- **The adapter derives from its source.** `src/testaferro/cpputest.py`'s
   argv builders and output grammars follow CppUTest v4.0's own
   `TestOutput.cpp` and `CommandLineTestRunner.cpp` rather than
   observed samples (P9), and the integration makefile's flags follow
@@ -701,7 +702,7 @@ this repository handles that:
 For the commercial bar: the fixture is not product code, Watcom-1.0
 permits object-code distribution under one's own licence with the
 notices intact, and the whole question stays fixture-sized so long as
-Open Watcom never touches `testaferro/`.
+Open Watcom never touches `src/testaferro/`.
 
 ### pytest — host surface
 
@@ -764,7 +765,7 @@ and do not install tooling globally.
 Run checks through uv, which uses the locked environment.
 
 ```powershell
-uv run python -m compileall -q testaferro tests
+uv run python -m compileall -q src/testaferro tests
 uv run python -m unittest discover -s tests -v
 uv run --python 3.12 python -m unittest discover -s tests
 uv build

@@ -251,7 +251,7 @@ integration run ever made found that it could not have.
 
 **The image is now testaferro's own, installed rather than
 downloaded.** The recipe — reliquary's codex `freedos` blueprint and
-its install script — is **vendored into `testaferro/assets/`** and
+its install script — is **vendored into `src/testaferro/assets/`** and
 read from there, so nothing about the environment testaferro offers by
 name resolves out of the provider's codex at run time (P17). The
 install runs **once**, into the cache; every guest session afterwards
@@ -306,8 +306,8 @@ download, which is faster on first use and costs a hosting decision
 and an artifact to keep in step; it stays available if the install
 proves slow in practice.
 
-**Folded into:** [../testaferro/assets/](../testaferro/assets/),
-[../testaferro/reliquary.py](../testaferro/reliquary.py),
+**Folded into:** [../src/testaferro/assets/](../src/testaferro/assets/),
+[../src/testaferro/reliquary.py](../src/testaferro/reliquary.py),
 [../tests/test_reliquary.py](../tests/test_reliquary.py),
 [../pyproject.toml](../pyproject.toml), [../README.md](../README.md),
 [../AGENTS.md](../AGENTS.md), [../CHANGELOG.md](../CHANGELOG.md),
@@ -366,13 +366,13 @@ through an exception subclass so the short summary keeps its
 trade testaferro already makes for ordinary guest failures — one
 convention for both beats a summary line for one of them.
 
-**Folded into:** [../testaferro/backend.py](../testaferro/backend.py)
-(`GuestOutputError`), [../testaferro/suite.py](../testaferro/suite.py),
-[../testaferro/items.py](../testaferro/items.py)
+**Folded into:** [../src/testaferro/backend.py](../src/testaferro/backend.py)
+(`GuestOutputError`), [../src/testaferro/suite.py](../src/testaferro/suite.py),
+[../src/testaferro/items.py](../src/testaferro/items.py)
 (`guest_output_text()`),
-[../testaferro/cpputest.py](../testaferro/cpputest.py),
-[../testaferro/plugin.py](../testaferro/plugin.py),
-[../testaferro/facade.py](../testaferro/facade.py),
+[../src/testaferro/cpputest.py](../src/testaferro/cpputest.py),
+[../src/testaferro/plugin.py](../src/testaferro/plugin.py),
+[../src/testaferro/facade.py](../src/testaferro/facade.py),
 [../AGENTS.md](../AGENTS.md), [../CHANGELOG.md](../CHANGELOG.md),
 [pledged/USE-CASES.md](pledged/USE-CASES.md) (U4's built-so-far note).
 
@@ -492,10 +492,10 @@ append it whole. It fixes the same defect in one line, but leaves
 whether to split it, and leaves the quoting question with the module
 least equipped to answer it.
 
-**Folded into:** [../testaferro/cpputest.py](../testaferro/cpputest.py),
-[../testaferro/suite.py](../testaferro/suite.py),
-[../testaferro/reliquary.py](../testaferro/reliquary.py),
-[../testaferro/plugin.py](../testaferro/plugin.py),
+**Folded into:** [../src/testaferro/cpputest.py](../src/testaferro/cpputest.py),
+[../src/testaferro/suite.py](../src/testaferro/suite.py),
+[../src/testaferro/reliquary.py](../src/testaferro/reliquary.py),
+[../src/testaferro/plugin.py](../src/testaferro/plugin.py),
 [../AGENTS.md](../AGENTS.md), [../CHANGELOG.md](../CHANGELOG.md).
 
 ### D16 — A binding is named for the provider it binds
@@ -505,7 +505,7 @@ amended). Closes the open question "Whether the QEMU binding module is
 renamed for the platform it binds."
 
 **It is renamed, and for neither of the things that question
-offered.** `testaferro/qemu.py` becomes `testaferro/reliquary.py` and
+offered.** `testaferro/qemu.py` becomes `src/testaferro/reliquary.py` and
 `QemuSuiteBackend` becomes `ReliquarySuiteBackend`, because the module
 was named for something it never touches: every call in it is a
 reliquary call, and QEMU is what reliquary drives — a layer below the
@@ -547,14 +547,14 @@ package anticipating siblings. With one provider it is structure built
 ahead of a second concrete implementation, which is the shape D1
 refused; the directory costs nothing to introduce the day a second
 binding exists. Also noted rather than declined: inside
-`testaferro/reliquary.py` the name `reliquary` refers to the provider
+`src/testaferro/reliquary.py` the name `reliquary` refers to the provider
 distribution, absolute imports making that unambiguous to Python
 though not instantly to a reader — so the binding's own tests import
 it as `binding` and say which is which.
 
-**Folded into:** `testaferro/reliquary.py`,
-`testaferro/resolution.py`, `testaferro/__init__.py`,
-`testaferro/facade.py`, `tests/test_reliquary.py`,
+**Folded into:** `src/testaferro/reliquary.py`,
+`src/testaferro/resolution.py`, `src/testaferro/__init__.py`,
+`src/testaferro/facade.py`, `tests/test_reliquary.py`,
 [../AGENTS.md](../AGENTS.md), [../README.md](../README.md),
 [../CONTRIBUTING.md](../CONTRIBUTING.md),
 [../pyproject.toml](../pyproject.toml),
@@ -624,9 +624,9 @@ leaving the outer span a "session" and disambiguating only the inner
 one, which fixes the collision a reader hits and leaves the one a
 maintainer hits.
 
-**Folded into:** `testaferro/backend.py` (the ABC),
-`testaferro/qemu.py`, `testaferro/cache.py`, `testaferro/facade.py`,
-`testaferro/plugin.py`, [../README.md](../README.md),
+**Folded into:** `src/testaferro/backend.py` (the ABC),
+`testaferro/qemu.py`, `src/testaferro/cache.py`, `src/testaferro/facade.py`,
+`src/testaferro/plugin.py`, [../README.md](../README.md),
 [../AGENTS.md](../AGENTS.md), [../CHANGELOG.md](../CHANGELOG.md).
 
 ### D14 — A lifecycle act earns no decision entry
@@ -1116,7 +1116,7 @@ future interface from the concrete implementations then.
 for locality and testing without turning that callable into a public
 runner contract.
 
-**Folded into:** `testaferro/qemu.py`, `testaferro/suite.py`,
+**Folded into:** `testaferro/qemu.py`, `src/testaferro/suite.py`,
 [AGENTS.md](../AGENTS.md).
 
 ## Retired decisions
@@ -1146,5 +1146,5 @@ surface. QEMU is an implementation detail of a binding and never
 appears in what a consumer writes; the facade's binding table keys
 by platform name for that reason.
 
-**Folded into:** `testaferro/machines.py`, `testaferro/facade.py`,
-`testaferro/binfmt.py` (`Format.platform`), [README.md](../README.md).
+**Folded into:** `testaferro/machines.py`, `src/testaferro/facade.py`,
+`src/testaferro/binfmt.py` (`Format.platform`), [README.md](../README.md).

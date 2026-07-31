@@ -32,13 +32,13 @@ Repository = "https://github.com/ferroteca/testaferro"
 
 # Auto-loading is the point: `pytest tests/SUITE.EXE` works the moment
 # the distribution is installed, with no wrapper and no flag in front
-# of it (D13). The claiming policy in testaferro/plugin.py is what
+# of it (D13). The claiming policy in src/testaferro/plugin.py is what
 # makes that safe — a tree scan claims nothing that was not opted in.
 [project.entry-points.pytest11]
 testaferro = "testaferro.plugin"
 
-[tool.setuptools]
-packages = ["testaferro"]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 # The FreeDOS recipe testaferro authors and installs from (P17). It is
 # data the package reads at run time, so it ships inside the package

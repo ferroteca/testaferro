@@ -80,8 +80,9 @@ resource; see [AGENTS.md](AGENTS.md) for where that line sits and
 why.
 
 Runtime code is standard-library-only outside two seams — pytest is
-imported lazily in `testaferro/facade.py`, and reliquary in
-`testaferro/reliquary.py` (the guest machine) and `testaferro/machines.py`
+imported lazily in `src/testaferro/facade.py`, and reliquary in
+`src/testaferro/reliquary.py` (the guest machine) and
+`src/testaferro/environments.py`
 (its JSONC reader, for the `.rlqb` dialect). Please discuss a new
 dependency before adding one.
 
