@@ -6,6 +6,11 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [Unreleased]
 
+- [TRADEMARKS.md](TRADEMARKS.md): the name **Testaferro** is owned by
+  Paul Galbraith and is not licensed for forks or redistributions; the
+  GPL-3.0-only grant covers the software only. Linked from README,
+  CONTRIBUTING, CLA, and AGENTS.
+
 ## [0.1.0.dev7] - 2026-07-30
 
 **The licence changes, and the suite goes where you say.** testaferro is GPL-3.0-only from this release — what went out

@@ -223,6 +223,13 @@ exception like that is the owner's to make and record — never a
 contributor's to assume. AGENTS.md carries the full doctrine and the
 standing of every project testaferro references.
 
+### The project name
+
+The name **Testaferro** is owned by Paul Galbraith and is not part of the
+GPL grant — a reservation the GPL expressly permits at section 7(e).
+Forks and redistributions must use a different name; see
+[TRADEMARKS.md](TRADEMARKS.md).
+
 ### SPDX headers
 
 Use accurate SPDX copyright information in each new file:

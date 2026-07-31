@@ -478,8 +478,13 @@ principle governs.
 
 ## Licensing
 
-The project is **GPL-3.0-only** and follows REUSE conventions. Every
-new file authored for the project needs:
+The project is **GPL-3.0-only** and follows REUSE conventions. The name
+**Testaferro** is reserved to Paul Galbraith under
+[TRADEMARKS.md](TRADEMARKS.md) — a reservation GPL section 7(e)
+expressly permits; do not weaken or contradict that policy in docs or
+packaging metadata.
+
+Every new file authored for the project needs:
 
 ```text
 SPDX-FileCopyrightText: 2026 Paul Galbraith
