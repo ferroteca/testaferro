@@ -114,13 +114,22 @@ becoming a D-number, and the commit that moves it is the record.
 ### D23 — At-rest access moves to remanence, and an address is guaranteed or asked
 
 **Decided** owner, 2026-08-16. **Supports** P1 and P17, through
-**F16**, whose design carries the argument; this entry records the
-shape call and what it cost.
+**F16**, delivered and retired; what was built is the record of it,
+and this entry keeps only the shape call and what it cost.
 
-**The shape.** Staging and retrieval become remanence calls against
-the image itself. A guest address is **testaferro's own guarantee
-where testaferro authored the disk**, and **the guest's own report
-where it did not**. It is never derived on the host.
+**The shape.** Staging and retrieval are remanence calls against the
+image itself, in `src/testaferro/at_rest.py`. A guest address is
+**testaferro's own guarantee where testaferro authored the disk** —
+its one-disk FreeDOS system carries one FAT volume, so `C:` is the
+only letter DOS can assign — and **looked up where it did not**. It
+is never derived on the host.
+
+**One half was deferred and never became necessary.** The lookup for
+a machine somebody else declared still goes through the provider's
+drive map, which is being deleted upstream; the guest reporting its
+own letters is what replaces it, and that work waits until the pin
+moves and the branch actually breaks. Nothing was added to the
+readiness script, so P17's authored content is untouched.
 
 **Weighed and declined: keeping the address a provider question.**
 Declined on evidence rather than on argument — reliquary is deleting
@@ -143,13 +152,20 @@ the work-drive fallback promoted back into the promise, after F4
 spent the effort demoting it to an implementation detail for a
 machine offering no room of its own (P8).
 
-**The cost, and why P7 absorbs it.** A wrong declared `location=`
-was refused at staging, before boot; with nothing host-side to
-resolve a letter against, it is now found by the guest. That reads
-as a P7 breach and is not one — P7 already holds that where nothing
+**The cost this was expected to carry, and did not.** A wrong
+declared `location=` looked like it would stop being refused before
+boot, since nothing host-side would resolve a letter. It still is:
+the guarantee refuses `E:` on an authored guest naming the one drive
+it has, and the residual lookup refuses through the map. F4's
+invariant — an address is stated once, staged against, and spelled —
+survives intact.
+
+The cost arrives with the deferred half, when a letter comes back
+from the guest instead, and **P7 already absorbs it**: where nothing
 can be proven the judgement passes to the guest itself, "honesty
 about the limit rather than an exception to the rule". The limit is
-real here: the letter does not exist until DOS assigns it.
+real — a letter does not exist until DOS assigns it — so this is
+recorded now rather than argued again then.
 
 **What would reopen it:** an authority that reports a *stopped*
 machine's letters without predicting them — letters read off an

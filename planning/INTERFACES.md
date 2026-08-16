@@ -31,9 +31,8 @@ the trial journey, armed once a guest actually ran it, and root
 P1, P2, P4, P6 through P13, P16 and P17. **No principle is pledged
 any more** — what stays drafted is P3, P5, P14 and P15, so a
 P-citation now points either at a rule in force or at an argument,
-and never at something merely owed. **What is pledged is one
-feature**, F16, in [pledged/FEATURES.md](pledged/FEATURES.md); no use
-case or principle is. Every other use case
+and never at something merely owed — and since U4 armed, **nothing at
+all is pledged**: `pledged/` is empty and gone. Every other use case
 is drafted in [proposed/USE-CASES.md](proposed/USE-CASES.md), so read
 a citation by where it points: an in-force entry binds, and a drafted
 one names an argument.
