@@ -125,6 +125,28 @@ docstring):
   cache root for a guest belonging to no run. That policy is testaferro's, not
   any binding's, which is what lets the plugin read the answer without
   importing a binding — or a provider.
+- [src/testaferro/at_rest.py](src/testaferro/at_rest.py) — at-rest
+  access to a guest's own drives, over `remanence`, and **the only
+  module that imports it** (P11): everything it can refuse is
+  refused in its own `AtRestError`, so no caller needs the
+  dependency to catch a failure. Staging a suite into a stopped
+  disk is not execution, so it is not the provider's work to
+  supply (P1, F16, D23).
+  **A volume is addressed here, never a drive letter.** At rest
+  there are no letters — DOS assigns one at boot from the system
+  installed on the disk, so a letter read off a stopped image
+  predicts that boot rather than reporting it (D23, and reliquary's
+  own D107 independently). `put_tree`/`get_tree` take an image, a
+  volume within it, and a path within that volume; `split_address`
+  separates a guest address's letter from its path and **returns
+  the letter rather than resolving it**, because whoever knows
+  which volume that letter names is the one who can say. The device
+  type is **declared** (`mbr-sector-hd`) because a qcow2 records
+  nothing about the drive that wrote it and remanence refuses to
+  guess between candidates. 8.3 is remanence's rule and it enforces
+  it, naming the character or the length that broke — nothing here
+  re-checks it, and nothing anywhere mangles a name into something
+  typeable.
 - [src/testaferro/reliquary.py](src/testaferro/reliquary.py) — the reliquary
   provider binding, for DOS guests (D16). Named for the provider it
   binds, because that is the layer testaferro talks to: every call in

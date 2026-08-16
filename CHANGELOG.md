@@ -22,6 +22,17 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   owner-relicensable rather than tier 1: the runtime closure is a
   licensing boundary, so every addition to it is a licensing
   decision (AGENTS.md).
+- **`at_rest.py`, the seam itself** (F16). `put_tree` and `get_tree`
+  write a host directory into a guest volume and read it back, over
+  remanence, with `split_address` separating a guest address's
+  letter from its path. Nothing calls it yet — the two call sites
+  move next — so behaviour is unchanged again here. A volume is
+  addressed rather than a drive letter, because at rest there are
+  no letters to read: DOS assigns one at boot, and a letter taken
+  off a stopped image predicts that boot rather than reporting it.
+  The 8.3 namespace is remanence's rule to enforce and it does,
+  naming the character or the length that broke, so testaferro
+  inherits the check that the provider's layer used to keep.
 - P11 also said "Python 3.9 and newer", which had been wrong since
   the floor rose to 3.12 in `0.1.0.dev7`. Corrected with the
   amendment; the packaging and AGENTS.md were already right.
