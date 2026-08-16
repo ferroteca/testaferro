@@ -51,6 +51,16 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   somebody else declared still resolves through the map, which is
   **residue**: the map is being deleted upstream, and the guest
   reporting its own letters is what will replace it.
+- **The integration tier proves the new seam against real disks and
+  a real guest.** `tests/integration/test_at_rest.py` drives
+  `at_rest` and the resolution rather than the provider's departed
+  file verbs, and gains cases the old file had no reason to carry: a
+  subdirectory keeping its shape through both directions, an 8.3
+  name refused on a real FAT volume, and an unreadable disk raising
+  the type `_place` falls back on. The guarantee is proved from both
+  ends — the installed system carries exactly **one** FAT16 volume,
+  so `C:` is the only letter DOS can hand out, and a booted guest
+  reads its suite back from where it was staged.
 - P11 also said "Python 3.9 and newer", which had been wrong since
   the floor rose to 3.12 in `0.1.0.dev7`. Corrected with the
   amendment; the packaging and AGENTS.md were already right.
