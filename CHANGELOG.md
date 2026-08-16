@@ -6,6 +6,25 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [Unreleased]
 
+- **remanence is a runtime dependency, pinned to `0.0.1a5`, and P11
+  moves to three** (F16, D23). At-rest access to a guest's own drive
+  images — staging the suite in and reading it back out — is not
+  execution, so it is not the execution provider's to supply (P1),
+  and reliquary is withdrawing it: the file family and the drive
+  report are being deleted there rather than deprecated. Nothing
+  changes in behaviour with this entry; it names the seam and pins
+  the library, and the call sites move next. The same bytes were
+  already being written by the same library one layer down, since
+  reliquary's own at-rest layer was built on it — reliquary is
+  dropping the dependency as testaferro takes it up, so the two no
+  longer share a compiled extension and neither pin constrains the
+  other. Both dependencies are now exact pins, and both are
+  owner-relicensable rather than tier 1: the runtime closure is a
+  licensing boundary, so every addition to it is a licensing
+  decision (AGENTS.md).
+- P11 also said "Python 3.9 and newer", which had been wrong since
+  the floor rose to 3.12 in `0.1.0.dev7`. Corrected with the
+  amendment; the packaging and AGENTS.md were already right.
 - [TRADEMARKS.md](TRADEMARKS.md): the name **Testaferro** is owned by
   Paul Galbraith and is not licensed for forks or redistributions; the
   GPL-3.0-only grant covers the software only. Linked from README,

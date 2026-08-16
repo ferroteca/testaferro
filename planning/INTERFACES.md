@@ -40,7 +40,7 @@ one names an argument.
 
 **Costs can now be named as in-force costs on both halves**, which is
 the point of arming: a change that would erode zero configuration, add
-a third dependency, ask a consumer for an emulator, or make a grammar
+a fourth dependency, ask a consumer for an emulator, or make a grammar
 answerable to a captured sample is refused against a rule rather than
 argued against a draft — and a change that would break the trial
 journey is refused against U4 the same way. Both files number from the

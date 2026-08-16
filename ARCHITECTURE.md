@@ -278,11 +278,23 @@ built and verified.
   starts a guest all the same, and testaferro's unit tests may
   not.]*
 
-- **P11 — The standard library, plus two dependencies at named
-  seams.** pytest and reliquary are the whole dependency list; pytest
-  is imported lazily in the facade, and reliquary only in the guest
-  binding and in `environments.py` for its JSONC reader. Python 3.9 and
-  newer. A third dependency is argued, never added.
+- **P11 — The standard library, plus three dependencies at named
+  seams.** pytest, reliquary and remanence are the whole dependency
+  list; pytest is imported lazily in the facade, reliquary only in
+  the guest binding and in `environments.py` for its JSONC reader,
+  and remanence only in the at-rest module that stages the suite
+  into the guest's drives and reads it back. Python 3.12 and newer.
+  A further dependency is argued, never added.
+
+  *[Amended by F16's delivery, from two dependencies. The seam is
+  what the count is really about: at-rest access to a stopped disk
+  is not execution, so it is not the execution provider's to supply
+  (P1), and the provider has withdrawn it. Adding remanence is
+  therefore a seam being named rather than a capability being
+  bought — the same bytes were already written by the same library
+  one layer down. The Python floor also read "3.9 and newer" here,
+  which the packaging and AGENTS.md have said is 3.12 since before
+  this principle armed.]*
 
 - **P12 — The library never names its consumers.** No consuming
   project appears in source, tests, human documentation, or

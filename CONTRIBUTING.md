@@ -63,10 +63,11 @@ Run things with `uv run` (for example `uv run python -m unittest
 discover -s tests`), which uses that environment without activating
 it. Do not hand-manage `.venv` — it is uv's.
 
-That installs the two runtime dependencies, pytest and reliquary.
-Reliquary is pinned to an exact version: its API is still changing
-quickly, so the pin is what keeps a checkout reproducible. Moving it
-is its own change, not a drive-by.
+That installs the three runtime dependencies: pytest, reliquary and
+remanence. Reliquary and remanence are both pinned to exact versions:
+their APIs are still changing quickly, so the pins are what keep a
+checkout reproducible. Moving either is its own change, not a
+drive-by.
 
 The unit suite also runs under a plain stdlib Python: tests that need
 pytest or reliquary skip when those are absent. Run the full suite from

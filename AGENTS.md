@@ -427,18 +427,23 @@ breaking one here is a bug rather than a preference ignored. This
 section restates them in working terms; where the two differ, the
 principle governs.
 
-- Python code: stdlib plus two declared dependencies (P11) — pytest (the
-  facade's host surface, imported lazily) and reliquary (the only
+- Python code: stdlib plus three declared dependencies (P11) — pytest (the
+  facade's host surface, imported lazily), reliquary (the only
   supported guest-machine provider, imported by `src/testaferro/reliquary.py` for the
   machine lifecycle and by `src/testaferro/environments.py` for its JSONC
-  reader alone). Support Python 3.12 and newer; keep lines near 79
+  reader alone), and remanence (at-rest access to the guest's own drive
+  images, imported by the at-rest module alone — staging a suite into a
+  stopped disk is not execution and is not the provider's to supply).
+  Support Python 3.12 and newer; keep lines near 79
   columns.
-- Reliquary is pinned to an exact version in
-  [pyproject.toml](pyproject.toml) (D4). Its API is still moving fast and
-  has already removed the layer testaferro was built on once; a
-  floating requirement would break consumers without warning. Moving
-  the pin is a deliberate task — expect the binding to need work,
-  and re-run the checks below against the new version.
+- Reliquary and remanence are both pinned to exact versions in
+  [pyproject.toml](pyproject.toml) (D4; P18's enumerated set, of one
+  each). Both APIs are still moving fast — reliquary has already removed
+  the layer testaferro was built on twice, the drive letter map and then
+  the file verbs themselves — so a floating requirement would break
+  consumers without warning. Moving either pin is a deliberate task —
+  expect the binding or the at-rest module to need work, and re-run the
+  checks below against the new version.
 - **The plugin auto-loads, so what it claims is a promise to every
   project that installs it.** One rule carries that weight, and it is
   easy to break by accident: `binfmt`'s `"dos"` verdict has two
@@ -567,19 +572,22 @@ something it cannot get back.
 | **2 — Arm's length only** | LGPL as an unmodified, separately installed dependency; GPL invoked as a **separate process** or booted as a **guest OS** | Permitted, never combined. Vendoring, forking, patching, or bundling it into a frozen executable demotes it to tier 3. |
 | **3 — Refused** | Any GPL/AGPL code that would be linked, imported, or copied into the project | Never — with the one standing exception below. Compatible with the GPL arm and fatal to the reservation, which is the whole point of the tier. |
 
-**Reliquary is the standing exception to tier 3, and ownership is why.**
-It is GPL-3.0-only from `0.1.0.dev5` and testaferro imports it, which
-for any other author's code would be refused outright. It is
-dependable here because both projects belong to the same owner, and
-reliquary's own contribution policy (assignment, the same reserved
-relicensing right) keeps it relicensable by the same hand — so a
-commercial arm of testaferro can only exist as a decision that
-licenses both together, which is the owner's to make. Record the
-dependency's standing as **owner-relicensable**, not tier 1: the
-moment reliquary contained code its owner could not relicense, this
-analysis would fail with it. P11 already caps the runtime closure at
-pytest and reliquary; this section is why the cap is also a licensing
-boundary.
+**Reliquary and remanence are the standing exceptions to tier 3, and
+ownership is why.** Both are GPL-3.0-only — reliquary from
+`0.1.0.dev5` — and testaferro imports both, which for any other
+author's code would be refused outright. They are dependable here
+because all three projects belong to the same owner, and each one's
+contribution policy (assignment, the same reserved relicensing right)
+keeps it relicensable by the same hand — so a commercial arm of
+testaferro can only exist as a decision that licenses all three
+together, which is the owner's to make. Record each dependency's
+standing as **owner-relicensable**, not tier 1: the moment either
+contained code its owner could not relicense, this analysis would
+fail with it. P11 caps the runtime closure at pytest, reliquary and
+remanence; this section is why the cap is also a licensing boundary,
+and it is why the cap is not merely a taste for small dependency
+lists — **every addition to it is a licensing decision**, and only
+the owner's own work can be added without demoting the reservation.
 
 Build-time and development dependencies are normally out of scope —
 they are not distributed, so their licences impose nothing. This

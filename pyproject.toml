@@ -24,8 +24,10 @@ classifiers = [
     "Topic :: Software Development :: Testing",
 ]
 # pytest is the facade's host surface (testaferro.facade). The provider binding
-# requires reliquary, which is included as a dependency.
-dependencies = ["pytest", "reliquary==0.1.0.dev6"]
+# requires reliquary, which is included as a dependency. remanence is the
+# at-rest seam: it opens the guest's own drive images to stage the suite and
+# read it back, which is not the provider's work (F16, D23).
+dependencies = ["pytest", "reliquary==0.1.0.dev6", "remanence==0.0.1a5"]
 
 [project.urls]
 Repository = "https://github.com/ferroteca/testaferro"
