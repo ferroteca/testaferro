@@ -111,6 +111,35 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D23 — At-rest access moves to remanence, the address does not
+
+**Decided** owner, 2026-08-16. **Supports** P1 and P17, through
+**F16**, whose design carries the argument; this entry records only
+the shape call and what it cost.
+
+**Weighed and declined: staging before materialization** — writing
+the set into an image testaferro owns outright, before any machine
+exists, and letting the blueprint declare that image. It is the
+cheaper shape by every measure that counts at the seam: the provider
+has no path to disclose and nothing to hold, so neither of F16's two
+upstream asks arises, and address resolution never comes up because
+testaferro authored the volume. It was declined on the guest story.
+The zero-configuration guest's writable room is the provider's
+system disk, so staging before materialization means testaferro
+supplying a medium of its own for every run — which is the work-drive
+fallback promoted back into the promise, after F4 spent the effort
+demoting it to an implementation detail for a machine offering no
+room. P8 makes that a real cost rather than an aesthetic one: zero
+configuration is an entry point, not a demo.
+
+**Not weighed, and staying refused:** testaferro resolving drive
+letters itself. That is F4's retired inference under another name.
+
+**What would reopen it:** reliquary declining the upstream ask.
+Without a way to learn the resolved image path or hold a stopped
+machine, the pledged shape has no route at all, and the declined one
+is the only one left standing.
+
 ### D22 — Supported versions are enumerated, not bracketed
 
 **Decided** owner, 2026-07-30. **Adopts** P18 (drafted), which
