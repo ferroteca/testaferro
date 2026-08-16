@@ -111,34 +111,50 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
-### D23 — At-rest access moves to remanence, the address does not
+### D23 — At-rest access moves to remanence, and an address is guaranteed or asked
 
 **Decided** owner, 2026-08-16. **Supports** P1 and P17, through
-**F16**, whose design carries the argument; this entry records only
-the shape call and what it cost.
+**F16**, whose design carries the argument; this entry records the
+shape call and what it cost.
+
+**The shape.** Staging and retrieval become remanence calls against
+the image itself. A guest address is **testaferro's own guarantee
+where testaferro authored the disk**, and **the guest's own report
+where it did not**. It is never derived on the host.
+
+**Weighed and declined: keeping the address a provider question.**
+Declined on evidence rather than on argument — reliquary is deleting
+its file family and its drive report outright, and remanence is
+deleting its DOS letter layer, so after both land no authority
+outside the running guest reports a drive letter at all. The deeper
+reason is the one reliquary reached independently in its own D107:
+an address derived from a stopped image is a *prediction* of what
+DOS will assign at boot, and a prediction is not a mapping. F4
+retired **derivation**, which this honors; asking the guest is not
+the same act, and the readiness channel that carries the answer
+already exists.
 
 **Weighed and declined: staging before materialization** — writing
-the set into an image testaferro owns outright, before any machine
-exists, and letting the blueprint declare that image. It is the
-cheaper shape by every measure that counts at the seam: the provider
-has no path to disclose and nothing to hold, so neither of F16's two
-upstream asks arises, and address resolution never comes up because
-testaferro authored the volume. It was declined on the guest story.
-The zero-configuration guest's writable room is the provider's
-system disk, so staging before materialization means testaferro
-supplying a medium of its own for every run — which is the work-drive
-fallback promoted back into the promise, after F4 spent the effort
-demoting it to an implementation detail for a machine offering no
-room. P8 makes that a real cost rather than an aesthetic one: zero
-configuration is an entry point, not a demo.
+the set into an image testaferro owns outright before any machine
+exists. Declined on the guest story, which the letter question does
+not change: the zero-configuration guest's writable room is the
+system disk, so this makes testaferro supply media for every run —
+the work-drive fallback promoted back into the promise, after F4
+spent the effort demoting it to an implementation detail for a
+machine offering no room of its own (P8).
 
-**Not weighed, and staying refused:** testaferro resolving drive
-letters itself. That is F4's retired inference under another name.
+**The cost, and why P7 absorbs it.** A wrong declared `location=`
+was refused at staging, before boot; with nothing host-side to
+resolve a letter against, it is now found by the guest. That reads
+as a P7 breach and is not one — P7 already holds that where nothing
+can be proven the judgement passes to the guest itself, "honesty
+about the limit rather than an exception to the rule". The limit is
+real here: the letter does not exist until DOS assigns it.
 
-**What would reopen it:** reliquary declining the upstream ask.
-Without a way to learn the resolved image path or hold a stopped
-machine, the pledged shape has no route at all, and the declined one
-is the only one left standing.
+**What would reopen it:** an authority that reports a *stopped*
+machine's letters without predicting them — letters read off an
+installed system at rest, which is the thing both upstreams have
+just removed.
 
 ### D22 — Supported versions are enumerated, not bracketed
 

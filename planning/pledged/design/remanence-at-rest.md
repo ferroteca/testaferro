@@ -5,12 +5,10 @@ SPDX-License-Identifier: GPL-3.0-only
 
 # At-rest file access: remanence rather than the provider
 
-Serves **F16**, and settles its design. **The shape is settled**
-(owner, 2026-08-16): the address stays the provider's answer and
-only the bytes move. The alternative weighed and declined —
-staging into an image testaferro owns before any machine exists —
-is recorded in [../../DECISIONS.md](../../DECISIONS.md) D23, with
-what would reopen it.
+Serves **F16**, and settles its design. The shape is **D23**: the
+bytes move to remanence, and an address is guaranteed where
+testaferro authored the disk or asked of the guest where it did not.
+The alternatives weighed and declined are recorded there.
 
 ## What changes
 
@@ -19,129 +17,135 @@ calls. `_place()` stages the suite with
 `reliquary.put_files(work, location, machine=...)` between
 `create_machine()` and `start_machine()`, and `_retrieve_if_kept()`
 pulls the location back out with `reliquary.get_files()` after the
-stop. Both become **remanence** calls. Reliquary stays the
-*execution* provider and nothing else.
+stop. Both become **remanence** calls against the image itself.
+Reliquary stays the *execution* provider and nothing else.
 
-## The change removes a layer; it does not add a capability
+## Why now: the provider is leaving this ground
 
-The chain today is already three deep:
+The chain today is three deep, and its middle is being removed:
 
 ```
 testaferro.reliquary._place()
-  → reliquary.drives.put_files()      machine resolution, machine
-                                       lock, guest-address parse,
-                                       letter → drive → volume
-    → reliquary.at_rest.py            reliquary's recognition claim,
-                                       whole-disk rule, error
-                                       vocabulary (P27 there)
-      → remanence                     opens the image, walks the
-                                       partition table, writes FAT,
-                                       commits under an undo journal
+  → reliquary.drives.put_files()      being deleted
+    → reliquary.at_rest.py            being deleted
+      → remanence                     the dependency reliquary
+                                       is also dropping
 ```
 
-Remanence already writes every byte testaferro stages. What is at
-issue is not who can write a FAT volume but **who owns the policy
-between a guest address and a sector**.
+Reliquary is deleting the whole file family and the drive report —
+`put_file`, `get_file`, `put_files`, `get_files`, `list_files`,
+`describe_drives`, `refresh_drives` — **deleted rather than
+deprecated**, with the out-of-band door (`get_machine_dir()`) named
+as the sanctioned route in their place. It is dropping the remanence
+dependency with them.
 
-## The split: the address is asked, the bytes are written
+So this is not a layer testaferro chooses to shed. It is one being
+withdrawn, and four call sites break on the release that lands it:
+`_place()`, `_retrieve_if_kept()`, `_default_location()` and
+`_placed_letter()`. Until F16 is delivered, D22's enumerated set of
+supported reliquary releases stops at the last one carrying those
+verbs.
 
-**testaferro does not resolve drive letters.** F4 retired letter
-inference deliberately, and taking address resolution back would be
-that inference returning under another name. The invariant F4
-settled stands unchanged — *an address is stated once, staged
-against, and spelled* — and a wrong declared address must still
-fail with the provider's own refusal naming the cause, because the
-consumer named that address and is the only one who can correct it.
+## The address: guaranteed, or asked
 
-So testaferro asks reliquary **where the location resolves to**,
-takes its refusal when the address is wrong, and then does its own
-open, walk, write and commit through remanence.
+**The need splits, and only one half ever wanted a letter.**
 
-That splits the eight things reliquary's layer holds today into
-what is asked for and what is taken on:
+*At rest*, writing the staged set wants an **image and a volume**.
+Remanence answers that with no letter in sight —
+`Session.load_media(path)` → `Medium.partitions()` →
+`Partition.filesystem()` → `StorageSpace.write_file()`. This is all
+of the actual staging work.
 
-**Asked of the provider** — one surface addition, argued upstream:
+*At run time*, the command typed at the guest wants a **letter** —
+and specifically the letter DOS assigned at boot, which is a fact
+about the running guest rather than about an image at rest.
 
-1. **Address resolution** — a guest address to the host image file
-   and the volume within it, off the same letter map
-   `describe_drives()` already derives, refusing exactly as
-   `put_files` refuses today.
-2. **The hold** — a way to take the machine for the length of the
-   write, so nothing else opens the image behind testaferro.
-   Reliquary's own P27 refuses a hybrid because it leaves two
-   authorities for the same disk facts; the objection does not
-   weaken for being raised from outside the provider.
+The drive map was a host-side prediction of the second thing, and
+after both upstreams land there is no such map to read: reliquary
+deletes its report, remanence deletes its DOS letter layer
+(`MachineReport`, `DriveMapping`, `dos_assignment_rules` and the
+rest). testaferro answers the run-time question from the two
+authorities that remain, and neither is a derivation:
 
-**Taken on by testaferro:**
+**Guaranteed, where testaferro authored the disk.** The
+zero-configuration guest's system disk is testaferro's own: its
+FreeDOS recipe, blueprint and install script are authored in
+`assets/` and the install is testaferro's (P17, D10). Staging onto a
+disk testaferro authored makes the address a constant it
+*guarantees* rather than a fact it reads.
 
-3. **Guest-address validation** — a name a DOS guest could not type
-   is refused, never mangled. Cheap, and testaferro already knows
-   DOS 8.3 (`_STAGED_DIR` is eight characters for that reason).
-4. **The tree walk.** `put_files` walks a host directory and
-   creates guest directories as it goes; remanence's surface is
-   `make_directory` / `write_file(path, contents)` / `commit`, one
-   file at a time. A loop, and the retrieval direction is its
-   mirror over `entries()` / `read_file()`.
-5. **The error vocabulary.** `_place()`'s fallback is keyed on
-   `reliquary.ReliquaryError` and `_retrieve_if_kept()` swallows
-   the same class; both become `remanence.Error`, except where the
-   failure is the *address*, which stays the provider's refusal.
+This retires F4's *last letter of the map* policy, and takes its
+reasoning with it honestly: that policy existed because
+"landing on top of somebody's `C:\` root is the one place a default
+must not put a stranger's files". On a disk testaferro authored end
+to end there is no stranger, so the objection does not transfer.
 
-**Already remanence's, and inherited rather than rebuilt:** the
-recognition claim over FAT and MBR, the whole-disk rule, and the
-undo journal beneath `commit()`.
+**Asked, where it did not.** For a consumer-declared machine, the
+running DOS is the only authority there ever was. `_wait_ready()`
+already runs a script and reads a machine variable back; the same
+channel carries the letter the guest itself found. **Asking is not
+deriving** — F4 retired a rule testaferro kept a copy of, and this
+is the system answering about itself, which is better evidence than
+anything readable at rest.
+
+The same channel answers `_placed_letter()`'s question, which has no
+other source: the work-drive fallback's letter shifts with whatever
+drives the consumer declared, so there is no constant to guarantee
+and no consumer word to take.
+
+## What the change costs, and where P7 lands
+
+A wrong declared `location="D:\TESTDIR"` used to be refused by the
+staging call, before the guest booted — F4's invariant that an
+address is *stated once, staged against, and spelled*. With nothing
+host-side to resolve a letter against, a wrong letter is now found
+by the guest instead.
+
+**That reads as a P7 breach and is not one.** P7 already carries the
+case: where nothing can be proven, judgement passes to the guest
+itself, "honesty about the limit rather than an exception to the
+rule". The limit is real — the letter does not exist until DOS
+assigns it — and the alternative is refusing against a prediction,
+which is worse than refusing late.
+
+What must not be lost is the *quality* of the refusal. A suite run
+off a wrong drive fails as a missing program and says nothing
+useful, so the guest-side check has to name the address that was
+declared and what the guest actually has, exactly as the staging
+refusal did.
 
 ## What delivery lands beyond the code
 
-- **A P11 amendment.** P11 is in force and says pytest and
-  reliquary "are the whole dependency list… A third dependency is
-  argued, never added"; the interface-change rule names *adding a
-  third dependency* as an in-force cost a change is refused
-  against. This is that argument, and delivery moves P11 to three
-  dependencies at named seams.
+- **A P11 amendment.** P11 is in force at two dependencies and says
+  "a third dependency is argued, never added"; the interface-change
+  rule names adding a third as an in-force cost. This is that
+  argument, and delivery moves P11 to three dependencies at named
+  seams, with remanence entering D22's enumerated set.
+- **No pin to coordinate.** Reliquary is dropping remanence from its
+  own dependencies, so the two projects no longer share a compiled
+  extension and testaferro's pin answers to nothing but testaferro.
 - **A P2 / D16 reading.** `reliquary.py`'s docstring says whatever
   the provider drives underneath "has no name anywhere in this
-  package". Remanence is not the provider's underneath in the sense
-  that clause forbids — it is a first-party library reliquary and
-  testaferro consume as peers — but the clause is written broadly
-  enough that delivery has to say so, or move the at-rest work out
-  of that module.
-- **The pin agreement.** Reliquary pins remanence to one exact
-  release (`remanence==0.0.1a5` today) and its P27 makes a pin move
-  a verification event rather than a substitution. testaferro's pin
-  must agree release for release: two different pins in one
-  environment is an unsatisfiable install, not a version skew, and
-  remanence is a compiled extension so there is no vendoring around
-  it. D22 already governs how the supported set is claimed —
-  enumerated, never bracketed — and this is a second dependency
-  claimed the same way.
-
-## The gate
-
-**This feature cannot be completed until the provider offers items
-1 and 2**, and reliquary offers neither today: `describe_drives()`
-reports `key`, `medium`, `slot`, `media`, `materialize` and the
-geometry, none of which is a host path, and the write lock
-`put_files` takes is internal. Reconstructing the path from the
-machine home's layout is refused — that is the coupling D16 and P2
-exist to prevent.
-
-So the pledge is gated on a downstream ask to reliquary, argued
-there and landed there first, the way F9's provider changes already
-are. Until it lands, nothing in this feature is worked.
+  package". With reliquary no longer using remanence at all, the
+  clause is simply not engaged — remanence is testaferro's own
+  dependency, not the provider's underneath — but the at-rest work
+  should move out of that module rather than sit in one named for
+  the provider.
 
 ## Work breakdown
 
-1. The upstream ask: reliquary exposes the resolved image path and
-   volume for a guest address, and a hold for the length of a
-   stopped-machine write. Argued in reliquary's own planning.
-2. Pin remanence, in agreement with reliquary's pin; amend **P11**
-   and D22's enumerated set with it.
-3. The at-rest module: open, validate the guest address, walk,
-   write, commit; and its mirror for retrieval.
-4. `_place()` and `_retrieve_if_kept()` moved onto it, with the
-   declared-address refusal still the provider's and the defaulted
-   address still falling back to the work drive.
+1. Pin remanence; amend **P11** and D22's enumerated set.
+2. The at-rest module over remanence: open the image, validate the
+   guest address, walk the host tree, write, commit — and its mirror
+   over `entries()` / `read_file()` for retrieval. Its own module,
+   not `reliquary.py`.
+3. The address, both halves: the authored constant on the system
+   disk, and the guest-reported letter carried on the readiness
+   script's variable, with a refusal that names the declared address
+   against what the guest has.
+4. `_place()` and `_retrieve_if_kept()` moved onto the module;
+   `_default_location()` and `_placed_letter()` retired with the
+   drive report they read.
 5. The unit tier over the new module, and one integration run
    proving a suite still stages and boots (P10 says why the second
    is not optional).
