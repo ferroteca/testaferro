@@ -99,8 +99,8 @@ not that it is finished.** Plenty waits in `proposed/`; none of it has
 been pledged. The directory returns the day something is.
 
 **The planning root holds what does not move.** The map, the rule,
-the record and the queue are machinery rather than proposals, and
-none of them has a lifecycle state to be in:
+the record, the queue and the ledger are machinery rather than
+proposals, and none of them has a lifecycle state to be in:
 
 - [README.md](README.md) — this map.
 - [INTERFACES.md](INTERFACES.md) — the vetting rule. It governs
@@ -114,6 +114,10 @@ none of them has a lifecycle state to be in:
 - [TASKS.md](TASKS.md) — the queue. Work entered there is small and
   **pre-approved**, so there is nothing to promote and no order to
   work it in.
+- [SEQUENCES.md](SEQUENCES.md) — the ledger: the next number every
+  handle sequence issues. Take the mark and advance it in the same
+  edit, on `main`, because a search sees only the branch it stands
+  on and an evaporated handle leaves nothing behind to count.
 
 ## Where the vision stands today
 
