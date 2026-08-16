@@ -188,3 +188,65 @@ this project's behaviour can only be proved by booting a guest).
 > exists and its five cases take about a minute, most of it one boot;
 > what an integration test costs is no longer a guess. That is what
 > decides whether this is one feature or four.
+
+## F17 — The pin move, and what replaces the drive map
+
+Move the provider pin past the release that deletes the file family
+and the drive report, and replace the one thing testaferro still
+reads from it. **This is forced work waiting on a release**, not a
+capability the project wants: the pin cannot move until a release
+carrying the deletion is published, and the day it does, three call
+sites lose their answer.
+
+Serves **P1** — the provider runs guests, and a stopped disk's
+letters are not something it runs — and **P17**, since what replaces
+the map is testaferro's own to author. Carries the half F16
+deliberately deferred (**D23**), whose reopening condition this
+satisfies.
+
+**What breaks, exactly.** `describe_drives()` goes, taking the
+letter map with it, so `_resolve_volume()`'s lookup branch,
+`_default_location()`'s lookup branch and `_placed_letter()` all
+lose the fact they stand on. Nothing else does: `list_machines()`
+survives and each drive still records its image `path`, so
+`_drive_image()` and the whole of `at_rest` are untouched, and the
+zero-configuration guest — whose location is **guaranteed** rather
+than read — does not notice the release at all. Only a machine
+somebody else declared is affected.
+
+**The problem splits, and only half of it is about writing.** At
+rest testaferro can already choose a drive by key and a volume
+within it, with no letter anywhere; what it cannot do is *spell* an
+address the guest will type, because that letter does not exist
+until DOS assigns it. So the missing fact is the spelling, and it is
+missing whichever way the bytes arrive — the host-directory work
+drive needs a letter just as much as an at-rest write does.
+
+**Stage first, then ask.** The shape worth arguing is to invert the
+question rather than answer it: testaferro stages into a drive it
+picked by key, leaving a marker it chose, and the readiness script
+reports **which letter holds that marker**. No mapping is derived,
+predicted or maintained — the guest is asked what it did, which is
+the only authority there ever was, and the answer covers the work
+drive and an at-rest volume identically. The channel already exists:
+`_wait_ready()` runs a script and reads a machine variable back, and
+this is a second variable on the same run.
+
+Weigh against it, at the pledge:
+
+- **Resolve by drive key instead**, which reliquary's own F15 now
+  answers with. It settles which volume to write into and says
+  nothing about what the guest calls it, so it solves the half that
+  was never the problem.
+- **Require the consumer to declare the drive as well as the
+  letter**, which asks a tester to state twice what the guest states
+  once, and adds a declaration to the surface P16 governs.
+- **Refuse a declared machine without a declared `location=`**,
+  which is honest but narrows what works today.
+
+**What must be settled at the pledge**: which shape; what the marker
+is and whether it survives a guest that repartitions; what happens
+when the guest reports no letter at all; and whether the work-drive
+fallback keeps its own path or folds into the same answer. The
+readiness script is testaferro's authored content (P17), so changing
+what it reports is a surface question, not a mechanical one.

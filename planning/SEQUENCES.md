@@ -46,9 +46,9 @@ commit message still resolves to one thing.
   spent.
 - **The next D-number to issue is D24** — decisions, recorded in
   [DECISIONS.md](DECISIONS.md). D1 through D23 are spent.
-- **The next F-number to issue is F17** — features, drafted in
+- **The next F-number to issue is F18** — features, drafted in
   [proposed/FEATURES.md](proposed/FEATURES.md) or cut straight to a
-  pledge. F1 through F16 are spent, and most have evaporated on
+  pledge. F1 through F17 are spent, and most have evaporated on
   delivery; the mark counts what was *issued*, never what survives.
 - **The next T-number to issue is T1** — tasks, entered pledged in
   [TASKS.md](TASKS.md). None has been issued: the queue has held no
