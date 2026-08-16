@@ -33,6 +33,24 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   The 8.3 namespace is remanence's rule to enforce and it does,
   naming the character or the length that broke, so testaferro
   inherits the check that the provider's layer used to keep.
+- **Staging and retrieval stopped being provider calls** (F16).
+  `_place()` and `_retrieve_if_kept()` now settle *where* the suite
+  goes and let `at_rest` put it there. Behaviour is unchanged for
+  every machine that works today, including the address a wrong
+  declaration is refused with.
+- **The zero-configuration guest's location is guaranteed, not read
+  back.** testaferro authors that machine's recipe, install and
+  blueprint, so its one disk carries one FAT volume and DOS has one
+  letter to assign: `C:\TESTS` is now answered from what testaferro
+  built rather than looked up in the provider's drive map. The
+  answer is the same one the map gave — that guest has never had
+  another letter — so nothing moves. This retires F4's *last letter
+  of the map* policy, whose reason was that a default must not
+  scatter files across a stranger's `C:\` root; on a disk testaferro
+  authored, installed and boots there is no stranger. A machine
+  somebody else declared still resolves through the map, which is
+  **residue**: the map is being deleted upstream, and the guest
+  reporting its own letters is what will replace it.
 - P11 also said "Python 3.9 and newer", which had been wrong since
   the floor rose to 3.12 in `0.1.0.dev7`. Corrected with the
   amendment; the packaging and AGENTS.md were already right.

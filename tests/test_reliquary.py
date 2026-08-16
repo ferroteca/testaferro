@@ -26,6 +26,7 @@ RELIQUARY_AVAILABLE = importlib.util.find_spec("reliquary") is not None
 
 if RELIQUARY_AVAILABLE:
     import reliquary as reliquary_dist
+    from testaferro import at_rest
     from testaferro import environments
     from testaferro import reliquary as binding
 
@@ -563,46 +564,77 @@ class PlacedLetterTests(unittest.TestCase):
 class DeclaredPlacementTests(_BindingFixture):
     """A declared address, through the real session flow.
 
-    `put_files` is stubbed because this fixture's machine has no FAT
-    volume to write into; everything around it — when the address is
-    settled, whether the map is consulted, what a refusal does — is
-    the real path.
+    The staging call is stubbed because this fixture's machine has no
+    FAT volume to write into; everything around it — when the address
+    is settled, whether a default is computed, what a refusal does —
+    is the real path.
     """
+
+    def _staging(self, put_side_effect=None):
+        """Stub the at-rest seam and the volume it resolves against.
+
+        `_resolve_volume` is testaferro's own, and it is stubbed here
+        rather than the calls beneath it because this fixture's
+        machine has no volume for a real one to find. What each
+        resolution *does* is proved in `VolumeResolutionTests`.
+        """
+        return _patched(
+            mock.patch.object(binding, "_resolve_volume",
+                              return_value=("disk.qcow2", 0, "HARNESS")),
+            mock.patch.object(binding.at_rest, "put_tree",
+                              side_effect=put_side_effect))
 
     def test_a_declared_location_is_staged_against_and_never_defaulted(self):
         backend = binding.suite_backend(self.exe, boot_image=self.image,
                                         location="E:\\HARNESS")
 
-        with self._fake_machine(), \
-                mock.patch("reliquary.put_files") as put, \
-                mock.patch("reliquary.describe_drives") as describe:
+        with self._fake_machine(), self._staging() as put, \
+                mock.patch.object(binding, "_default_location") as default:
             backend.start_guest()
             try:
                 self.assertEqual(backend.location, "E:\\HARNESS")
             finally:
                 backend.stop_guest()
 
-        self.assertEqual(put.call_args.args[1], "E:\\HARNESS")
-        # The map answers "where should this go" — a question already
-        # answered, so it is never asked.
-        describe.assert_not_called()
+        # A default answers "where should this go" — a question the
+        # declaration already answered, so it is never computed.
+        default.assert_not_called()
+        # The letter is split off before the write: at rest there are
+        # no letters, only a volume and a path inside it (D23).
+        self.assertEqual(put.call_args.args[2], "HARNESS")
 
     def test_a_declared_location_that_refuses_does_not_fall_back(self):
         # The consumer named that address; smoothing it over with a
         # drive of testaferro's own would hide the one thing they can
-        # act on. The refusal is reliquary's own, and it survives.
-        refusal = reliquary_dist.PreflightError(
-            "E:\\HARNESS: the machine declares no drive at E:",
-            rule_id="drive.letter-not-declared")
+        # act on. The refusal survives.
+        refusal = at_rest.AtRestError(
+            "invalid fat disk image: directory 'HARNESS' not found")
+        backend = binding.suite_backend(self.exe, boot_image=self.image,
+                                        location="E:\\HARNESS")
+
+        with self._fake_machine(), self._staging(put_side_effect=refusal):
+            with self.assertRaises(at_rest.AtRestError) as caught:
+                backend.start_guest()
+
+        self.assertIn("'HARNESS' not found", str(caught.exception))
+
+    def test_an_unreachable_declared_letter_refuses_by_name(self):
+        """The resolution's own refusal, not the write's.
+
+        A machine with no `E:` cannot be staged onto at `E:\\HARNESS`,
+        and the consumer is the only one who can correct it.
+        """
         backend = binding.suite_backend(self.exe, boot_image=self.image,
                                         location="E:\\HARNESS")
 
         with self._fake_machine(), \
-                mock.patch("reliquary.put_files", side_effect=refusal):
-            with self.assertRaises(reliquary_dist.PreflightError) as caught:
+                mock.patch("reliquary.describe_drives",
+                           return_value={"mapping": {"letters": {"A": {
+                               "drive": "floppy0", "volume": 0}}}}):
+            with self.assertRaises(ValueError) as caught:
                 backend.start_guest()
 
-        self.assertIn("no drive at E:", str(caught.exception))
+        self.assertIn("no E:", str(caught.exception))
 
     def test_the_command_spells_the_address_that_was_staged_against(self):
         expected = tuple(EMPTY_RUN_OUTPUT.splitlines())
@@ -610,7 +642,7 @@ class DeclaredPlacementTests(_BindingFixture):
                                         location="E:\\HARNESS")
 
         with self._fake_machine(return_value=expected) as guest_exec, \
-                mock.patch("reliquary.put_files"):
+                self._staging():
             backend.start_guest()
             try:
                 backend.run_all()
@@ -645,9 +677,24 @@ class PlacementTests(unittest.TestCase):
             letter: {"drive": f"hdd{index}", "volume": 0}
             for index, letter in enumerate(letters)}}}
 
+    def test_an_authored_disk_guarantees_its_location_unasked(self):
+        """The zero-configuration guest answers from what was built.
+
+        testaferro authored the recipe, the install and the blueprint,
+        so its one-disk machine has one FAT volume and DOS has one
+        letter to assign. Nothing is read back, which is why the
+        provider's map is not consulted at all (F16, D23).
+        """
+        with mock.patch("reliquary.describe_drives") as describe:
+            self.assertEqual(
+                binding._default_location("m", None, authored=True),
+                "C:\\TESTS")
+        describe.assert_not_called()
+
     def test_the_default_location_is_the_last_letter(self):
-        # Last rather than first: the system disk is what a machine
-        # declares first, and a default must not scatter a stranger's
+        # A machine somebody else declared: the map still answers,
+        # for as long as the provider still reports one. Last rather
+        # than first, because a default must not scatter a stranger's
         # files across somebody's C:\ root.
         with mock.patch("reliquary.describe_drives",
                         return_value=self._report("C", "D")):
@@ -677,6 +724,67 @@ class PlacementTests(unittest.TestCase):
         self.assertEqual(
             binding._resolve_program(None, "D:\\TESTS", "SUITE.EXE"),
             "D:\\TESTS\\SUITE.EXE")
+
+
+@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+class VolumeResolutionTests(unittest.TestCase):
+    """A guest address to the image and volume it names (F16, D23).
+
+    At rest there are no drive letters, so an address has to be
+    resolved to a volume before a byte can be written. Where
+    testaferro authored the disk that resolution is a guarantee;
+    where it did not, it is a lookup — and the lookup is residue,
+    retired when the guest reports its own letters.
+    """
+
+    def _machines(self, **paths):
+        return [{"id": "m", "drives": {
+            key: {"path": path} for key, path in paths.items()}}]
+
+    def test_an_authored_disk_resolves_without_asking(self):
+        with mock.patch("reliquary.list_machines",
+                        return_value=self._machines(hdd0="sys.qcow2")), \
+                mock.patch("reliquary.describe_drives") as describe:
+            self.assertEqual(
+                binding._resolve_volume("C:\\TESTS", "m", None, True),
+                ("sys.qcow2", 0, "TESTS"))
+        describe.assert_not_called()
+
+    def test_an_authored_disk_refuses_a_letter_it_does_not_have(self):
+        with mock.patch("reliquary.list_machines",
+                        return_value=self._machines(hdd0="sys.qcow2")):
+            with self.assertRaises(ValueError) as caught:
+                binding._resolve_volume("D:\\TESTS", "m", None, True)
+
+        # The one drive it does have is named, so the way out is plain.
+        self.assertIn("one drive, C:", str(caught.exception))
+        self.assertIn("names D:", str(caught.exception))
+
+    def test_a_declared_machine_resolves_through_the_map(self):
+        report = {"mapping": {"letters": {
+            "D": {"drive": "hdd1", "volume": 2}}}}
+        with mock.patch("reliquary.describe_drives", return_value=report), \
+                mock.patch("reliquary.list_machines",
+                           return_value=self._machines(hdd1="data.qcow2")):
+            self.assertEqual(
+                binding._resolve_volume("D:\\HARNESS", "m", None, False),
+                ("data.qcow2", 2, "HARNESS"))
+
+    def test_a_drive_with_no_recorded_image_refuses(self):
+        report = {"mapping": {"letters": {
+            "D": {"drive": "hdd1", "volume": 0}}}}
+        with mock.patch("reliquary.describe_drives", return_value=report), \
+                mock.patch("reliquary.list_machines",
+                           return_value=[{"id": "m",
+                                          "drives": {"hdd1": {}}}]):
+            with self.assertRaises(ValueError) as caught:
+                binding._resolve_volume("D:\\HARNESS", "m", None, False)
+
+        self.assertIn("records no image path", str(caught.exception))
+
+    def test_an_address_without_a_letter_is_refused(self):
+        with self.assertRaises(at_rest.AtRestError):
+            binding._resolve_volume("HARNESS", "m", None, True)
 
     def test_a_root_location_does_not_double_its_separator(self):
         self.assertEqual(

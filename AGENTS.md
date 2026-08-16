@@ -151,7 +151,18 @@ docstring):
   provider binding, for DOS guests (D16). Named for the provider it
   binds, because that is the layer testaferro talks to: every call in
   it is a reliquary call, and what reliquary drives underneath is its
-  own business and appears nowhere in this package. What it drives is
+  own business and appears nowhere in this package. **The one thing
+  it no longer does is write to the guest's disks** (F16, D23): it
+  settles *where* the suite goes and `at_rest` puts it there, so
+  `_place()` and `_retrieve_if_kept()` are a resolution followed by
+  an at-rest call. `_resolve_volume()` is that resolution and it
+  answers two ways — **guaranteed** for the zero-configuration guest,
+  whose one FAT volume DOS can only call `C:`, and **looked up**
+  through the provider's drive map for a machine somebody else
+  declared. The lookup is residue: the map is being deleted upstream
+  and the guest reporting its own letters is what replaces it, so
+  that branch and `_placed_letter()` are what break when the pin
+  moves. What it drives is
   still a reliquary *machine*, which is why `machine_config=` keeps
   that word while the noun a suite writes is an environment: it names
   the provider's own document, passing through as `platform` does.
