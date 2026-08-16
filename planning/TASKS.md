@@ -41,6 +41,18 @@ initiative, and ask before editing this file at all.**
 appears here: there is nothing to schedule, only a decision to make,
 and an entry filed and closed in one act is ceremony.
 
+**Entries are itemized like everything else**, each carrying a
+**T-number** taken from [SEQUENCES.md](SEQUENCES.md) and advanced in
+the same edit. The number is issued **at entry**, which is the one
+asymmetry with a feature's: a task has no proposed state inside
+`planning/` to issue one at, and the idea that preceded it already
+carried the tracker's own issue number. Like a feature's, a
+T-number names *work*, so it **evaporates when the task is struck** —
+retired unreused, with the commit as the only record it leaves and
+the gap in the sequence as its history. That is exactly why the mark
+is taken from the ledger rather than from counting this file: a
+struck task leaves nothing here to count.
+
 **There is no order here.** Nothing in this file is scheduled, and
 nothing claims priority over anything else; whoever picks work up
 picks whatever they like. The one ordering that does bind is a
@@ -71,7 +83,9 @@ or a design decision. Those are argued, not queued.
 
 ## Tasks
 
-<!-- - <what to do, and enough context to pick it up cold> -->
+<!-- - **T<n>** — <what to do, and enough context to pick it up
+     cold>. Take <n> from SEQUENCES.md and advance the mark in this
+     same edit. -->
 
 ## Rejected
 
