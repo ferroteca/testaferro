@@ -22,14 +22,20 @@ what demands it.
 
 ## F9 — In-guest harness prep
 
+> **The gate cleared before the pledge.** Reliquary's `exec --check`
+> shipped in 0.1.0.dev6 (D89 there, retiring the F26 reliquary had
+> entered for this ask), and testaferro's pin has since moved past it
+> to 0.1.0a2 (D4) — for reasons unrelated to this feature, but the
+> effect is the same: the provider capability F9 was gated on is
+> already in testaferro's dependency closure. Nothing here is built
+> yet; what remains is entirely testaferro's own side.
+
 Serves **U7** (pledged). Two levels, both declared, both optional.
 The per-boot level's design is settled in
 [design/in-guest-prep.md](design/in-guest-prep.md); the provider
-changes it rests on are argued separately, as a downstream proposal
-to reliquary —
-[design/reliquary-proposal.md](design/reliquary-proposal.md) — so
-this feature waits on the first of those changes and on the
-deliberate pin move it implies (D4).
+change it rested on is argued in a downstream proposal to reliquary —
+[design/reliquary-proposal.md](design/reliquary-proposal.md) — whose
+first ask has since shipped and is already in hand.
 
 - **Per-boot prep**: one declaration now, carrying the keyword and
   INI spellings every declaration has (P16), and not a blueprint
@@ -55,10 +61,10 @@ deliberate pin move it implies (D4).
   the screen that came back.
 
   Failure is the provider's to detect, never testaferro's to
-  parse: the downstream proposal asks reliquary's `exec()` to
-  report each command's success (guest-side mechanics belong to
-  reliquary, D2), and a consumer's setup programs owe an honest
-  exit code in return. **Weighed and declined:** pre-boot validation of
+  parse: `reliquary.Session.exec(check=True)` reports each command's
+  success (guest-side mechanics belong to reliquary, D2), and a
+  consumer's setup programs owe an honest exit code in return.
+  **Weighed and declined:** pre-boot validation of
   `setup` commands against the staged files and a shell-builtin
   list. The builtin list is a vocabulary testaferro would have to
   keep on the shell's behalf — the kind of mirror the drive-letter

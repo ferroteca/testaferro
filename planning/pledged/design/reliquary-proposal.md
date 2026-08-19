@@ -5,6 +5,16 @@ SPDX-License-Identifier: GPL-3.0-only
 
 # Proposal: what driver-testing guests need from reliquary
 
+> **Ask 1 answered, 2026-07-30.** Reliquary 0.1.0.dev6 ships
+> `exec(check=True)` (`exec --check` at the CLI) under its own D89,
+> retiring the F26 it had entered for this ask: an opt-in
+> `IF ERRORLEVEL 1` probe, its own sentinel text read back, scoped
+> exactly as asked below — a mistyped command escapes the probe and
+> reads as success, stated rather than papered over. testaferro's pin
+> has since moved past dev6, to 0.1.0a2, so the capability F9 gated on
+> is already in hand; nothing in `reliquary.py` calls `check=` yet.
+> **Asks 2 and 3 remain open** and serve no pledged feature.
+
 A **downstream proposal to reliquary**, from testaferro, its
 consumer. It serves F9 (in-guest harness prep, designed in
 [in-guest-prep.md](in-guest-prep.md)) and the machine facts the

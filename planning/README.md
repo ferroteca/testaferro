@@ -99,9 +99,10 @@ than churn.
 **What is pledged says what the project owes and nothing about
 when.** U7 and F9 are the same debt seen twice: U7 is the journey,
 and F9 is the work that completes it. Neither can arm or deliver
-alone — F9's own first work item is a downstream ask to reliquary,
-argued and not yet landed, so the debt sits behind a provider release
-outside this project's control.
+alone, but the debt is entirely testaferro's own to pay now: the
+provider capability F9 was gated on — reliquary's `exec(check=True)`
+— shipped before this pledge, ahead of testaferro's own pin, so
+nothing here waits on reliquary.
 
 **The planning root holds what does not move.** The map, the rule,
 the record, the queue and the ledger are machinery rather than

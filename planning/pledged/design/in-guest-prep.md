@@ -28,7 +28,8 @@ not have:
    weaker test but a different one.
 
 The first is testaferro's alone. The second is testaferro's
-surface over a provider capability that does not exist yet. The
+surface over a provider capability that now exists (`exec(check=
+True)`, reliquary 0.1.0.dev6) but nothing here calls yet. The
 third is not testaferro's at all: it is a machine fact, declared in
 the environment and passed through untouched (D4), waiting only on
 reliquary having a word for it — the second ask of the
@@ -110,17 +111,20 @@ testaferro can only do wrong.
   grammar.** Real scripting belongs to the provider's own
   documents, reached by `machine_config=`.
 
-## What this rests on, and in what order
+## What this rested on, and what is left
 
-F9 hard-depends on one provider change alone: `exec()` reporting
+F9 hard-depended on one provider change alone: `exec()` reporting
 whether a command succeeded, the downstream proposal's first ask.
-The proposal's other two asks serve the sibling machine fact — the
-declared device — which needs no testaferro change at all.
+That ask shipped in reliquary 0.1.0.dev6 (D89 there, retiring F26)
+as `exec(check=True)`, and testaferro's pin has since moved past it,
+to 0.1.0a2 — the ordering the pin (D4) exists to make deliberate,
+already run, for reasons unrelated to this feature. What is left is
+entirely testaferro's own side: nothing in `reliquary.py` calls
+`check=` yet, and the declarations below are unwritten.
 
-The pin (D4) orders everything: reliquary ships first, testaferro
-moves its pin as the deliberate task the pin exists to make
-deliberate, and F9's per-boot prep lands against the moved pin.
-The `devices` declaration, by contrast, needs no testaferro
-release: the day reliquary ships the vocabulary, an environment
-declares it and the document passes through (D4). No order beyond
-that is promised, here or anywhere.
+The proposal's other two asks serve the sibling machine fact — the
+declared device — which needs no testaferro change at all and gates
+no pledged feature. The `devices` declaration, when it ships, needs
+no testaferro release either: an environment declares it and the
+document passes through (D4). No order is promised there, here or
+anywhere.
