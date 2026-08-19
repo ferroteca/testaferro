@@ -43,9 +43,10 @@ the pledged shelf for a guest to run its journey, and is now in force
 at [root `USE-CASES.md`](../../USE-CASES.md) — the whole route, in
 the order the machinery intends. U7 took the same route: pledged
 alongside its prerequisite F9, and now in force there too, once a
-guest actually ran the prepared journey. U10 is pledged now, alongside
-its own prerequisite F18, and waits in
-[pledged/USE-CASES.md](../pledged/USE-CASES.md).
+guest actually ran the prepared journey. U10 took the same route
+again: pledged alongside its prerequisite F18, and now in force there
+too, once `guest_session()` reached the same provisioning
+`guest_suite()` already had, proven against a real guest boot.
 
 - **U1 — Unit tests that can only run on the target OS, surfaced as
   ordinary pytest items.** A developer maintains code whose unit

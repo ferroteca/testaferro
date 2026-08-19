@@ -313,6 +313,31 @@ from testaferro import cpputest
 results = cpputest.parse(log)  # {"ran", "failed", "summary"}
 ```
 
+### A scripted guest interaction
+
+Not every guest-driven test is shaped as a suite of named cases. Sometimes it is a linear script — boot the guest,
+run a setup step, drive a tool, check what it printed — with no natural `Group.Name` decomposition and nothing for a
+framework adapter to parse. `guest_session()` reaches the same zero-configuration guest `guest_suite()` gives every
+suite, without a suite executable or a framework adapter:
+
+```python
+import testaferro
+
+with testaferro.guest_session() as guest:
+    guest.exec("DRIVER.COM /install")
+    rows = guest.exec("RUNNER.EXE")
+```
+
+`files=` stages host paths onto the work drive before boot, the same placement vocabulary `guest_suite()` takes;
+`environment=` and `machine_config=` reach the same declared or standard machine a suite would. Entering the `with`
+block boots the guest; leaving it sweeps the guest session, whether the script's own assertions passed or one of
+them raised. `guest.exec(command, timeout=None)` runs one guest command and returns its answer — the rows reliquary
+itself returns, read back in the order the script decides rather than a suite's enumeration; pass `check=True` to
+raise if the command signalled failure.
+
+`guest_suite()` remains the right tool for anything shaped as a suite of named tests; `guest_session()` is purely
+additive beside it, reached through the same provisioning rather than a second implementation of it.
+
 ## Tests
 
 ```powershell

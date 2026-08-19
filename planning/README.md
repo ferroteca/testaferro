@@ -86,18 +86,18 @@ the same artifacts in different states. A thing in `proposed/` moves
 to `pledged/`, and **the commit that moves it is the record**. Each
 mirrored file appears in `pledged/` with its first promoted entry
 rather than standing empty, and leaves again when its last one
-does. **`pledged/` holds two entries today: U10 and F18.**
-`FEATURES.md` did the round trip three times over — F7 and F8, then
-F11 and F12, then F13 alone — held F9 and F18 a fourth time, and holds
-F18 alone now that F9 has delivered and retired. `ARCHITECTURE.md` did
-it once, holding P1 and P2 from D18 until F12 built what they
-promised, and stands empty since. `USE-CASES.md` did it once, holding
-U4 from D13 until a guest ran the journey it describes, held U7 and
-U10 a second time, and holds U10 alone now that U7 has armed. Each
-leaves when its last entry arms or delivers, which is the machinery
-working rather than churn.
+does. **`pledged/` holds nothing today.** `FEATURES.md` did the round
+trip four times over — F7 and F8, then F11 and F12, then F13 alone,
+then F9 and F18 — and is gone again now that F18 has delivered and
+retired, F9 before it. `ARCHITECTURE.md` did it once, holding P1 and
+P2 from D18 until F12 built what they promised, and stands empty
+since. `USE-CASES.md` did it twice over — U4 from D13 until a guest
+ran the journey it describes, then U7 and U10 together — and is gone
+again now that U10 has armed, U7 before it. Each leaves when its last
+entry arms or delivers, which is the machinery working rather than
+churn.
 
-**U7 and F9 were the same debt seen twice, and both are paid now.**
+**U7 and F9 were the same debt seen twice, and both are paid.**
 U7 was the journey and F9 the work that completed it — neither could
 arm or deliver alone, and neither did alone: F9 delivered `setup=`,
 proven against a real guest boot, and U7 armed with it in the same
@@ -106,14 +106,16 @@ change. The provider capability F9 was gated on — reliquary's
 Testaferro's own pin, so nothing waited on reliquary; what was owed
 was entirely Testaferro's own, and it is paid.
 
-**U10 and F18 are the same shape of debt, with an even shorter
-route to it.** U10 is the journey — a scripted guest interaction
-outside the suite/framework abstraction — and F18 is the work: a
-`guest_session()` primitive drawing on provisioning
-`ReliquarySuiteBackend` already has. Nothing here waits on a
-provider capability at all; the whole of it is Testaferro's own
-refactor and one new entry point, so there was no gate to clear
-before the pledge, unlike F9's.
+**U10 and F18 were the same shape of debt, with an even shorter
+route to it, and both are paid too.** U10 was the journey — a
+scripted guest interaction outside the suite/framework abstraction —
+and F18 the work: a `guest_session()` primitive drawing on the
+provisioning `ReliquarySuiteBackend` already had, refactored into a
+shape both entry points share rather than duplicated. Nothing here
+waited on a provider capability at all; the whole of it was
+Testaferro's own refactor and one new entry point, so there was no
+gate to clear before the pledge, unlike F9's — and none to clear
+before delivery either.
 
 **The planning root holds what does not move.** The map, the rule,
 the record, the queue and the ledger are machinery rather than
@@ -192,13 +194,24 @@ real guest boot proved the journey: `setup=` commands run before any
 test, once per guest session, and a real failure ends the session
 cleanly rather than dooming every test after it. F9 delivered and
 retired with it, leaving code behind — U7's own number is permanent
-now, at the root list it reached. **One use case is pledged now**:
-U10, in
-[pledged/USE-CASES.md](pledged/USE-CASES.md) with its own
-prerequisite F18, in [pledged/FEATURES.md](pledged/FEATURES.md).
-Several drafted entries describe code that already exists; that makes
-their route short, not automatic — the pledge is still an act, and
-delivery still has to be true.
+now, at the root list it reached.
+
+**U10 armed next in turn, the same way again.** It was pledged
+alongside its prerequisite F18, and a real guest boot proved this
+journey too: `guest_session()` opens the same zero-configuration
+guest `guest_suite()` gives every suite, `files=` stages host paths
+onto the work drive before boot exactly as `guest_suite()` does, and
+`exec()` runs a guest command and reads its answer back, in the order
+the script asks rather than a suite's enumeration — the same guest
+session sweeping away on exit whether the script's own assertions
+passed or one of them raised. F18 delivered and retired with it,
+leaving `_GuestLifecycle` — the provisioning `ReliquarySuiteBackend`
+and `GuestSession` now share rather than each carrying its own copy
+— behind as the code. **No use case is pledged now**: `pledged/`
+holds nothing, both its `USE-CASES.md` and `FEATURES.md` gone with
+their last entries. Several drafted entries describe code that
+already exists; that makes their route short, not automatic — the
+pledge is still an act, and delivery still has to be true.
 
 **What did not arm is worth naming, because the bar is what makes
 the root list mean anything.** P3 and P5 each describe the code, and

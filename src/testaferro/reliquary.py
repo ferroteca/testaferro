@@ -13,10 +13,15 @@ module imported below is the provider distribution; this module is
 program — plain MZ or a headerless/.com image — yields a
 ReliquarySuiteBackend; anything else is rejected before any guest
 work, with the format and architecture named. The framework adapter
-defaults to testaferro.cpputest.
+defaults to testaferro.cpputest. `guest_session()` names no
+executable and needs no such guard: it hands back a GuestSession
+whose `exec()` drives the guest one command at a time, for a
+guest-driven test that is a linear script rather than a suite of
+named cases (U10).
 
-ReliquarySuiteBackend drives a reliquary machine on the caller's
-behalf.
+ReliquarySuiteBackend and GuestSession both drive a reliquary machine
+on the caller's behalf, through the provisioning `_GuestLifecycle`
+implements once for both rather than twice (F18).
 Each **guest session** — one guest up, from `start_guest()` to
 `stop_guest()` — gets a fresh, disposable reliquary home under
 Testaferro's cache directory (LOCALAPPDATA or XDG_CACHE_HOME): the
@@ -192,6 +197,32 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
                                  timeout=timeout, files=files,
                                  location=location, program=program,
                                  setup=setup)
+
+
+def guest_session(boot_image=None, machine_config=None, timeout=None,
+                  files=(), setup=()):
+    """Return a GuestSession: the same zero-configuration guest
+    provisioning `suite_backend()` draws on, reached without a suite
+    executable to interrogate or place (U10, F18) — a context manager
+    handing back a guest whose `exec()` runs one command at a time,
+    for a guest-driven test that is a linear script rather than a
+    suite of named cases.
+
+    `boot_image`, `machine_config`, `timeout`, `files` and `setup`
+    are the same options `suite_backend()` takes, with the same
+    validation and the same nearest-speaker override rule."""
+    if machine_config is not None:
+        from .environments import _coerce_machine_config
+
+        machine_config = _coerce_machine_config(machine_config)
+        if machine_config.platform != "dos":
+            raise ValueError(
+                "this binding runs DOS guests and needs a DOS machine "
+                f"config, not {machine_config.platform!r}")
+    if boot_image is not None and machine_config is not None:
+        raise TypeError("boot_image and machine_config cannot be combined")
+    return GuestSession(boot_image=boot_image, machine_config=machine_config,
+                        timeout=timeout, files=files, setup=setup)
 
 
 # The active Testaferro run opened by start(), or None: its
@@ -512,10 +543,24 @@ def _join(location, name):
     return location.rstrip("\\") + "\\" + name
 
 
-class ReliquarySuiteBackend(SuiteBackend):
-    def __init__(self, exe_path, framework=cpputest, enumerator=None,
-                 boot_image=None, machine_config=None, timeout=None,
-                 files=(), location=None, program=None, setup=()):
+class _GuestLifecycle:
+    """The guest-session provisioning `ReliquarySuiteBackend` and
+    `GuestSession` both draw on, rather than each carrying its own
+    copy (U10, F18): the cached image or a declared machine, a fresh
+    disposable overlay, host files staged onto the work drive before
+    boot, the readiness wait, harness prep (F9), and the teardown
+    that sweeps it all away again.
+
+    `exe_path` is the one thing that tells the two apart, and it is
+    optional here for exactly that reason: `ReliquarySuiteBackend`
+    stages its suite executable beside `files=`, and `GuestSession`
+    stages none — a scripted guest interaction has no suite
+    executable to place, only what `files=` names."""
+
+    def __init__(self, exe_path=None, boot_image=None, machine_config=None,
+                 timeout=None, files=(), location=None, program=None,
+                 setup=()):
+        self._exe = exe_path
         self._boot_image = (None if boot_image is None
                             else os.fspath(boot_image))
         self._home = None
@@ -537,8 +582,6 @@ class ReliquarySuiteBackend(SuiteBackend):
         staged_setup = self._nearest(setup or None, "setup") or ()
         self._setup = tuple(str(command) for command in staged_setup)
         del declared
-        super().__init__(os.fspath(exe_path), run=self._run_in_guest,
-                         framework=framework, enumerator=enumerator)
 
     def _nearest(self, given, name, default=None):
         """This call, then the declaration, then the default."""
@@ -623,13 +666,15 @@ class ReliquarySuiteBackend(SuiteBackend):
     def _gather(self, work):
         """Collect the staged set into one host directory.
 
-        The suite executable always, plus each `files=` entry beside
-        it. A named directory contributes its contents rather than
-        itself, which is what makes `files=["fixtures"]` land the
-        fixtures where a guest program will look for them instead of
-        one directory deeper.
+        The suite executable, when there is one — a `GuestSession`
+        names none — plus each `files=` entry beside it. A named
+        directory contributes its contents rather than itself, which
+        is what makes `files=["fixtures"]` land the fixtures where a
+        guest program will look for them instead of one directory
+        deeper.
         """
-        shutil.copy2(self._exe, os.path.join(work, self._exe_name()))
+        if self._exe is not None:
+            shutil.copy2(self._exe, os.path.join(work, self._exe_name()))
         for source in self._files:
             if os.path.isdir(source):
                 shutil.copytree(source, work, dirs_exist_ok=True)
@@ -797,29 +842,6 @@ class ReliquarySuiteBackend(SuiteBackend):
             except reliquary.RunFailure as error:
                 raise GuestOutputError(str(error), argv=(command,)) from error
 
-    def _exe_name(self):
-        """The suite executable's own name, as the guest will see it."""
-        return os.path.basename(self._exe)
-
-    def _run_in_guest(self, exe_path, args):
-        if self._home is None:
-            raise RuntimeError("no guest session: guest runs happen "
-                               "between start_guest and stop_guest")
-        # The framework hands over argv tokens; DOS takes one command
-        # line, so this is where tokens become one — the guest-OS
-        # aspect, which is why it lives here and not in the adapter.
-        #
-        # **The address staged against is the address spelled.** Both
-        # come off the same settled location, so the command cannot
-        # name somewhere the files did not go.
-        command = _resolve_program(self._declared_program, self.location,
-                                   self._exe_name())
-        if args:
-            command += " " + " ".join(args)
-        rows = self._session.exec(command, machine=self._machine,
-                                  timeout=self._timeout)
-        return "\n".join(rows) + "\n"
-
     def _blueprint(self, work, boot=None):
         """The blueprint document for this backend session.
 
@@ -919,3 +941,87 @@ class ReliquarySuiteBackend(SuiteBackend):
         staged = os.path.join(self._home, "boot.img")
         shutil.copy2(image, staged)
         return staged
+
+
+class ReliquarySuiteBackend(_GuestLifecycle, SuiteBackend):
+    def __init__(self, exe_path, framework=cpputest, enumerator=None,
+                 boot_image=None, machine_config=None, timeout=None,
+                 files=(), location=None, program=None, setup=()):
+        exe_path = os.fspath(exe_path)
+        _GuestLifecycle.__init__(self, exe_path, boot_image=boot_image,
+                                 machine_config=machine_config,
+                                 timeout=timeout, files=files,
+                                 location=location, program=program,
+                                 setup=setup)
+        SuiteBackend.__init__(self, exe_path, run=self._run_in_guest,
+                              framework=framework, enumerator=enumerator)
+
+    def _exe_name(self):
+        """The suite executable's own name, as the guest will see it."""
+        return os.path.basename(self._exe)
+
+    def _run_in_guest(self, exe_path, args):
+        if self._home is None:
+            raise RuntimeError("no guest session: guest runs happen "
+                               "between start_guest and stop_guest")
+        # The framework hands over argv tokens; DOS takes one command
+        # line, so this is where tokens become one — the guest-OS
+        # aspect, which is why it lives here and not in the adapter.
+        #
+        # **The address staged against is the address spelled.** Both
+        # come off the same settled location, so the command cannot
+        # name somewhere the files did not go.
+        command = _resolve_program(self._declared_program, self.location,
+                                   self._exe_name())
+        if args:
+            command += " " + " ".join(args)
+        rows = self._session.exec(command, machine=self._machine,
+                                  timeout=self._timeout)
+        return "\n".join(rows) + "\n"
+
+
+class GuestSession(_GuestLifecycle):
+    """The guest handle a scripted interaction drives directly (U10):
+    the same zero-configuration provisioning `guest_suite()` gives
+    every suite — a cached image, a disposable per-session overlay,
+    host files staged in — reached with no suite executable, no
+    framework adapter, and nothing for one to parse.
+
+    A context manager: entering opens the guest session (`start_guest`)
+    and returns this handle; leaving sweeps it (`stop_guest`), whether
+    the script's own assertions passed or one of them raised.
+
+        with testaferro.guest_session() as guest:
+            guest.exec("DRIVER.COM /install")
+            guest.exec("RUNNER.EXE")
+
+    Driving the guest interactively — reacting to what is on screen
+    rather than just running one command and reading its result — is
+    not what this offers: `exec()` alone is the whole of it, and
+    widening that waits for a script that actually needs it (F18).
+    """
+
+    def __enter__(self):
+        self.start_guest()
+        return self
+
+    def __exit__(self, *exc_info):
+        self.stop_guest()
+        return False
+
+    def exec(self, command, timeout=None, check=False):
+        """Run one guest command and return its output — mirrors
+        `reliquary.Session.exec()`'s own contract, since that is
+        precisely what a scripted guest interaction needs and a suite
+        abstraction has no room for. `timeout` overrides this
+        session's own for this command alone; `check=True` raises
+        `reliquary.RunFailure` naming the command when it signalled
+        failure, exactly as `reliquary.Session.exec()` does."""
+        if self._home is None:
+            raise RuntimeError(
+                "no guest session: exec() runs between __enter__ and "
+                "__exit__ (or start_guest() and stop_guest())")
+        return self._session.exec(
+            command, machine=self._machine,
+            timeout=self._timeout if timeout is None else timeout,
+            check=check)

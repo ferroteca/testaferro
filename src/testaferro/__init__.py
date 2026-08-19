@@ -31,6 +31,17 @@ are declared with config() or an optional per-project testaferro.ini;
 a prebuilt Backend remains the custom escape hatch for callers that
 need a different execution mechanism.
 
+A guest-driven test that is a linear script rather than a suite of
+named cases reaches the same zero-configuration guest through a
+lower-level door instead (U10):
+
+    with testaferro.guest_session() as guest:
+        guest.exec("DRIVER.COM /install")
+        guest.exec("RUNNER.EXE")
+
+guest_suite() remains the right tool for anything shaped as a suite
+of named tests; guest_session() is purely additive beside it.
+
 For many suites (and future parallel runs), open a *run* so the boot
 image is specified once and all the state it leaves behind is swept
 together — in pytest, from the consumer's conftest.py:
@@ -47,6 +58,55 @@ together — in pytest, from the consumer's conftest.py:
 # lazily inside it). start/stop delegate lazily instead, because
 # importing the provider binding pulls in reliquary.
 from .facade import guest_suite  # noqa: F401
+
+import inspect
+import os
+
+
+def guest_session(environment=None, provider=None, **options):
+    """Open a guest session directly, for a guest-driven test that is
+    a linear script rather than a suite of named cases (U10):
+
+        with testaferro.guest_session() as guest:
+            guest.exec("DRIVER.COM /install")
+            guest.exec("RUNNER.EXE")
+
+    The same zero-configuration guest `guest_suite()` gives every
+    suite — the cached image, downloaded/installed once and reused,
+    booting inside a fresh disposable overlay this session alone
+    writes to — reached without a suite executable to interrogate or
+    a framework adapter for output that was never going to exist.
+    Entering boots the guest and returns the handle; leaving sweeps
+    the session, whether the script's own assertions passed or one of
+    them raised.
+
+    `environment` names the test environment the guest runs in — one
+    declared with testaferro.config() or testaferro.ini (searched
+    upward from this call site), or one of the standard environments
+    Testaferro curates. `provider` names what runs the guest for an
+    environment declared inline here — "reliquary" today, the default
+    and the only one built — and a named environment carries its own,
+    so the two do not combine. `files` is host paths staged onto the
+    work drive before boot, the same placement vocabulary
+    `guest_suite()` takes (U1); `machine_config` reaches the same
+    declared or standard machine a suite would (U3, U9). Any further
+    keyword is environment-specific, validated by the selected
+    binding.
+
+    The handle's `exec(command, timeout=None)` runs one guest command
+    and reads its answer back, in the order the script itself decides
+    rather than a suite's enumeration — nothing to enumerate, nothing
+    for a framework adapter to parse.
+    """
+    from .resolution import resolve_guest_session
+
+    frame = inspect.currentframe()
+    caller = None if frame is None else frame.f_back
+    search_from = (None if caller is None
+                  else os.path.dirname(caller.f_code.co_filename))
+    del frame, caller
+    return resolve_guest_session(environment=environment, provider=provider,
+                                 search_from=search_from, **options)
 
 
 def config(name, **options):

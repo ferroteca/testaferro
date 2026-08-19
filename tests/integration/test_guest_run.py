@@ -196,6 +196,36 @@ class SetupCommandTests(unittest.TestCase):
 
 @requires_guest
 @requires_suite
+class ScriptedGuestSessionTests(unittest.TestCase):
+    """U10, against a real boot: a scripted guest interaction reaches
+    the same provisioning guest_suite() gives every suite, with no
+    suite executable, no framework adapter, and nothing for one to
+    parse — just guest.exec(), called directly, as many times as the
+    script needs.
+    """
+
+    def test_staged_files_are_reachable_and_exec_reads_the_answer_back(self):
+        from testaferro import reliquary as binding
+
+        with binding.guest_session(files=[str(SUITE)]) as guest:
+            rows = guest.exec(f"DIR {guest.location}")
+            self.assertIn("SUITE", "\n".join(rows).upper())
+
+            rows = guest.exec(
+                f"{guest.location}SUITE.EXE -sg Guest -sn Runs")
+            self.assertIn("OK", "\n".join(rows))
+
+    def test_the_public_entry_point_opens_the_same_kind_of_session(self):
+        import testaferro
+
+        with testaferro.guest_session(files=[str(SUITE)]) as guest:
+            self.assertTrue(guest.location)
+            rows = guest.exec(f"DIR {guest.location}")
+            self.assertIn("SUITE", "\n".join(rows).upper())
+
+
+@requires_guest
+@requires_suite
 class GuestCollectionTests(unittest.TestCase):
     """U4's own command, run for real: `pytest <suite>.EXE`.
 

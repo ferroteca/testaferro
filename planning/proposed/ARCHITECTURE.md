@@ -103,10 +103,10 @@ interface?" by lookup against this list, and changing any surface
 named here follows that rule.
 
 1. **The embedding API** — the public module surface:
-   `guest_suite()`, `config()`, `load_config()`, `start()`/`stop()`,
-   and the framework adapter modules (`testaferro.cpputest`) usable
-   on their own. This is the primary interface, and the one U1 is
-   written against.
+   `guest_suite()`, `guest_session()`, `config()`, `load_config()`,
+   `start()`/`stop()`, and the framework adapter modules
+   (`testaferro.cpputest`) usable on their own. This is the primary
+   interface, and the one U1 is written against.
 2. **The test-environment declaration** — the vocabulary of a
    declaration, whichever spelling carries it: blueprint machine
    fields passed through untouched (P3), `platform` among them, plus

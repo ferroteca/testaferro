@@ -304,6 +304,25 @@ docstring):
   Guest output is whatever `session.exec()` returns: the visible
   screen, as rows. A command that scrolls past a screenful leaves
   only its tail, which is why `enumerator=` matters for real suites.
+
+  **The provisioning above is shared, not `ReliquarySuiteBackend`'s
+  alone** (U10, F18). `_GuestLifecycle` carries every guest-session
+  method above — `start_guest`/`stop_guest`, `_gather`, `_create`,
+  `_place`, `_wait_ready`, `_run_setup`, `_blueprint`, boot-image
+  staging, the `location` property — with `exe_path` optional: a
+  suite executable when there is one, `None` when there is not.
+  `ReliquarySuiteBackend(_GuestLifecycle, SuiteBackend)` adds only
+  `_run_in_guest()` and `_exe_name()`, the two methods that actually
+  need a suite executable. `GuestSession(_GuestLifecycle)` adds none
+  — it is a context manager over the same lifecycle, `__enter__`
+  calling `start_guest()` and `__exit__` calling `stop_guest()`
+  unconditionally, with `exec(command, timeout=None, check=False)`
+  calling `session.exec()` directly and returning its rows unjoined,
+  mirroring that method's own contract rather than reshaping the
+  answer for a framework adapter that was never going to see it.
+  `guest_session()` is `suite_backend()`'s sibling factory, the same
+  validation (a non-DOS `machine_config=`, `boot_image=` and
+  `machine_config=` together) and no executable to classify.
 - [src/testaferro/resolution.py](src/testaferro/resolution.py) — the
   backend-resolution seam: `resolve_backend()` is the single place
   where an executable plus options becomes a `Backend`, and every
@@ -325,6 +344,11 @@ docstring):
   search begins — is a parameter, because nothing here can know how
   the caller was reached. Its imports stay stdlib-only;
   `environments` (and so reliquary) is imported inside the call.
+  `resolve_guest_session()` is the same seam for a scripted guest
+  interaction (U10, F18): the same environment/provider resolution,
+  minus the format-classification step it exists to feed — there
+  being no executable to interrogate when none is named — and it
+  calls `binding.guest_session()` rather than `binding.suite_backend()`.
 - [src/testaferro/items.py](src/testaferro/items.py) — the pytest items
   Testaferro produces, which is the fifth interface: `item_id()` (the
   dash rule), `failure_text()` (the guest's own file, line and
@@ -377,9 +401,13 @@ an adapter supplies (`list_argv`, `run_all_argv`, `run_one_argv`,
 built ahead of a second concrete adapter — so a divergence there is
 a bug rather than unbuilt work. Consumers see none of the backend classes: the public
 surface is `testaferro.config()` / `testaferro.load_config()` for
-named test environments (including `testaferro.ini`) and
+named test environments (including `testaferro.ini`),
 `testaferro.guest_suite()` for `environment=` selection or a
-`provider=` said inline. A prebuilt
+`provider=` said inline, and `testaferro.guest_session()` (U10, F18)
+for a guest-driven test shaped as a linear script rather than a suite
+— the same `environment=`/`provider=`/`files=`/`machine_config=`
+vocabulary, a context manager rather than pytest items, and
+`GuestSession.exec()` in place of a `Backend`. A prebuilt
 `Backend` remains the custom escape hatch. End-to-end proof belongs in
 a consuming project that runs real guest tests through the facade,
 both batched and `-k`-narrowed.
@@ -417,18 +445,21 @@ both batched and `-k`-narrowed.
   [ARCHITECTURE.md](ARCHITECTURE.md) carries thirteen principles —
   P1, P2, P4, P6 through P13, P16 and P17 — and root
   [USE-CASES.md](USE-CASES.md) now exists, carrying **U4**, armed once
-  a guest ran the journey it describes. **U7, F9, U10 and F18 are
-  pledged now**, in [planning/pledged/](planning/pledged/) — U7
-  requires F9 and U10 requires F18, each pair pledged together rather
-  than a citation left resting on something merely proposed. Every
-  other U- or P-number still names either a rule in force or an
-  argument, never something merely owed. Four principles stay
-  drafted: P3 and P5, each contradicted by a small piece of the code
-  and each saying so at its own entry, and P14 and P15, which govern
-  conduct rather than code. An entry may arm without ever being
-  pledged, as most of the principles did — the pledged shelf holds
-  what is *owed*, not a stop every entry makes. Cite a U- or
-  P-number knowing it names a draft unless it sits in
+  a guest ran the journey it describes; **U7**, armed once a real
+  guest boot proved `setup=`, its prerequisite F9 delivered and
+  retired with it; and **U10**, armed once a real guest boot proved
+  `guest_session()`, its prerequisite F18 delivered and retired with
+  it in turn. **No U- or F-number is pledged now** —
+  [planning/pledged/](planning/pledged/) holds nothing, each pair
+  having been pledged together rather than a citation left resting on
+  something merely proposed. Every U- or P-number still open names
+  either a rule in force or an argument, never something merely owed.
+  Four principles stay drafted: P3 and P5, each contradicted by a
+  small piece of the code and each saying so at its own entry, and
+  P14 and P15, which govern conduct rather than code. An entry may
+  arm without ever being pledged, as most of the principles did — the
+  pledged shelf holds what is *owed*, not a stop every entry makes.
+  Cite a U- or P-number knowing it names a draft unless it sits in
   [planning/pledged/](planning/pledged/), where it names something
   the project owes and has not yet delivered, or at the root, where a
   divergence is a bug rather than unbuilt work.

@@ -619,6 +619,123 @@ class SetupCommandTests(_BindingFixture):
 
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+class GuestSessionTests(_BindingFixture):
+    """guest_session(): the same provisioning suite_backend() draws
+    on, reached with no suite executable to stage or place, and no
+    framework adapter for output that was never going to exist (U10,
+    F18).
+    """
+
+    def test_no_suite_executable_is_staged(self):
+        session = binding.guest_session(boot_image=self.image)
+
+        with self._fake_machine():
+            with session:
+                work = pathlib.Path(session._home) / "work"
+                self.assertEqual(list(work.iterdir()), [])
+
+    def test_files_are_staged_with_no_executable_beside_them(self):
+        fixture = pathlib.Path(self.tempdir.name) / "DRIVER.COM"
+        fixture.write_bytes(b"driver bytes")
+        session = binding.guest_session(boot_image=self.image,
+                                        files=[str(fixture)])
+
+        with self._fake_machine():
+            with session:
+                work = pathlib.Path(session._home) / "work"
+                self.assertEqual([path.name for path in work.iterdir()],
+                                 ["DRIVER.COM"])
+                self.assertEqual((work / "DRIVER.COM").read_bytes(),
+                                 b"driver bytes")
+
+    def test_zero_configuration_layers_the_default_system(self):
+        # The same zero-configuration guest guest_suite() gives every
+        # suite, reached with no exe at all.
+        session = binding.guest_session()
+        with mock.patch.object(binding, "_cached_default_image",
+                               return_value="SYSTEM.QCOW2"):
+            document, key = session._blueprint("work")
+
+        drives = document[0]["drives"]
+        self.assertEqual(drives["hdd0"]["materialize"], "difference")
+        self.assertEqual(drives["hdd0"]["location"], {"local": "SYSTEM.QCOW2"})
+        self.assertEqual(key, "hdd1")
+
+    def test_exec_returns_the_sessions_own_rows_unjoined(self):
+        # Mirrors reliquary.Session.exec()'s own contract (F18): the
+        # rows come back exactly as reliquary returned them, never
+        # joined into text the way a suite's framework adapter needs.
+        rows = ("row one", "row two")
+        with self._fake_machine(return_value=rows) as guest_exec:
+            with binding.guest_session(boot_image=self.image) as guest:
+                result = guest.exec("DIR")
+
+        self.assertEqual(result, rows)
+        guest_exec.assert_called_once_with(
+            mock.ANY, "DIR", machine="testaferro-0",
+            timeout=binding._DEFAULT_TIMEOUT, check=False)
+
+    def test_exec_timeout_overrides_the_sessions_own_for_one_call(self):
+        with self._fake_machine(return_value=()) as guest_exec:
+            with binding.guest_session(boot_image=self.image) as guest:
+                guest.exec("DIR", timeout=5)
+
+        guest_exec.assert_called_once_with(
+            mock.ANY, "DIR", machine="testaferro-0", timeout=5, check=False)
+
+    def test_exec_check_true_raises_on_a_failing_command(self):
+        def fake_exec(session, command, *, machine=None, timeout=None,
+                      blueprint=None, check=False):
+            if check:
+                raise reliquary_dist.RunFailure(
+                    f"command signalled failure: {command}")
+            return ()
+
+        with self._fake_machine(exec_side_effect=fake_exec):
+            with binding.guest_session(boot_image=self.image) as guest:
+                with self.assertRaises(reliquary_dist.RunFailure):
+                    guest.exec("DRIVER.COM /install", check=True)
+
+    def test_exec_refuses_outside_a_guest_session(self):
+        session = binding.guest_session(boot_image=self.image)
+
+        with self.assertRaisesRegex(RuntimeError, "no guest session"):
+            session.exec("DIR")
+
+    def test_the_session_sweeps_on_exit_even_after_an_exception(self):
+        with self._fake_machine():
+            session = binding.guest_session(boot_image=self.image)
+            with self.assertRaises(ValueError):
+                with session:
+                    home = session._home
+                    raise ValueError("boom")
+
+        self.assertIsNone(session._home)
+        self.assertFalse(os.path.exists(home))
+        self.assertNotIn(session, binding._running)
+
+    def test_a_stopped_session_is_no_longer_tracked(self):
+        with self._fake_machine():
+            with binding.guest_session(boot_image=self.image) as guest:
+                self.assertIn(guest, binding._running)
+
+        self.assertNotIn(guest, binding._running)
+
+    def test_machine_config_platform_is_validated(self):
+        declared = environments.EnvironmentSpec({"platform": "os2"})
+
+        with self.assertRaisesRegex(ValueError, "DOS machine"):
+            binding.guest_session(machine_config=declared)
+
+    def test_boot_image_and_machine_config_cannot_be_combined(self):
+        declared = environments.EnvironmentSpec({})
+
+        with self.assertRaisesRegex(TypeError, "cannot be combined"):
+            binding.guest_session(boot_image=self.image,
+                                  machine_config=declared)
+
+
+@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
 class WorkDrivePlacementTests(unittest.TestCase):
     """Slot choice — pure declaration arithmetic, so every case is
     worth stating.

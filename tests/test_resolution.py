@@ -275,5 +275,118 @@ class ProviderDispatchTests(_ResolutionCase):
             resolve_backend(self._exe(), environment="msdos")
 
 
+@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+class GuestSessionResolutionTests(_ResolutionCase):
+    """resolve_guest_session(): the same environment/provider seam as
+    resolve_backend(), minus the executable it exists to classify
+    (U10, F18) — every case here names none.
+    """
+
+    def _resolved(self, *args, **kwargs):
+        from testaferro.resolution import resolve_guest_session
+
+        with mock.patch("testaferro.reliquary.guest_session",
+                        return_value="a guest session") as factory:
+            session = resolve_guest_session(*args, **kwargs)
+        return session, factory
+
+    def test_nothing_named_takes_the_default_provider_with_no_options(self):
+        session, factory = self._resolved()
+
+        factory.assert_called_once_with()
+        self.assertEqual(session, "a guest session")
+
+    def test_files_and_other_options_pass_through_untouched(self):
+        _, factory = self._resolved(files=["DRIVER.COM"], timeout=5)
+
+        factory.assert_called_once_with(files=["DRIVER.COM"], timeout=5)
+
+    def test_declared_environment_supplies_its_configuration(self):
+        import testaferro
+
+        image = Path(self.tempdir.name) / "msdos.img"
+        image.write_bytes(b"msdos")
+        machine_config = testaferro.config("msdos", boot_image=image)
+
+        _, factory = self._resolved(environment="msdos")
+
+        factory.assert_called_once_with(machine_config=machine_config)
+
+    def test_a_standard_name_resolves_from_the_catalog(self):
+        from testaferro import catalog
+
+        _, factory = self._resolved(environment="freedos")
+
+        machine_config = factory.call_args.kwargs["machine_config"]
+        self.assertEqual(machine_config.platform, "dos")
+        self.assertIn("freedos", catalog.STANDARD)
+
+    def test_unknown_environment_names_both_sources(self):
+        from testaferro.resolution import resolve_guest_session
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"unknown test environment 'msdos'.*standard: freedos"):
+            resolve_guest_session(environment="msdos")
+
+    def test_a_named_environment_rejects_a_second_template(self):
+        import testaferro
+        from testaferro import environments
+        from testaferro.resolution import resolve_guest_session
+
+        testaferro.config("freedos")
+
+        with self.assertRaisesRegex(TypeError, "cannot be combined"):
+            resolve_guest_session(
+                environment="freedos",
+                machine_config=environments.EnvironmentSpec({}))
+
+    def test_provider_and_a_named_environment_do_not_combine(self):
+        import testaferro
+        from testaferro.resolution import resolve_guest_session
+
+        testaferro.config("freedos")
+
+        with self.assertRaisesRegex(
+                TypeError,
+                r"provider cannot be combined with a named environment"):
+            resolve_guest_session(environment="freedos", provider="reliquary")
+
+    def test_an_environment_the_provider_cannot_run_is_rejected(self):
+        import testaferro
+        from testaferro.resolution import resolve_guest_session
+
+        testaferro.config("warp", platform="os2")
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"test environment 'warp' declares platform 'os2', which "
+                r"the 'reliquary' provider does not run; it runs: dos"):
+            resolve_guest_session(environment="warp")
+
+    def test_an_unknown_provider_is_refused_naming_what_exists(self):
+        from testaferro.resolution import resolve_guest_session
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"unknown provider 'vagrant'; testaferro binds: reliquary"):
+            resolve_guest_session(provider="vagrant")
+
+    def test_a_wrong_option_names_what_the_environment_runs_on(self):
+        from testaferro.resolution import resolve_guest_session
+
+        with self.assertRaisesRegex(
+                TypeError,
+                "this environment runs on 'reliquary'"):
+            resolve_guest_session(guest_image="OTHER.IMG")
+
+    def test_the_ini_search_starts_where_the_caller_says(self):
+        with mock.patch("testaferro.environments.load_config") as load:
+            self._resolved(search_from=self.tempdir.name)
+
+        self.assertEqual(load.call_args.kwargs["search_from"],
+                         self.tempdir.name)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -36,6 +36,12 @@ Failing before a guest boots is the rule (P7): a provably foreign
 binary, an ambiguous environment selection and an option the selected
 binding does not take are all refused here, naming what was found and
 what the choices were.
+
+`resolve_guest_session()` is the same seam for a scripted guest
+interaction that names no executable at all (U10, F18): the same
+environment/provider resolution, minus the format-classification step
+it exists to feed — there being no format to read when there is
+nothing to interrogate.
 """
 
 from __future__ import annotations
@@ -123,3 +129,58 @@ def resolve_backend(target, environment=None, provider=None,
         raise TypeError(f"{error} — options are environment-specific; "
                         f"this environment runs {selected_platform!r} "
                         f"on {selected_provider!r}") from None
+
+
+def resolve_guest_session(environment=None, provider=None,
+                          search_from=None, **options):
+    """Build the guest session for a scripted guest interaction (U10).
+
+    The same environment/provider resolution `resolve_backend()`
+    performs, minus the step it exists to classify: a scripted guest
+    interaction names no suite executable, so there is no format to
+    infer a platform from. With no environment named (and so nothing
+    to infer from), `environments.select()` answers None exactly as it
+    does for `resolve_backend()`'s own zero-configuration path, and
+    the reliquary binding is the default provider regardless (F18).
+    """
+    # lazily, exactly as resolve_backend() does: this is the first
+    # point that actually needs reliquary.
+    from . import environments
+
+    environments.load_config(search_from=search_from)
+    selected = environments.select(environment, None)
+    if selected is not None:
+        name, machine_config = selected
+        if "machine_config" in options:
+            raise TypeError("machine_config cannot be combined with a "
+                            "named environment")
+        if provider is not None:
+            raise TypeError(
+                f"provider cannot be combined with a named environment; "
+                f"{name!r} names its own provider, or takes the default")
+        selected_platform = machine_config.platform
+        selected_provider = machine_config.provider
+        options["machine_config"] = machine_config
+    else:
+        name, selected_platform = None, None
+        selected_provider = environments._provider(provider)
+    selected_provider = selected_provider or _DEFAULT_PROVIDER
+    if selected_provider not in _PROVIDERS:
+        raise ValueError(
+            f"unknown provider {selected_provider!r}; testaferro binds: "
+            + ", ".join(sorted(_PROVIDERS)))
+    binding = importlib.import_module("." + selected_provider, __package__)
+    if selected_platform is not None and selected_platform not in binding.PLATFORMS:
+        raise ValueError(
+            f"test environment {name!r} declares platform "
+            f"{selected_platform!r}, which the {selected_provider!r} "
+            f"provider does not run; it runs: "
+            + ", ".join(binding.PLATFORMS))
+    try:
+        return binding.guest_session(**options)
+    except TypeError as error:
+        if "unexpected keyword argument" not in str(error):
+            raise
+        raise TypeError(f"{error} — options are environment-specific; "
+                        f"this environment runs on "
+                        f"{selected_provider!r}") from None
