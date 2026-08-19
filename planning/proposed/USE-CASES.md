@@ -141,3 +141,16 @@ whole route, in the order the machinery intends.
   the project checked in. *(Resolution and the catalog are built:
   `machine="freedos"` names the standard DOS environment. Plural
   is what waits — a second entry arrives with a second guest.)*
+
+- **U10 — A scripted guest interaction, not shaped as a suite.** A
+  guest-driven test is sometimes a linear script rather than a suite
+  of named cases — boot the guest, run one setup step, drive an
+  interactive tool, check what it printed — with no natural
+  `Group.Name` decomposition and no guest-side self-reporting grammar
+  for a framework adapter to parse. The developer wants the same
+  zero-configuration guest testaferro already gives U1 and U2 — a
+  cached image, a disposable per-session overlay, host files staged
+  in — without inventing a suite shape, or a framework adapter, for
+  output that was never going to exist. They get a live guest handle
+  from ordinary pytest code and drive it directly, one command at a
+  time, reading each answer back on the host. *(Unbuilt: F18.)*

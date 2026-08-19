@@ -37,18 +37,18 @@ anywhere in the record rather than at 1. A gap costs a sentence; a
 reissued number would cost the guarantee that a handle in an old
 commit message still resolves to one thing.
 
-- **The next U-number to issue is U10** — use cases, drafted in
+- **The next U-number to issue is U11** — use cases, drafted in
   [proposed/USE-CASES.md](proposed/USE-CASES.md) and armed into root
-  [USE-CASES.md](../USE-CASES.md). U1 through U9 are spent.
+  [USE-CASES.md](../USE-CASES.md). U1 through U10 are spent.
 - **The next P-number to issue is P19** — architectural principles,
   **one namespace** across the drafted list and the in-force one, a
   number kept when an entry moves between them. P1 through P18 are
   spent.
 - **The next D-number to issue is D24** — decisions, recorded in
   [DECISIONS.md](DECISIONS.md). D1 through D23 are spent.
-- **The next F-number to issue is F18** — features, drafted in
+- **The next F-number to issue is F19** — features, drafted in
   [proposed/FEATURES.md](proposed/FEATURES.md) or cut straight to a
-  pledge. F1 through F17 are spent, and most have evaporated on
+  pledge. F1 through F18 are spent, and most have evaporated on
   delivery; the mark counts what was *issued*, never what survives.
 - **The next T-number to issue is T1** — tasks, entered pledged in
   [TASKS.md](TASKS.md). None has been issued: the queue has held no
