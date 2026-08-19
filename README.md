@@ -105,8 +105,8 @@ claims one, because nothing about the file can tell Testaferro that the situatio
 
 Every declaration keyword has a command-line and ini spelling, kebab-cased: `--testaferro-environment`,
 `--testaferro-provider`, `--testaferro-boot-image`, `--testaferro-machine-config`, `--testaferro-files`,
-`--testaferro-location`, `--testaferro-program` (and `testaferro-environment`, `testaferro-provider`, … in pytest's
-ini). The command line wins over the ini, and both win over a declaration.
+`--testaferro-location`, `--testaferro-program`, `--testaferro-setup` (and `testaferro-environment`,
+`testaferro-provider`, … in pytest's ini). The command line wins over the ini, and both win over a declaration.
 Blueprint fields — `memory`, `drives`, `platform` — have no option of their own: they are reliquary's words in a
 declaration, not Testaferro's.
 
@@ -165,6 +165,22 @@ All three default, which is why the one-liner above needs none of them: the exec
 own name. A location you declare is checked by the staging itself, against the machine's real disks, so a wrong one
 fails **before the guest boots** rather than as a missing program inside it. Nothing is ever written into your own boot
 image — what boots is Testaferro's copy.
+
+**A suite that needs harness prep — a TSR or driver resident before the framework ever takes over — declares it once,
+beside the suite:**
+
+```python
+testaferro.config(
+    "freedos",
+    files=["DRIVER.COM"],
+    setup=["DRIVER.COM /install"],   # run in the guest, in order, once per guest session
+)
+```
+
+`setup=` commands run after the readiness wait and before anything else, every guest session a suite boots — a test
+session or an enumeration boot alike — so the driver is always resident and never loaded twice. A command that fails
+ends that guest session and is reported once, naming the command and what the guest showed, rather than as every test
+the missing driver would otherwise have doomed. A suite that declares no `setup=` runs exactly as before.
 
 Host-side code can ask where its harness landed, in the same words a declaration uses:
 

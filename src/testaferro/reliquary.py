@@ -74,6 +74,7 @@ from . import at_rest
 from . import binfmt
 from . import cache
 from . import cpputest
+from .backend import GuestOutputError
 from .suite import SuiteBackend
 
 
@@ -142,7 +143,7 @@ _READY_VAR = "ready"
 
 def suite_backend(exe_path, framework=cpputest, enumerator=None,
                   boot_image=None, machine_config=None, timeout=None,
-                  files=(), location=None, program=None):
+                  files=(), location=None, program=None, setup=()):
     """Interrogate the referenced suite executable and return the
     backend matching its format — a ReliquarySuiteBackend for a DOS
     program. Raises FileNotFoundError for a missing file and
@@ -160,7 +161,14 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
     guest address of what to run, in which `{location}` stands for
     the location however it was settled. Saying none of them is the
     one-liner case: the executable alone, at Testaferro's default
-    location, run by its own name."""
+    location, run by its own name.
+
+    `setup` is **harness prep** (F9), the same override rule again:
+    guest commands run in order, once per guest session — after the
+    readiness wait and before anything else, an enumeration boot
+    included — for a TSR or driver the suite needs resident before
+    the framework ever takes over. A suite that declares none runs
+    exactly as before."""
     exe_path = os.fspath(exe_path)
     fmt = binfmt.classify(exe_path)
     if fmt.platform != "dos":
@@ -182,7 +190,8 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
                                  boot_image=boot_image,
                                  machine_config=machine_config,
                                  timeout=timeout, files=files,
-                                 location=location, program=program)
+                                 location=location, program=program,
+                                 setup=setup)
 
 
 # The active Testaferro run opened by start(), or None: its
@@ -506,7 +515,7 @@ def _join(location, name):
 class ReliquarySuiteBackend(SuiteBackend):
     def __init__(self, exe_path, framework=cpputest, enumerator=None,
                  boot_image=None, machine_config=None, timeout=None,
-                 files=(), location=None, program=None):
+                 files=(), location=None, program=None, setup=()):
         self._boot_image = (None if boot_image is None
                             else os.fspath(boot_image))
         self._home = None
@@ -525,6 +534,8 @@ class ReliquarySuiteBackend(SuiteBackend):
         self._declared_program = self._nearest(program, "program")
         staged = self._nearest(files or None, "files") or ()
         self._files = tuple(os.fspath(path) for path in staged)
+        staged_setup = self._nearest(setup or None, "setup") or ()
+        self._setup = tuple(str(command) for command in staged_setup)
         del declared
         super().__init__(os.fspath(exe_path), run=self._run_in_guest,
                          framework=framework, enumerator=enumerator)
@@ -604,6 +615,7 @@ class ReliquarySuiteBackend(SuiteBackend):
             self._place(work)
             self._session.start_machine(self._machine)
             self._wait_ready()
+            self._run_setup()
         except BaseException:
             self.stop_guest()
             raise
@@ -747,6 +759,43 @@ class ReliquarySuiteBackend(SuiteBackend):
             raise RuntimeError(
                 "the guest never reported itself ready, so nothing it "
                 "shows can be trusted to be an answer")
+
+    def _run_setup(self):
+        """Run this session's declared `setup=` commands, in order.
+
+        Once per **guest session** (D15), an enumeration boot
+        included: a suite whose TSR must be resident to run needs it
+        resident to enumerate too. After the readiness wait and before
+        anything else — the same guest a first test would see, never
+        a bare boot the framework adapter is asked to make sense of.
+
+        Failure is the provider's to detect, never Testaferro's to
+        parse (`exec(check=True)`, F9): a command that signals failure
+        stops this loop and raises `GuestOutputError` in the shape
+        every guest exchange fails in — naming the command, since
+        that is the one thing certain about a probe reliquary itself
+        could not show a screen for. The `except BaseException` this
+        is called under ends the session: one report, not one per
+        test the missing TSR would otherwise have doomed.
+
+        **Weighed and declined: pre-boot validation of `setup`
+        against `files`.** Refusing a command whose first token names
+        no staged file and no known shell builtin would need a
+        builtin vocabulary Testaferro kept on the shell's behalf,
+        varying by DOS flavor and shell version — the kind of mirror
+        `_letter_map()`'s own history argues against — and would
+        refuse legitimate commands naming programs on the system
+        disk, a tester's own boot floppy, or `PATH`. Keeping `files=`
+        and `setup=` in agreement is the caller's own obligation; a
+        typo surfaces as a loud setup failure here rather than a
+        pre-boot refusal that would just as often be wrong.
+        """
+        for command in self._setup:
+            try:
+                self._session.exec(command, machine=self._machine,
+                                   timeout=self._timeout, check=True)
+            except reliquary.RunFailure as error:
+                raise GuestOutputError(str(error), argv=(command,)) from error
 
     def _exe_name(self):
         """The suite executable's own name, as the guest will see it."""

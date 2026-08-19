@@ -169,12 +169,11 @@ one: what is promised is the location.
 - **Supersedes D5 when it lands** — the hostdir work drive was the
   declined alternative's cost paid in mechanism, and the eventual
   shape D5 itself named (F4) is this design.
-- **F9's `files=` is this `files=`** — one declaration, not two
-  spellings. The in-guest-prep design reads unchanged with "the work
-  drive" generalized to "the location"; its provider asks are
-  separate and stay in
-  [reliquary-proposal.md](../../pledged/design/reliquary-proposal.md),
-  pledged now alongside F9.
+- **F9's `files=` was this `files=`** — one declaration, not two
+  spellings, and F9 delivered and retired on that basis (with
+  `setup=` beside it). Its own design swept with it on delivery; the
+  provider asks it rested on stay recorded in
+  [reliquary-proposal.md](../../pledged/design/reliquary-proposal.md).
 - **P8 stays armed by construction**: every default above is
   derivable without guessing, which the letter inference never was.
 - **U2, U3 unchanged in promise**; U3's tester-owned floppy keeps

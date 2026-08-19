@@ -120,6 +120,39 @@ class EnvironmentConfigurationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "already configured"):
             environments.configure("freedos")
 
+    def test_setup_commands_are_declared_in_order(self):
+        # The same argument as files/location/program made a fourth
+        # time (F9): reliquary's document has no field for what runs
+        # in the guest before a test does.
+        config = environments.configure(
+            "msdos", setup=["DRIVER.COM /install", "OTHER.COM /go"])
+
+        self.assertEqual(config.setup,
+                         ("DRIVER.COM /install", "OTHER.COM /go"))
+        self.assertNotIn("setup", config.fields)
+
+    def test_a_lone_setup_command_needs_no_list(self):
+        config = environments.configure("msdos", setup="DRIVER.COM /install")
+
+        self.assertEqual(config.setup, ("DRIVER.COM /install",))
+
+    def test_setup_is_said_beside_a_complete_template(self):
+        # A template is the provider's own document and cannot say
+        # what runs before a test — this is one of the keys admitted
+        # beside it, as timeout, suites and provider are.
+        template = environments.EnvironmentSpec({"platform": "dos"})
+
+        config = environments.configure(
+            "msdos", machine_config=template, setup=["DRIVER.COM /install"])
+
+        self.assertEqual(config.setup, ("DRIVER.COM /install",))
+        self.assertEqual(template.setup, ())
+
+    def test_an_undeclared_setup_stays_empty(self):
+        config = environments.configure("msdos")
+
+        self.assertEqual(config.setup, ())
+
 
 class StandardCatalogTests(unittest.TestCase):
     """An environment name resolves to the project's declarations

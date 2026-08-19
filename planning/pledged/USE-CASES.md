@@ -18,45 +18,6 @@ names an undertaking — stronger than citing
 citing the root list: the project owes it, and does not yet claim the
 code meets it.
 
-- **U7 — Harness support prepped in the guest.** A tester's suite
-  will not pass on a bare booted OS: a TSR has to be resident first,
-  and loading it twice is not idempotent, so it cannot simply run as
-  a setup test — the harness needs preparing before the framework
-  ever takes over. The tester declares that prep once, beside the
-  suite, and gets a suite that never runs unprepared: every guest
-  session it boots, a test session or an enumeration boot alike,
-  arrives with the TSR already resident, no manual step and nothing
-  to redo per test. A suite that declares no prep runs exactly as
-  before.
-
-  1. **Name the companion files.**
-     `testaferro.guest_suite(SUITE, files=["DRIVER.COM"])` — host
-     paths staged onto the work drive beside the suite, before boot,
-     landing where the suite itself already resolves: a setup
-     command below names one bare, no path and no letter.
-  2. **Name the setup commands.** Add `setup=["DRIVER.COM /install"]`
-     to the same call — commands run in the guest, in the order
-     given, after the readiness wait and before anything else, once
-     per **guest session** rather than once per suite, so an
-     enumeration boot runs them too.
-  3. **Run the suite.** `pytest` — unchanged from U1 or U2. Each
-     guest session now stages the files and runs setup before the
-     framework adapter takes over; a setup command that fails ends
-     that session and is reported once, naming the command and the
-     screen it produced, rather than once per test the missing TSR
-     would otherwise have doomed.
-
-  A device driver that must be present before the guest OS itself
-  finishes booting is a different need — no post-boot step can
-  supply it — met by a custom boot image (U3) or a persistent
-  provisioned machine (U8), not by this journey. *(Requires F9.)*
-
-U7 cites F9, and both are pledged in this same commit — the map's
-rule against a pledged item resting on a proposed one
-([../README.md](../README.md)) is met by pledging the prerequisite
-rather than by severing the reference. Neither arms alone: F9's
-delivery is what U7 waits on.
-
 - **U10 — A scripted guest interaction, not shaped as a suite.** A
   guest-driven test is sometimes a linear script rather than a suite
   of named cases — boot the guest, run one setup step, drive an
@@ -100,6 +61,8 @@ delivery is what U7 waits on.
   to: the minimal shape is `exec()` alone, and widening it waits for
   a script that actually needs it. *(Requires F18.)*
 
-U10 cites F18 the same way U7 cites F9, so both are pledged together
-here too: an internal refactor with no provider gate to clear, but
-still work neither use case arms without.
+U10 cites F18, pledged together with it in
+[pledged/FEATURES.md](FEATURES.md) — the map's rule against a pledged
+item resting on a proposed one is met by pledging the prerequisite
+rather than by severing the reference. Neither arms alone: F18's
+delivery is what U10 waits on.

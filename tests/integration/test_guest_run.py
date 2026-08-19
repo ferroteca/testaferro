@@ -125,6 +125,77 @@ class GuestSessionTests(unittest.TestCase):
 
 @requires_guest
 @requires_suite
+class SetupCommandTests(unittest.TestCase):
+    """Harness prep (F9), against a real boot: `setup=` commands
+    actually run in the guest, actually before any test, and a real
+    failure actually surfaces as `GuestOutputError` rather than as
+    every later test failing mysteriously.
+
+    Each case boots its own guest — unlike `GuestSessionTests`' shared
+    session — because what is under test here is `start_guest()`
+    itself, including the one that never finishes starting.
+    """
+
+    def setUp(self):
+        from testaferro import reliquary as binding
+        from testaferro.backend import GuestOutputError
+
+        self.binding = binding
+        self.GuestOutputError = GuestOutputError
+        self.backend = None
+
+    def tearDown(self):
+        if self.backend is not None:
+            self.backend.stop_guest()
+
+    def test_a_setup_command_runs_before_the_guest_is_asked_for_anything(self):
+        # Zero configuration lands the work drive at D: (see
+        # GuestSessionTests.test_the_suite_lands_on_a_vvfat_sibling_
+        # of_the_system_disk), so a setup command can write evidence
+        # there and this reads it back afterward — proof the command
+        # ran *during* start_guest(), not proof by inspecting Python.
+        self.backend = self.binding.suite_backend(
+            str(SUITE), setup=["ECHO ready>D:\\SETUP.MRK"])
+
+        self.backend.start_guest()
+
+        rows = self.backend._session.exec(
+            "TYPE D:\\SETUP.MRK", machine=self.backend._machine, timeout=60)
+        self.assertIn("ready", "\n".join(rows))
+
+    def test_a_failing_setup_command_ends_the_session_before_any_test_runs(self):
+        # No new fixture needed: the suite already stages itself onto
+        # the work drive, and CppUTest's runner returns its failure
+        # count, so running the deliberately-failing case as a setup
+        # command is a real program, on a real guest, actually
+        # signalling failure — the exact channel `exec(check=True)`
+        # exists to read.
+        self.backend = self.binding.suite_backend(
+            str(SUITE), setup=["D:\\SUITE.EXE -sg Guest -sn Fails"])
+
+        with self.assertRaises(self.GuestOutputError) as caught:
+            self.backend.start_guest()
+
+        self.assertIn("D:\\SUITE.EXE -sg Guest -sn Fails",
+                      str(caught.exception))
+        # ended, not left half up: stop_guest() already ran once
+        # (inside start_guest()'s own failure handling), so tearDown's
+        # second call has to be a no-op rather than an error.
+        self.assertIsNone(self.backend._home)
+
+    def test_a_suite_declaring_no_setup_still_boots_and_runs(self):
+        # The one-liner path stays exactly as it was: no setup
+        # declared, no extra guest exchange, same green run
+        # GuestSessionTests already proves in detail.
+        self.backend = self.binding.suite_backend(str(SUITE))
+
+        self.backend.start_guest()
+
+        self.assertTrue(self.backend.run_test("Guest", "Runs").passed)
+
+
+@requires_guest
+@requires_suite
 class GuestCollectionTests(unittest.TestCase):
     """U4's own command, run for real: `pytest <suite>.EXE`.
 

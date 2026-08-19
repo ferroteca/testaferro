@@ -89,7 +89,11 @@ def guest_suite(target, framework=None, enumerator=None,
     `program=` — what is staged into the guest, the guest address it
     lands at, and what to run there. All three default, so a lone
     suite executable still needs none of them, and where a run landed
-    is readable afterwards as the backend's `location`.
+    is readable afterwards as the backend's `location`. `setup=` is
+    harness prep (F9): commands run in the guest, in order, once per
+    guest session before any test — a TSR or driver made resident
+    ahead of the framework, rather than an unrepeatable setup test. A
+    suite that declares none runs exactly as before.
 
     Enumeration (backend.list_tests()) happens at import/collection
     time, in a guest session of its own — unless `enumerator` supplies

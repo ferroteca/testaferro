@@ -68,8 +68,10 @@ _HYPHENATED = types.MappingProxyType({
 # D11) — and `files`, `location` and `program` are the same argument
 # made three more times: reliquary's document has no field for what a
 # test run stages, where it puts it, or what it invokes there (F4).
+# `setup` is the same argument again: reliquary's document has no
+# field for what runs in the guest before a test does (F9).
 _TESTAFERRO_KEYS = frozenset({"provider", "timeout", "suites",
-                              "files", "location", "program"})
+                              "files", "location", "program", "setup"})
 # Path-valued and list-valued: staged sources are host paths, so an
 # INI one resolves against the config file like any other path.
 _PATH_LIST_KEYS = frozenset({"files"})
@@ -116,13 +118,20 @@ class EnvironmentSpec:
     executable a one-liner (P8). They are said *beside* the machine
     spec and never inside it: reliquary's document has no field for
     what a test run stages.
+
+    ``setup`` is the same argument again, for **harness prep** (F9):
+    commands run in the guest, in the order given, once per guest
+    session — after the readiness wait and before anything else, an
+    enumeration boot included. A suite that declares none runs exactly
+    as it did before this existed.
     """
 
     __slots__ = ("_fields", "_media", "provider", "timeout", "suites",
-                 "files", "location", "program")
+                 "files", "location", "program", "setup")
 
     def __init__(self, machine, media=(), timeout=None, suites=(),
-                 provider=None, files=(), location=None, program=None):
+                 provider=None, files=(), location=None, program=None,
+                 setup=()):
         fields = {_HYPHENATED.get(key, key): value
                   for key, value in machine.items()
                   if key not in ("type", "name")}
@@ -137,6 +146,7 @@ class EnvironmentSpec:
         object.__setattr__(self, "files", _paths(files))
         object.__setattr__(self, "location", _address(location))
         object.__setattr__(self, "program", _address(program))
+        object.__setattr__(self, "setup", _commands(setup))
 
     def __getattr__(self, name):
         try:
@@ -220,7 +230,8 @@ def configure(name, machine_config=None, template=None, boot_image=None,
                                          provider=options.get("provider"),
                                          files=options.get("files", ()),
                                          location=options.get("location"),
-                                         program=options.get("program"))
+                                         program=options.get("program"),
+                                         setup=options.get("setup", ()))
     else:
         machine_config = _coerce_machine_config(machine_config)
         if own:
@@ -236,7 +247,8 @@ def configure(name, machine_config=None, template=None, boot_image=None,
                 provider=own.get("provider", machine_config.provider),
                 files=own.get("files", machine_config.files),
                 location=own.get("location", machine_config.location),
-                program=own.get("program", machine_config.program))
+                program=own.get("program", machine_config.program),
+                setup=own.get("setup", machine_config.setup))
 
     _environments[name] = machine_config
     return machine_config
@@ -288,6 +300,29 @@ def _paths(value):
         return tuple(part.strip() for part in text.split(",")
                      if part.strip())
     return tuple(os.fspath(path) for path in value)
+
+
+def _commands(value):
+    """Normalize declared ``setup`` commands to a tuple, in order.
+
+    One command or several, and written either way — a list, or one
+    string separating them **by line**. Neither of ``suites``'s
+    whitespace split nor ``files``'s comma split fits here: a guest
+    command routinely embeds both, in its own switches
+    (``DRIVER.COM /install``) and its own syntax
+    (``COPY A.TXT,B.TXT``). A line has neither problem, and is also
+    the natural INI spelling for a list too short to want JSON:
+
+        setup =
+            DRIVER.COM /install
+            OTHER.COM /go
+    """
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        return tuple(line.strip() for line in value.splitlines()
+                     if line.strip())
+    return tuple(str(command) for command in value)
 
 
 def _address(value):

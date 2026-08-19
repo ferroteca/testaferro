@@ -32,6 +32,7 @@ if RELIQUARY_AVAILABLE:
     from testaferro import at_rest
     from testaferro import environments
     from testaferro import reliquary as binding
+    from testaferro.backend import GuestOutputError
 
 _no_install = None
 
@@ -480,6 +481,141 @@ class ReliquarySuiteBackendTests(_BindingFixture):
             finally:
                 backend.stop_guest()
         guest_exec.assert_not_called()
+
+
+@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+class SetupCommandTests(_BindingFixture):
+    """Harness prep (F9): `setup=` commands run in the guest before
+    any test, once per guest session."""
+
+    def test_setup_commands_run_in_order_before_any_test(self):
+        calls = []
+
+        def fake_exec(session, command, *, machine=None, timeout=None,
+                      blueprint=None, check=False):
+            calls.append((command, check))
+            if command == "C:\\SUITE.EXE -v":
+                return tuple(EMPTY_RUN_OUTPUT.splitlines())
+            return ()
+
+        backend = binding.suite_backend(
+            self.exe, boot_image=self.image,
+            setup=["DRIVER.COM /install", "OTHER.COM /go"])
+
+        with self._fake_machine(exec_side_effect=fake_exec):
+            backend.start_guest()
+            try:
+                backend.run_all()
+            finally:
+                backend.stop_guest()
+
+        # check=True asks reliquary whether each setup command
+        # succeeded; the suite's own run asks no such thing, matching
+        # every other guest exchange this binding performs.
+        self.assertEqual(calls, [
+            ("DRIVER.COM /install", True),
+            ("OTHER.COM /go", True),
+            ("C:\\SUITE.EXE -v", False),
+        ])
+
+    def test_setup_runs_again_each_new_guest_session(self):
+        # Once per guest session (D15), an enumeration boot included:
+        # a suite whose TSR must be resident needs it resident to
+        # enumerate too.
+        calls = []
+
+        def fake_exec(session, command, *, machine=None, timeout=None,
+                      blueprint=None, check=False):
+            calls.append(command)
+            return ()
+
+        backend = binding.suite_backend(self.exe, boot_image=self.image,
+                                        setup=["DRIVER.COM /install"])
+
+        with self._fake_machine(exec_side_effect=fake_exec):
+            backend.start_guest()
+            backend.stop_guest()
+            backend.start_guest()
+            backend.stop_guest()
+
+        self.assertEqual(calls,
+                         ["DRIVER.COM /install", "DRIVER.COM /install"])
+
+    def test_a_failing_setup_command_ends_the_session_and_names_it(self):
+        # Failure is the provider's to detect (exec(check=True)); this
+        # binding turns that refusal into the same GuestOutputError
+        # shape every guest exchange fails in, naming the command.
+        def fake_exec(session, command, *, machine=None, timeout=None,
+                      blueprint=None, check=False):
+            raise reliquary_dist.RunFailure(
+                f"command signalled failure: {command}")
+
+        backend = binding.suite_backend(self.exe, boot_image=self.image,
+                                        setup=["DRIVER.COM /install"])
+
+        with self._fake_machine(exec_side_effect=fake_exec):
+            with self.assertRaises(GuestOutputError) as caught:
+                backend.start_guest()
+
+        self.assertIn("DRIVER.COM /install", str(caught.exception))
+        self.assertEqual(caught.exception.argv, ("DRIVER.COM /install",))
+        # the session was ended, not left half-started
+        self.assertIsNone(backend._home)
+        self.assertNotIn(backend, binding._running)
+
+    def test_a_second_setup_command_never_runs_after_the_first_fails(self):
+        calls = []
+
+        def fake_exec(session, command, *, machine=None, timeout=None,
+                      blueprint=None, check=False):
+            calls.append(command)
+            raise reliquary_dist.RunFailure(
+                f"command signalled failure: {command}")
+
+        backend = binding.suite_backend(
+            self.exe, boot_image=self.image,
+            setup=["DRIVER.COM /install", "OTHER.COM /go"])
+
+        with self._fake_machine(exec_side_effect=fake_exec):
+            with self.assertRaises(GuestOutputError):
+                backend.start_guest()
+
+        self.assertEqual(calls, ["DRIVER.COM /install"])
+
+    def test_the_nearest_speaker_sets_setup_commands(self):
+        # The call speaks about this run and a declaration about the
+        # environment, so the call wins; absent both, none at all.
+        declared = environments.EnvironmentSpec({}, setup=["FROM.ENV /go"])
+
+        self.assertEqual(
+            binding.suite_backend(self.exe, boot_image=self.image,
+                                  setup=["FROM.CALL /go"])._setup,
+            ("FROM.CALL /go",))
+        self.assertEqual(
+            binding.suite_backend(self.exe,
+                                  machine_config=declared)._setup,
+            ("FROM.ENV /go",))
+        self.assertEqual(
+            binding.suite_backend(self.exe, machine_config=declared,
+                                  setup=["FROM.CALL /go"])._setup,
+            ("FROM.CALL /go",))
+        self.assertEqual(
+            binding.suite_backend(self.exe,
+                                  boot_image=self.image)._setup,
+            ())
+
+    def test_a_suite_declaring_no_setup_runs_exactly_as_before(self):
+        expected = tuple(EMPTY_RUN_OUTPUT.splitlines())
+        with self._fake_machine(return_value=expected) as guest_exec:
+            backend = binding.suite_backend(self.exe, boot_image=self.image)
+            backend.start_guest()
+            try:
+                self.assertEqual(backend.run_all(), [])
+            finally:
+                backend.stop_guest()
+        guest_exec.assert_called_once_with(
+            mock.ANY, "C:\\SUITE.EXE -v",
+            machine="testaferro-0", timeout=mock.ANY)
 
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")

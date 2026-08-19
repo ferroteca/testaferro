@@ -247,6 +247,14 @@ class PluginTests(_PytestTreeCase):
 
         self.assertIn("resolve:timeout", self.recorded())
 
+    def test_the_setup_option_reaches_the_binding(self):
+        self.suite()
+
+        self.pytest("SUITE.EXE", "--collect-only",
+                    "--testaferro-setup=DRIVER.COM /install")
+
+        self.assertIn("resolve:setup", self.recorded())
+
     def test_a_non_numeric_timeout_is_refused(self):
         self.suite()
 

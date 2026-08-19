@@ -41,8 +41,10 @@ that pledge rests on (D13).
 numbering here is where one went. U4 was pledged by D13, waited on
 the pledged shelf for a guest to run its journey, and is now in force
 at [root `USE-CASES.md`](../../USE-CASES.md) — the whole route, in
-the order the machinery intends. U7 and U10 are pledged now too,
-alongside their prerequisites F9 and F18 respectively, and wait in
+the order the machinery intends. U7 took the same route: pledged
+alongside its prerequisite F9, and now in force there too, once a
+guest actually ran the prepared journey. U10 is pledged now, alongside
+its own prerequisite F18, and waits in
 [pledged/USE-CASES.md](../pledged/USE-CASES.md).
 
 - **U1 — Unit tests that can only run on the target OS, surfaced as

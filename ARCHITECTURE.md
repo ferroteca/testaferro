@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0-only
 
 > **Status: in force.** Every principle below is honored by the code
 > as it stands today — that is the whole content of a principle being
-> here rather than on the pledged shelf (`planning/pledged/`, which
-> stands empty and therefore absent).
+> here rather than on the pledged shelf (`planning/pledged/`, owed but
+> not yet delivered).
 > **A divergence from any of them is a bug**, to be reported and
 > fixed, and not unbuilt work to be scheduled. That is the difference
 > arming makes, and it is why a principle reaches this file only when

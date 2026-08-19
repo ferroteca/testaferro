@@ -5,21 +5,24 @@ SPDX-License-Identifier: GPL-3.0-only
 
 # Proposal: what driver-testing guests need from reliquary
 
-> **Ask 1 answered, 2026-07-30.** Reliquary 0.1.0.dev6 ships
+> **Ask 1 answered, 2026-07-30, and built.** Reliquary 0.1.0.dev6 ships
 > `exec(check=True)` (`exec --check` at the CLI) under its own D89,
 > retiring the F26 it had entered for this ask: an opt-in
 > `IF ERRORLEVEL 1` probe, its own sentinel text read back, scoped
 > exactly as asked below — a mistyped command escapes the probe and
-> reads as success, stated rather than papered over. Testaferro's pin
-> has since moved past dev6, to 0.1.0a2, so the capability F9 gated on
-> is already in hand; nothing in `reliquary.py` calls `check=` yet.
+> reads as success, stated rather than papered over. F9, the consumer
+> this ask served, has since delivered and retired:
+> `ReliquarySuiteBackend._run_setup()` calls `exec(check=True)` for
+> every declared `setup=` command, once per guest session, and a
+> command reliquary reports as failed surfaces as `GuestOutputError`.
 > **Asks 2 and 3 remain open** and serve no pledged feature.
 
 A **downstream proposal to reliquary**, from Testaferro, its
-consumer. It serves F9 (in-guest harness prep, designed in
-[in-guest-prep.md](in-guest-prep.md)) and the machine facts the
-same consumer class declares, and it is written the way
-consumer-side input should be: the shape that costs the consumer
+consumer. Its first ask served F9 (in-guest harness prep, delivered
+and retired — its design lived at `in-guest-prep.md`, swept with it
+per [../../README.md](../../README.md)); its remaining asks serve the
+machine facts the same consumer class declares, and it is written the
+way consumer-side input should be: the shape that costs the consumer
 least, the requirements it cannot meet alone, and nothing the
 provider owns asked back.
 
@@ -27,10 +30,11 @@ Written against reliquary 0.1.0.dev4 — Testaferro's exact pin
 (D4) — and checked against reliquary's 0.1.0.dev6 tip. Every code
 claim below was verified in both and holds identically in both.
 
-Three asks. F9 hard-depends on the first alone; the second and
-third serve the sibling fact its design names — a machine that
-exposes the device a driver under test drives — which reaches
-reliquary as blueprint fields Testaferro passes through untouched.
+Three asks. F9 hard-depended on the first alone, and delivered on it;
+the second and third serve a sibling fact no pledged feature names —
+a machine that exposes the device a driver under test drives — which
+would reach reliquary as blueprint fields Testaferro passes through
+untouched.
 
 ## 1. `exec()` reports whether the command succeeded
 

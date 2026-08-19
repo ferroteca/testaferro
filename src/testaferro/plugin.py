@@ -99,11 +99,17 @@ _SETTINGS = (
     ("location", "guest address the suite is staged at: D:\\TESTS"),
     ("program", "guest address of what to run there; {location} "
                 "stands for the staged location"),
+    ("setup", "commands run in the guest before any test, once per "
+              "guest session; one per line"),
 )
 # Settings naming a file, resolved from the rootdir when relative.
 _PATH_SETTINGS = frozenset({"boot-image", "machine-config"})
 # Settings naming several files, each resolved the same way.
 _PATH_LIST_SETTINGS = frozenset({"files"})
+# Settings naming several guest commands, one per line (F9) — never
+# comma-split, unlike `files`: a guest command routinely embeds a
+# comma of its own where a host path routinely embeds a space.
+_COMMAND_LIST_SETTINGS = frozenset({"setup"})
 # Settings the binding wants as a number rather than as text.
 _FLOAT_SETTINGS = frozenset({"timeout"})
 
@@ -420,6 +426,10 @@ def _backend_for(config, path):
             options[name.replace("-", "_")] = tuple(
                 _rooted(config, part.strip())
                 for part in str(value).split(",") if part.strip())
+    for name in _COMMAND_LIST_SETTINGS:
+        value = _setting(config, name)
+        if value is not None:
+            options[name] = environments._commands(value)
     # Guest addresses, passed through as written: what a valid one is
     # belongs to the guest platform, and Testaferro never rewrites a
     # host path into one (P17).

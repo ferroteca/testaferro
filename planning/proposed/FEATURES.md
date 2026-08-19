@@ -63,9 +63,10 @@ turns out not to exist apart, neither does the handle.
 A gap in the numbering here is where one of them went.
 
 **F9 and F18 have left this file too**, each pledged alongside its
-use case — F9 with U7, F18 with U10 — not retired, not split, just
-moved. Both live in
-[../pledged/FEATURES.md](../pledged/FEATURES.md) now.
+use case — F9 with U7, F18 with U10 — not retired, not split at the
+time, just moved. F18 lives in
+[../pledged/FEATURES.md](../pledged/FEATURES.md) now; F9 has since
+delivered and retired, arming U7 with it.
 
 ## F2 — Persistent machines and the lifecycle verbs
 

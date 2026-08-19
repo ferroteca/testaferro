@@ -207,6 +207,35 @@ class ProjectConfigTests(unittest.TestCase):
         self.assertEqual(environments.configured()["msdos"].files,
                          (os.path.abspath(path),))
 
+    def test_setup_has_an_ini_spelling_one_command_per_line(self):
+        # The declarative twin of config(setup=[...]) (F9, P16): a
+        # command routinely embeds a space of its own and sometimes a
+        # comma, so it is split by line rather than files' comma rule.
+        ini = self._write(
+            "testaferro.ini",
+            "[msdos]\n"
+            "setup =\n"
+            "    DRIVER.COM /install\n"
+            "    OTHER.COM /go\n")
+
+        environments.load_config(ini)
+
+        config = environments.configured()["msdos"]
+        self.assertEqual(config.setup,
+                         ("DRIVER.COM /install", "OTHER.COM /go"))
+        self.assertNotIn("setup", config.fields)
+
+    def test_a_lone_setup_command_needs_no_leading_newline(self):
+        ini = self._write(
+            "testaferro.ini",
+            "[msdos]\n"
+            "setup = DRIVER.COM /install\n")
+
+        environments.load_config(ini)
+
+        self.assertEqual(environments.configured()["msdos"].setup,
+                         ("DRIVER.COM /install",))
+
 
 if __name__ == "__main__":
     unittest.main()

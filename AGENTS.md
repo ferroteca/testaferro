@@ -276,6 +276,20 @@ docstring):
     the first command of every run come back as the boot's own output.
     The prompt is matched as a **pattern**, because Testaferro's
     installed system boots to `C:` and a tester's floppy to `A:`.
+  - **Setup commands run once per guest session, right after
+    readiness — harness prep (F9), not placement.** `setup=` is a
+    fourth Testaferro-only word beside `files=`/`location=`/
+    `program=`, never a blueprint field: `_run_setup()` runs each
+    guest command in the order given, after `_wait_ready()` and
+    before anything else, every guest session an enumeration boot
+    included — a suite whose TSR must be resident needs it resident
+    to enumerate too (D15). Failure is the provider's to detect, not
+    Testaferro's to parse: each command goes through
+    `session.exec(check=True)`, and a command reliquary reports as
+    failed becomes the same `GuestOutputError` every guest exchange
+    fails in, naming the command — ending the session in one report
+    rather than letting every later test fail mysteriously. A suite
+    declaring none runs exactly as it did before this existed.
   - **A declared boot image is staged too, and for a different
     reason.** What boots is Testaferro's copy inside the guest home,
     because the tester's own file is read and never written (P5). A
