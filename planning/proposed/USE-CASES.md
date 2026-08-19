@@ -38,10 +38,12 @@ entry leans on is still allowed and no longer free: it re-opens what
 that pledge rests on (D13).
 
 **Entries that moved on have left this file**, and a gap in the
-numbering here is where one went. There is one so far: U4 was pledged
-by D13, waited on the pledged shelf for a guest to run its journey,
-and is now in force at [root `USE-CASES.md`](../../USE-CASES.md) — the
-whole route, in the order the machinery intends.
+numbering here is where one went. U4 was pledged by D13, waited on
+the pledged shelf for a guest to run its journey, and is now in force
+at [root `USE-CASES.md`](../../USE-CASES.md) — the whole route, in
+the order the machinery intends. U7 is pledged now too, alongside its
+prerequisite F9, and waits in
+[pledged/USE-CASES.md](../pledged/USE-CASES.md).
 
 - **U1 — Unit tests that can only run on the target OS, surfaced as
   ordinary pytest items.** A developer maintains code whose unit
@@ -99,39 +101,6 @@ whole route, in the order the machinery intends.
   same pytest items. The adapter knows nothing about how the output
   was obtained, which is also why it is usable on its own, against
   output the caller captured some other way.
-
-- **U7 — Harness support prepped in the guest.** A tester's suite
-  will not pass on a bare booted OS: a TSR has to be resident first,
-  and loading it twice is not idempotent, so it cannot simply run as
-  a setup test — the harness needs preparing before the framework
-  ever takes over. The tester declares that prep once, beside the
-  suite, and gets a suite that never runs unprepared: every guest
-  session it boots, a test session or an enumeration boot alike,
-  arrives with the TSR already resident, no manual step and nothing
-  to redo per test. A suite that declares no prep runs exactly as
-  before.
-
-  1. **Name the companion files.**
-     `testaferro.guest_suite(SUITE, files=["DRIVER.COM"])` — host
-     paths staged onto the work drive beside the suite, before boot,
-     landing where the suite itself already resolves: a setup
-     command below names one bare, no path and no letter.
-  2. **Name the setup commands.** Add `setup=["DRIVER.COM /install"]`
-     to the same call — commands run in the guest, in the order
-     given, after the readiness wait and before anything else, once
-     per **guest session** rather than once per suite, so an
-     enumeration boot runs them too.
-  3. **Run the suite.** `pytest` — unchanged from U1 or U2. Each
-     guest session now stages the files and runs setup before the
-     framework adapter takes over; a setup command that fails ends
-     that session and is reported once, naming the command and the
-     screen it produced, rather than once per test the missing TSR
-     would otherwise have doomed.
-
-  A device driver that must be present before the guest OS itself
-  finishes booting is a different need — no post-boot step can
-  supply it — met by a custom boot image (U3) or a persistent
-  provisioned machine (U8), not by this journey. *(Requires F9.)*
 
 - **U8 — A persistent machine, up for many tests, never silently
   destroyed.** A provisioned machine is expensive and its disk

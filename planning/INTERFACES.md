@@ -31,11 +31,13 @@ the trial journey, armed once a guest actually ran it, and root
 P1, P2, P4, P6 through P13, P16 and P17. **No principle is pledged
 any more** — what stays drafted is P3, P5, P14 and P15, so a
 P-citation now points either at a rule in force or at an argument,
-and never at something merely owed — and since U4 armed, **nothing at
-all is pledged**: `pledged/` is empty and gone. Every other use case
-is drafted in [proposed/USE-CASES.md](proposed/USE-CASES.md), so read
-a citation by where it points: an in-force entry binds, and a drafted
-one names an argument.
+and never at something merely owed. **One use case is pledged**: U7,
+alongside its prerequisite F9, in
+[pledged/USE-CASES.md](pledged/USE-CASES.md) and
+[pledged/FEATURES.md](pledged/FEATURES.md). Every other use case is
+drafted in [proposed/USE-CASES.md](proposed/USE-CASES.md), so read a
+citation by where it points: an in-force entry binds, a pledged one
+is owed, and a drafted one names an argument.
 
 **Costs can now be named as in-force costs on both halves**, which is
 the point of arming: a change that would erode zero configuration, add

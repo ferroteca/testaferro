@@ -173,7 +173,8 @@ one: what is promised is the location.
   spellings. The in-guest-prep design reads unchanged with "the work
   drive" generalized to "the location"; its provider asks are
   separate and stay in
-  [reliquary-proposal.md](reliquary-proposal.md).
+  [reliquary-proposal.md](../../pledged/design/reliquary-proposal.md),
+  pledged now alongside F9.
 - **P8 stays armed by construction**: every default above is
   derivable without guessing, which the letter inference never was.
 - **U2, U3 unchanged in promise**; U3's tester-owned floppy keeps

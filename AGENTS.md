@@ -403,19 +403,21 @@ both batched and `-k`-narrowed.
   [ARCHITECTURE.md](ARCHITECTURE.md) carries thirteen principles —
   P1, P2, P4, P6 through P13, P16 and P17 — and root
   [USE-CASES.md](USE-CASES.md) now exists, carrying **U4**, armed once
-  a guest ran the journey it describes. **Nothing is pledged any
-  more**: `planning/pledged/` is empty and gone, so a U- or P-number
+  a guest ran the journey it describes. **U7 and F9 are pledged
+  now**, in [planning/pledged/](planning/pledged/) — U7 requires F9,
+  and both are pledged together rather than the citation left resting
+  on something merely proposed. Every other U- or P-number still
   names either a rule in force or an argument, never something merely
   owed. Four principles stay drafted: P3 and P5,
   each contradicted by a small piece of the code and each saying so
   at its own entry, and P14 and P15, which govern conduct rather
   than code. An entry may arm without ever being pledged, as most of
   the principles did — the pledged shelf holds what is *owed*, not a
-  stop every entry makes, which is why it can stand empty while the
-  project is far from finished. Cite a U- or P-number knowing it
-  names a draft unless it sits at the root, where a divergence is a
-  bug rather than unbuilt work; `planning/pledged/` returns the day
-  something is undertaken and undelivered again.
+  stop every entry makes. Cite a U- or P-number knowing it
+  names a draft unless it sits in
+  [planning/pledged/](planning/pledged/), where it names something
+  the project owes and has not yet delivered, or at the root, where a
+  divergence is a bug rather than unbuilt work.
 - **Interface changes are vetted** by
   [planning/INTERFACES.md](planning/INTERFACES.md), and the
   enumeration it scopes over is
