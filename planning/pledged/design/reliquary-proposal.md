@@ -10,12 +10,12 @@ SPDX-License-Identifier: GPL-3.0-only
 > retiring the F26 it had entered for this ask: an opt-in
 > `IF ERRORLEVEL 1` probe, its own sentinel text read back, scoped
 > exactly as asked below — a mistyped command escapes the probe and
-> reads as success, stated rather than papered over. testaferro's pin
+> reads as success, stated rather than papered over. Testaferro's pin
 > has since moved past dev6, to 0.1.0a2, so the capability F9 gated on
 > is already in hand; nothing in `reliquary.py` calls `check=` yet.
 > **Asks 2 and 3 remain open** and serve no pledged feature.
 
-A **downstream proposal to reliquary**, from testaferro, its
+A **downstream proposal to reliquary**, from Testaferro, its
 consumer. It serves F9 (in-guest harness prep, designed in
 [in-guest-prep.md](in-guest-prep.md)) and the machine facts the
 same consumer class declares, and it is written the way
@@ -23,14 +23,14 @@ consumer-side input should be: the shape that costs the consumer
 least, the requirements it cannot meet alone, and nothing the
 provider owns asked back.
 
-Written against reliquary 0.1.0.dev4 — testaferro's exact pin
+Written against reliquary 0.1.0.dev4 — Testaferro's exact pin
 (D4) — and checked against reliquary's 0.1.0.dev6 tip. Every code
 claim below was verified in both and holds identically in both.
 
 Three asks. F9 hard-depends on the first alone; the second and
 third serve the sibling fact its design names — a machine that
 exposes the device a driver under test drives — which reaches
-reliquary as blueprint fields testaferro passes through untouched.
+reliquary as blueprint fields Testaferro passes through untouched.
 
 ## 1. `exec()` reports whether the command succeeded
 
@@ -58,7 +58,7 @@ unchanged on `Bad command or file name`, so a mistyped command is
 not caught by the probe. Whether to additionally recognize the
 shell's own error text is reliquary's call to make or decline —
 its platform layer is the only defensible home such spellings
-could have. testaferro will not curate them either way.
+could have. Testaferro will not curate them either way.
 
 ## 2. A `devices` axis, judged at assignment
 
@@ -120,10 +120,10 @@ one.
 
 ## Sequencing, from the consumer's side
 
-testaferro pins reliquary exactly (D4), so nothing here asks for
-coordination: reliquary ships when it ships, and testaferro moves
+Testaferro pins reliquary exactly (D4), so nothing here asks for
+coordination: reliquary ships when it ships, and Testaferro moves
 its pin as the deliberate task the pin exists to make deliberate.
-The `devices` field needs no testaferro release at all — a
+The `devices` field needs no Testaferro release at all — a
 declaration passes through untouched the day the vocabulary
 exists. No order beyond that is asked, and no date is.
 

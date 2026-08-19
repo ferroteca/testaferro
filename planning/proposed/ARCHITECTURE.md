@@ -8,7 +8,7 @@ SPDX-License-Identifier: GPL-3.0-only
 > **Status:** drafted, not pledged. **Nothing is worked from here.**
 > The whole-system view and the itemized architectural principles,
 > P-numbered so use cases, decisions, designs and commits can cite
-> them — reconstructed from the project's own prose when testaferro
+> them — reconstructed from the project's own prose when Testaferro
 > adopted the planning model (D7). An entry leaves for
 > the `pledged/` shelf when the project undertakes it and for
 > [root `ARCHITECTURE.md`](../../ARCHITECTURE.md) when the code
@@ -28,9 +28,9 @@ system; the last few are the process posture that keeps the
 architecture governable, and live here because one list with one
 lifecycle beats a second list for three entries.
 
-## What testaferro is
+## What Testaferro is
 
-testaferro is a **pytest plugin for tests that can only run inside
+Testaferro is a **pytest plugin for tests that can only run inside
 a guest machine** — distribution `pytest-testaferro`, import and
 identity `testaferro` (D12). A unit-test suite built for a guest
 OS — today a DOS build of a CppUTest suite — runs inside that
@@ -44,12 +44,12 @@ the one deliberately non-pytest surface.
 
 It is deliberately not a VM tool. The declared provider owns the
 guest machine entirely — reliquary today, the only supported one
-(P1, D11) — while testaferro owns the pytest side of the seam and
+(P1, D11) — while Testaferro owns the pytest side of the seam and
 the knowledge of what a guest test suite's output means. Two
 pluggable aspects follow from that division, and only one of them
-is testaferro's: the **guest unit-test framework** is testaferro's
+is Testaferro's: the **guest unit-test framework** is Testaferro's
 (U6), and **everything about the guest itself** is the provider's,
-testaferro adding a thin binding when a provider is ready to
+Testaferro adding a thin binding when a provider is ready to
 surface (D2).
 
 ## The seams
@@ -67,7 +67,7 @@ compose:
    everything about how that provider is asked to build, boot and
    drive what runs a suite. Reliquary lives here, and QEMU does not
    live here at all: it is reliquary's own business, a layer further
-   down than testaferro can see (P1, P2). *[Amended: this said one
+   down than Testaferro can see (P1, P2). *[Amended: this said one
    module per guest OS family, which named the layer beneath the
    provider rather than the provider.]*
 3. **The framework adapter** — argv builders and output grammars for
@@ -83,12 +83,12 @@ one (D1).
 
 A **test environment** is what a suite runs in, and it is the whole
 consumer-facing vocabulary for guest matters: **standard**
-environments testaferro authors and names (U9, D10), and **custom**
+environments Testaferro authors and names (U9, D10), and **custom**
 ones a tester declares — a choice of provider plus everything that
 provider needs, as deep as that provider goes (P2). *[Amended. This
 said **platform** and **test machine**, the pair D3 made the
 consumer's vocabulary; `platform` is reliquary's own word, reaching
-testaferro as configuration passing through (P3) rather than as
+Testaferro as configuration passing through (P3) rather than as
 something a suite says. D3 was retired by D18, which pledged the
 amendment; F11 delivered the noun and F12 the provider axis, so both
 halves of it are built.]*
@@ -96,7 +96,7 @@ halves of it are built.]*
 ## The interfaces
 
 The seams are the inside; this is the outside boundary — the surfaces
-through which the world drives testaferro. **This enumeration is
+through which the world drives Testaferro. **This enumeration is
 normative**: housekeeping's first test and the interface-change rule
 ([../INTERFACES.md](../INTERFACES.md)) both answer "does it change an
 interface?" by lookup against this list, and changing any surface
@@ -110,7 +110,7 @@ named here follows that rule.
 2. **The test-environment declaration** — the vocabulary of a
    declaration, whichever spelling carries it: blueprint machine
    fields passed through untouched (P3), `platform` among them, plus
-   testaferro's own spellings around them — `environment=`,
+   Testaferro's own spellings around them — `environment=`,
    `provider=`, `boot_image=`, `machine_config=`, and the
    underscore-for-hyphen normalization of blueprint keys.
 3. **`testaferro.ini`** — the authored per-project file: its
@@ -121,7 +121,7 @@ named here follows that rule.
 4. **The `Backend` ABC** — public because a prebuilt backend is a
    documented escape hatch; its five operations are a contract with
    callers who implement it.
-5. **The pytest items testaferro produces** — the id spelling
+5. **The pytest items Testaferro produces** — the id spelling
    (`Group-Name`, a dash and never a dot, because IDE tree-to-target
    mapping reads dots as hierarchy), the re-homed source location,
    and the shape of a guest failure's report — the guest's own file,
@@ -130,16 +130,16 @@ named here follows that rule.
    ids into CI invocations and IDE run configurations, so these are
    world-facing whether or not they look like an API.
 6. **The cache location and layout** — `%LOCALAPPDATA%\testaferro`
-   or `$XDG_CACHE_HOME/testaferro`, what testaferro puts there, and
+   or `$XDG_CACHE_HOME/testaferro`, what Testaferro puts there, and
    what `stop()` and `stop(clear_downloads=True)` sweep. A durable
    on-disk footprint on the user's machine is a contract with them —
-   and since D20 what sits there is a FreeDOS system testaferro
+   and since D20 what sits there is a FreeDOS system Testaferro
    *installed*, so `clear_downloads=True` discards minutes of work
    rather than a download.
 
 **The plugin's options have joined this list**, and they are not a
 seventh surface but a second presentation of the first two:
-pytest's own command line and ini carry testaferro's options, each
+pytest's own command line and ini carry Testaferro's options, each
 the kebab-case spelling of a declaration keyword (P16, D9), and the
 items the plugin collects extend the fifth surface's id contract to
 `suite.exe::Group-Name` spellings. Two additions came with them and
@@ -161,7 +161,7 @@ and so must name the surfaces as they exist. `provider=` joined the
 second surface the same way, when F12 landed it in all three
 spellings.
 
-**testaferro currently has no norms.** Each surface above should name
+**Testaferro currently has no norms.** Each surface above should name
 the artifact that says exactly what it *is* and that the
 implementation answers to; none does, because no such artifact
 exists. [README.md](../../README.md) describes the public surface
@@ -172,11 +172,11 @@ anything that looks normative is written.
 
 ## The principles
 
-- **P3 — testaferro mirrors no provider's schema.** An authored
+- **P3 — Testaferro mirrors no provider's schema.** An authored
   machine document belongs to the declared provider's own
   vocabulary — a reliquary blueprint today — and passes through
   untouched for that provider to validate, so a new field is
-  expressible the day the provider ships it, without a testaferro
+  expressible the day the provider ships it, without a Testaferro
   change. The single deliberate exception is key spelling:
   hyphenated blueprint keys are written with underscores in Python
   and INI and normalized on construction, neither host spelling
@@ -190,15 +190,15 @@ anything that looks normative is written.
   `_work_drive()` reads the `hdd<n>` slot keys and mirrors a
   letter-assignment rule reliquary owns and does not expose. None of
   them mirrors reliquary's *schema* — no field is validated, no shape
-  restated, and a new blueprint field still needs no testaferro
+  restated, and a new blueprint field still needs no Testaferro
   change — so the spirit holds while the sentence does not. Arming it
-  means either widening the exception clause to name what testaferro
+  means either widening the exception clause to name what Testaferro
   authors on the tester's behalf, or dropping the case-fold and the
   `platform` default and letting the provider see what was written.
   Which of those is right is a decision, not a residue to file.
-- **P5 — The guest side is testaferro's, and hermetic.** Every
+- **P5 — The guest side is Testaferro's, and hermetic.** Every
   session pins its own reliquary home, cache and asset root under
-  testaferro's cache, so resolution sees only what testaferro
+  Testaferro's cache, so resolution sees only what Testaferro
   authored: never the user's reliquary home, never the built-in
   codex, and never their boot image, which is read and never written.
   (D6.)
@@ -207,7 +207,7 @@ anything that looks normative is written.
   attached to the guest **in place** — `materialize: "use"`, and
   reliquary parses a media's `read-only` without passing it to QEMU —
   so a guest writing to A: wrote the tester's own file. What boots is
-  now testaferro's copy inside the guest's own home, staged before
+  now Testaferro's copy inside the guest's own home, staged before
   boot exactly as the suite executable is; two suites in one run no
   longer share a floppy either can change either.
 
@@ -236,7 +236,7 @@ anything that looks normative is written.
   (D7.)
 
 - **P18 — A supported version is one that was run. The set is
-  enumerated, never bracketed.** What testaferro claims to work with
+  enumerated, never bracketed.** What Testaferro claims to work with
   — Python interpreters, and the provider it pins — is the set of
   versions somebody actually ran the suite against, written down as
   a set. A range is refused as the *source* of that claim: `>=X`

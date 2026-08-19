@@ -362,7 +362,7 @@ class PluginTests(_PytestTreeCase):
         self.assertIn("1 failed, 1 passed", result.stdout)
         self.assertIn("guest test failed: vring_test.cpp:42: "
                       "expected <1>", result.stdout)
-        # the guest's report, not a traceback into testaferro
+        # the guest's report, not a traceback into Testaferro
         self.assertNotIn("Traceback", result.stdout)
         self.assertNotIn("in runtest", result.stdout)
         self.assertEqual(self.recorded(), [
@@ -381,7 +381,7 @@ class PluginTests(_PytestTreeCase):
         self.assertNotIn("run_all", self.recorded())
 
     def test_exitfirst_stops_the_session_at_a_guest_failure(self):
-        # `-x` is pytest's own and needs no help from testaferro —
+        # `-x` is pytest's own and needs no help from Testaferro —
         # which is the claim, so it is worth proving rather than
         # assuming (U4). Two suites, so stopping is visible: the
         # first one's failure has to keep the second from running at
@@ -401,7 +401,7 @@ class PluginTests(_PytestTreeCase):
 
     def test_last_failed_reruns_only_the_guest_test_that_failed(self):
         # `--lf` keys on node ids, so it works exactly because the
-        # ids are pytest's own and testaferro produces them (U4).
+        # ids are pytest's own and Testaferro produces them (U4).
         self.suite()
 
         first = self.pytest("SUITE.EXE", cache=True)
@@ -488,7 +488,7 @@ class UnreadableGuestOutputTests(_PytestTreeCase):
     """What a trial looks like when the guest answers unusably (U4).
 
     Trying a suite is exactly when things go wrong, so the report is
-    what the guest showed — never a traceback into testaferro, which
+    what the guest showed — never a traceback into Testaferro, which
     would describe the courier instead of what happened. Both moments
     are covered because they are different pytest mechanisms: a
     collector reports an error, an item reports a failure.
@@ -503,7 +503,7 @@ class UnreadableGuestOutputTests(_PytestTreeCase):
         self.assertIn("guest output not understood", output)
         self.assertIn("what the guest showed on its screen", output)
         self.assertIn("Bad command or file name", output)
-        # The whole point: nothing of testaferro's own machinery in
+        # The whole point: nothing of Testaferro's own machinery in
         # what the developer is asked to read.
         for frame in ("cpputest.py", "suite.py", "plugin.py",
                       "ValueError", "Traceback"):

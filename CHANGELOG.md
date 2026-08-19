@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to testaferro are documented here. The format is based
+All notable changes to Testaferro are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
@@ -16,7 +16,7 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   the library, and the call sites move next. The same bytes were
   already being written by the same library one layer down, since
   reliquary's own at-rest layer was built on it — reliquary is
-  dropping the dependency as testaferro takes it up, so the two no
+  dropping the dependency as Testaferro takes it up, so the two no
   longer share a compiled extension and neither pin constrains the
   other. Both dependencies are now exact pins, and both are
   owner-relicensable rather than tier 1: the runtime closure is a
@@ -31,7 +31,7 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   no letters to read: DOS assigns one at boot, and a letter taken
   off a stopped image predicts that boot rather than reporting it.
   The 8.3 namespace is remanence's rule to enforce and it does,
-  naming the character or the length that broke, so testaferro
+  naming the character or the length that broke, so Testaferro
   inherits the check that the provider's layer used to keep.
 - **Staging and retrieval stopped being provider calls** (F16).
   `_place()` and `_retrieve_if_kept()` now settle *where* the suite
@@ -39,14 +39,14 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   every machine that works today, including the address a wrong
   declaration is refused with.
 - **The zero-configuration guest's location is guaranteed, not read
-  back.** testaferro authors that machine's recipe, install and
+  back.** Testaferro authors that machine's recipe, install and
   blueprint, so its one disk carries one FAT volume and DOS has one
-  letter to assign: `C:\TESTS` is now answered from what testaferro
+  letter to assign: `C:\TESTS` is now answered from what Testaferro
   built rather than looked up in the provider's drive map. The
   answer is the same one the map gave — that guest has never had
   another letter — so nothing moves. This retires F4's *last letter
   of the map* policy, whose reason was that a default must not
-  scatter files across a stranger's `C:\` root; on a disk testaferro
+  scatter files across a stranger's `C:\` root; on a disk Testaferro
   authored, installed and boots there is no stranger. A machine
   somebody else declared still resolves through the map, which is
   **residue**: the map is being deleted upstream, and the guest
@@ -77,9 +77,9 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   the provider's whole drive-report layer is deleted outright rather
   than deprecated (D108 there): `describe_drives` and the file family
   are gone, and so is reliquary's own dependency on remanence, which
-  is the layer testaferro's own `at_rest` was already standing on
+  is the layer Testaferro's own `at_rest` was already standing on
   (F16, above).
-- **BREAKING: testaferro now computes every drive letter itself,
+- **BREAKING: Testaferro now computes every drive letter itself,
   deterministically, and never asks the provider again.**
   `_placed_letter()` and the declared/authored split in
   `_resolve_volume()`/`_default_location()` read the provider's
@@ -88,14 +88,14 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   booted guest, not a stopped image), that seam closed for good
   rather than temporarily. Reliquary and remanence now offer **no**
   facility for this, permanently, across all three sibling projects —
-  so testaferro owns the answer, and can: it authors the whole
+  so Testaferro owns the answer, and can: it authors the whole
   document, and DOS assigns a floppy `A:`/`B:` by controller
   position and a hard disk `C:` onward by slot order, one volume per
   disk, which holds by construction for every drive this binding
   declares. `_letter_map()` computes that map from the `drives`
   mapping alone, and replaces `_placed_letter()`, the authored/
   declared split, and the reactive fallback all at once.
-- **BREAKING: the suite lands on testaferro's own vvfat work drive,
+- **BREAKING: the suite lands on Testaferro's own vvfat work drive,
   always, not staged onto the system disk at rest.** A vvfat medium —
   a host directory QEMU serves live as a FAT volume, never
   materialized into an image — is now a permanent sibling of whatever
@@ -116,7 +116,7 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 - This reinstates, as **deliberate, permanent policy**, the
   one-volume-per-disk inference reliquary's own D78 killed for the
   general case. The difference is not narrower scope but an owned
-  assumption: testaferro used to treat that inference as something an
+  assumption: Testaferro used to treat that inference as something an
   upstream report would correct if wrong, and states it as its own
   now instead, since no report is coming.
 - The `.rlqb` reader follows reliquary's own move from its
@@ -126,11 +126,11 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [0.1.0.dev7] - 2026-07-30
 
-**The licence changes, and the suite goes where you say.** testaferro is GPL-3.0-only from this release — what went out
+**The licence changes, and the suite goes where you say.** Testaferro is GPL-3.0-only from this release — what went out
 under BSD stays under BSD, and nothing is taken back retroactively — so a distributed work incorporating it must now be
-copyleft too. Functionally this is the release where placement stops being testaferro's secret: `files=`, `location=`
+copyleft too. Functionally this is the release where placement stops being Testaferro's secret: `files=`, `location=`
 and `program=` say what is staged into the guest, where it lands and what runs there, each defaulted so a lone suite
-executable still needs none of them. The drive testaferro used to add to every machine is gone from the surface with
+executable still needs none of them. The drive Testaferro used to add to every machine is gone from the surface with
 them — staging happens at rest, into a drive the machine already has, so a zero-configuration guest is now a one-disk
 machine with its suite at `C:\TESTS`. The provider pin moves to reliquary 0.1.0.dev6, which is what made that possible:
 the drive letter is read off the created machine rather than inferred, and inference retires everywhere. The supported
@@ -152,7 +152,7 @@ Python floor rises to 3.12 with it.
   installed FreeDOS system.
 
 - **BREAKING: the supported Python floor is now 3.12**, raised from
-  `3.9`. This follows reliquary's own floor (D95 there), and testaferro
+  `3.9`. This follows reliquary's own floor (D95 there), and Testaferro
   cannot claim a floor below the provider it requires. The floor is now
   **tested rather than asserted** — `uv run --python 3.12` joins the
   required checks, which is the correction reliquary's own experience
@@ -175,7 +175,7 @@ Python floor rises to 3.12 with it.
   `0.1.0.dev4` deliberately, across two releases: `0.1.0.dev5` stopped
   assuming one volume per disk (D78 there) — a disk takes one letter
   per volume it *actually holds*, read off the image at rest — which
-  ended the only way testaferro had to derive its work drive's letter
+  ended the only way Testaferro had to derive its work drive's letter
   while authoring a blueprint, before any machine or image exists.
   Nothing downstream could answer that honestly, and a consumer-side
   bridge asserting volume counts of its own was implemented, rejected
@@ -196,7 +196,7 @@ Python floor rises to 3.12 with it.
 
   **A machine whose disk holds two volumes is now simply supported.**
   The old inference could not survive one and refused it outright; the
-  report places it, and testaferro reads the answer.
+  report places it, and Testaferro reads the answer.
 
 - **Autoseeding is no longer pinned off, because it no longer exists.**
   The guest context passed `autoseed=False` so that a host process
@@ -204,13 +204,13 @@ Python floor rises to 3.12 with it.
   test run's resolution. `0.1.0.dev6` deleted autoseeding outright
   (D88 there) rather than defaulting it — the blueprints and scripts
   directories are the sole sources, and a name they do not hold is
-  refused. The guarantee testaferro was pinning per guest session is
+  refused. The guarantee Testaferro was pinning per guest session is
   now structural, so the argument is gone rather than weakened.
 
-- **BREAKING: testaferro is now GPL-3.0-only.** The project was
+- **BREAKING: Testaferro is now GPL-3.0-only.** The project was
   BSD-3-Clause through `0.1.0.dev7`; every release from here is copyleft.
   Anyone may still run, study, modify, and redistribute it, but a
-  distributed work incorporating testaferro must now also be GPL-3.0-only,
+  distributed work incorporating Testaferro must now also be GPL-3.0-only,
   and it can no longer be taken into a proprietary product.
   Already-published releases are unaffected: what went out under BSD stays
   under BSD, and this changes nothing retroactively.
@@ -245,7 +245,7 @@ Python floor rises to 3.12 with it.
   it.
 
 - **Every external reference is vetted against the reservation.**
-  AGENTS.md now records the standing of each project testaferro depends
+  AGENTS.md now records the standing of each project Testaferro depends
   on, derives from, or names — the dependency licence tiers, the
   clean-room doctrine and its one recorded exception (the CppUTest
   adapter's source-derived grammars), and what the checked-in integration
@@ -279,13 +279,13 @@ Python floor rises to 3.12 with it.
 
   **Where a run landed can be asked**, in the same terms a
   declaration uses: `backend.location` answers a guest address, and
-  answers the same whether you declared it or testaferro chose it —
+  answers the same whether you declared it or Testaferro chose it —
   who chose is deliberately not part of the answer. It refuses before
   the placement is settled rather than guessing.
 
 - **Staging happens at rest, and the work drive is gone from the
   surface.** The suite used to reach the guest on a host-directory
-  drive testaferro added to every blueprint, because that was the
+  drive Testaferro added to every blueprint, because that was the
   only way bytes got in. Reliquary's at-rest file verbs write a
   stopped machine's drives, so the set is now written with
   `put_files()` **between `create_machine()` and `start_machine()`**,
@@ -316,7 +316,7 @@ Python floor rises to 3.12 with it.
 
 - **The at-rest surface staging depends on is now covered against a
   real disk** (`tests/integration/test_at_rest.py`). It layers over
-  the FreeDOS system testaferro already installs, so no image is
+  the FreeDOS system Testaferro already installs, so no image is
   checked in and the disk under test is the one users actually get —
   and because at-rest work needs no boot, eleven cases cost about
   what one boot does. They pin what the provider *answers*: the
@@ -325,9 +325,9 @@ Python floor rises to 3.12 with it.
   address refusing by **rule id** rather than by prose. The unit
   suite's stubbed reports could not have caught any of those moving.
 
-- **Unit tests now prove the blueprints testaferro authors are ones
+- **Unit tests now prove the blueprints Testaferro authors are ones
   reliquary accepts**, using `create_machine(dry_run=True)`
-  (`0.1.0.dev5`). The existing authoring tests read back testaferro's
+  (`0.1.0.dev5`). The existing authoring tests read back Testaferro's
   own dict, which proves it consistent with itself and cannot fail the
   way that matters: a document reliquary has stopped accepting passes
   them unmoved. A dry create runs the whole preflight — media
@@ -342,9 +342,9 @@ Python floor rises to 3.12 with it.
 
 ## [0.1.0.dev6] - 2026-07-29
 
-**A guest actually runs.** Until this release nothing testaferro said about a guest had ever been observed: no VM had
+**A guest actually runs.** Until this release nothing Testaferro said about a guest had ever been observed: no VM had
 booted since the move to reliquary blueprints, and the image zero configuration downloaded turned out to be FreeDOS's
-*installer*, which never reaches a prompt. testaferro now installs its own FreeDOS system once and boots it, and an
+*installer*, which never reaches a prompt. Testaferro now installs its own FreeDOS system once and boots it, and an
 integration tier proves the whole journey end to end — a DOS CppUTest suite enumerated, run, and a failure reported
 with the guest's own file and line.
 
@@ -353,7 +353,7 @@ with the guest's own file and line.
 - **The pytest collection plugin**: `pytest tests/SUITE.EXE` is now the whole command. The plugin auto-loads through a
   `pytest11` entry point, claims suite executables, and collects each guest test as an item under the executable's own
   node (`tests/SUITE.EXE::Vring-Wraps`), so `-k`, `-x`, `--lf`, `--collect-only` and node ids all work with no wrapper
-  in between. A failure carries the guest's own file, line and assertion rather than a traceback into testaferro.
+  in between. A failure carries the guest's own file, line and assertion rather than a traceback into Testaferro.
 - **A claiming policy that makes installation-is-activation safe**: a file named on the command line is claimed when a
   guest can run it; a tree scan claims only what a `testaferro-suites` mask in pytest's ini, or a `suites` mask on an
   environment in `testaferro.ini`, opted in; a host-runnable binary (a plain PE) is claimed only by declaration; and a file
@@ -378,12 +378,12 @@ with the guest's own file and line.
 - **`provider` — the execution provider is now something you declare.** `reliquary` is the default and the only one
   built, and until now nothing spelled it at all. It joins the declaration vocabulary in all three spellings —
   `guest_suite(..., provider=...)`, `provider =` in a `testaferro.ini` section, and `--testaferro-provider` /
-  `testaferro-provider` — and it is testaferro's own word rather than reliquary's, so it sits beside the blueprint
+  `testaferro-provider` — and it is Testaferro's own word rather than reliquary's, so it sits beside the blueprint
   fields and never reaches the document: reliquary's schema has no field for who is reading it. A named environment
   carries its own provider, so the two are not combined. An unknown name is refused before anything is imported,
-  listing what testaferro binds.
+  listing what Testaferro binds.
 
-- **Standard environments, by name**: `guest_suite(..., environment="freedos")` selects an environment testaferro
+- **Standard environments, by name**: `guest_suite(..., environment="freedos")` selects an environment Testaferro
   itself curates — the zero-configuration DOS guest, made nameable — so a suite can say which one it means without the
   project declaring one. A name resolves against the project's own declarations first and the standard catalog second,
   so a project declaring `freedos` still gets its own; the catalog is reached by name and never by inference, leaving
@@ -391,22 +391,22 @@ with the guest's own file and line.
 
 ### Fixed
 
-- **testaferro waits for the guest before typing at it.** Starting a machine is not the same as the guest inside it
-  being able to take a command, and testaferro was not waiting — so the first command of every run was typed while
-  FreeDOS was still running its startup files, and came back as the boot's own output instead. testaferro now runs a
+- **Testaferro waits for the guest before typing at it.** Starting a machine is not the same as the guest inside it
+  being able to take a command, and Testaferro was not waiting — so the first command of every run was typed while
+  FreeDOS was still running its startup files, and came back as the boot's own output instead. Testaferro now runs a
   readiness script of its own (`assets/freedos-ready.rlqs`) that waits for a prompt and sets a machine variable, and
   checks that variable before it asks the guest anything; a guest that never reports itself ready fails there, plainly,
   rather than answering with something else's text. The prompt is matched as a pattern, so a floppy-booted guest at
   `A:` is as ready as an installed system at `C:`.
 - **A boot image you supply is no longer writable by the guest.** `boot_image=` attached your file to the machine in
   place, so a guest writing to `A:` — which DOS does for reasons of its own — edited the image you handed over. What
-  boots is now testaferro's own copy inside that guest's disposable home, staged before boot exactly as the suite
+  boots is now Testaferro's own copy inside that guest's disposable home, staged before boot exactly as the suite
   executable is. Two suites in one run no longer share a floppy either of them can change, either. Setting the
   blueprint's `read-only` flag would not have fixed it: reliquary parses the field without passing it to QEMU.
 
 ### Changed
 
-- **The reliquary pin moves to 0.1.0.dev4**, and testaferro stops mirroring a rule it never owned. `drive_letters()`
+- **The reliquary pin moves to 0.1.0.dev4**, and Testaferro stops mirroring a rule it never owned. `drive_letters()`
   now places *every* drive rather than only the first disk, so `_work_drive()` chooses the slot and asks reliquary for
   the letter — the one-volume-per-disk assumption goes back to the party that owns and states it. A drive reliquary
   will not place is now refused rather than guessed at, because a suite run off the wrong drive fails as a missing
@@ -415,7 +415,7 @@ with the guest's own file and line.
 - **Zero configuration installs its own FreeDOS system instead of downloading a boot floppy** (D20), because the floppy
   it downloaded never worked: it was FreeDOS 1.4's FloppyEdition boot image, which boots the **installer** — a language
   menu, then "Do you want to proceed [Y,N]?" — and never reaches a DOS prompt, so every guest command waited for a
-  prompt that was not coming. Nothing had ever looked; the first end-to-end run found it. testaferro now carries the
+  prompt that was not coming. Nothing had ever looked; the first end-to-end run found it. Testaferro now carries the
   install recipe itself and runs it **once**, into the cache (a few minutes); every run afterwards attaches the result
   in seconds and layers its own copy-on-write overlay, so no run disturbs the system the others share. `boot_image=` is
   unchanged and still boots a floppy of your own. Two consequences worth knowing: the cached artifact is now
@@ -428,9 +428,9 @@ with the guest's own file and line.
   real guest run, which is exactly the cost P9 states against itself.
 - **A guest answer no adapter can read now reports as the guest's own screen** (D19), at both entry points and at both
   moments — enumeration, where it aborts collection, and a run, where each item fails. Previously a grammar's
-  `ValueError` escaped, so trying a suite for the first time produced three frames of testaferro's internals with the
+  `ValueError` escaped, so trying a suite for the first time produced three frames of Testaferro's internals with the
   guest's one useful line buried underneath, and pytest's short summary — which quotes only a report's first line —
-  dropped that line entirely. The report now leads with why testaferro could not read the answer, names the argv the
+  dropped that line entirely. The report now leads with why Testaferro could not read the answer, names the argv the
   guest was given, says outright that what follows is what the guest showed in response, and ends with the screen
   itself. No traceback, in either place. A host-built twin that prints something unreadable is reported the same way,
   naming the twin, since a host program has no guest screen to show.
@@ -447,24 +447,24 @@ with the guest's own file and line.
 - **A suite names a test environment, and that is the whole guest-facing vocabulary.** `machine=` is now
   `environment=` at `guest_suite()`, and `--testaferro-machine` / `testaferro-machine` are now
   `--testaferro-environment` / `testaferro-environment`. `machines.py` is `environments.py` and `MachineSpec` is
-  `EnvironmentSpec`, because *machine* stopped being testaferro's word: what runs a suite is a **test environment** —
-  one testaferro authors and names, such as `freedos`, or one the tester declares. `config()` keeps its name, and
-  `machine_config=` keeps its own, naming the provider's machine document rather than testaferro's noun.
+  `EnvironmentSpec`, because *machine* stopped being Testaferro's word: what runs a suite is a **test environment** —
+  one Testaferro authors and names, such as `freedos`, or one the tester declares. `config()` keeps its name, and
+  `machine_config=` keeps its own, naming the provider's machine document rather than Testaferro's noun.
 - **`platform=` left the consumer surface, without leaving `testaferro.ini`.** It is gone from `guest_suite()`, from
   `config()`'s signature, and from the plugin (`--testaferro-platform` and `testaferro-platform` are removed).
   Naming an environment does both jobs it did — choosing among declarations, and overriding what the executable's
   format inferred — so nothing is lost. In a declaration it stays exactly as writable as before, now as one more
   blueprint field passing through untouched for reliquary to validate, which is whose word it always was. Format
   inference is unchanged and internal: an executable with nothing declared still selects an environment on its own.
-  What does go is testaferro cross-checking a supplied template's `platform` against a separate argument — write it
+  What does go is Testaferro cross-checking a supplied template's `platform` against a separate argument — write it
   in the template, where the rest of the blueprint lives.
-- **testaferro names providers, not what is under them.** The guest binding was called `testaferro/qemu.py` and
+- **Testaferro names providers, not what is under them.** The guest binding was called `testaferro/qemu.py` and
   `QemuSuiteBackend`, named for something it never touches: every call in it is a reliquary call, and QEMU is what
   reliquary drives. It is now `testaferro/reliquary.py` and `ReliquarySuiteBackend`, and the sweep took QEMU out of the
   package's docstrings, its error messages, the distribution description and keywords — reliquary, vagrant, dosbox and
   wine are the layer this project may name; what any of them drives underneath is theirs. Nothing about behaviour
   changed. The mentions that remain describe *other* projects, in the README's comparison section.
-- **One word stopped meaning three things.** pytest owns "session" for the whole run, and testaferro was using it for
+- **One word stopped meaning three things.** pytest owns "session" for the whole run, and Testaferro was using it for
   two more: one guest being up, and the shared area `start()` opens. The `Backend` ABC's `start_session()` /
   `stop_session()` are now **`start_guest()` / `stop_guest()`** — a *guest session* is one guest up and able to answer
   — and what `testaferro.start()`/`stop()` open is a **run**, which holds many guest sessions. `start()` and `stop()`
@@ -506,15 +506,15 @@ with the guest's own file and line.
   0.1.0.dev5.
 - The reliquary pin moves to **0.1.0.dev3**, and the QEMU binding follows its working-directory rework. A session's
   context is now `Context(home_dir=…, cache_dir=…, blueprints_dir=…, autoseed=False)`: the retired `assets=` named a
-  project asset root, and the blueprints directory names the one kind of document testaferro actually writes.
+  project asset root, and the blueprints directory names the one kind of document Testaferro actually writes.
   Hermeticity is unchanged and now says both halves out loud — where blueprints come from, and that the built-in codex
   is never reached — where the single `assets=` knob used to declare them together. The per-run blueprint lands in
-  `<run home>/blueprints` rather than `<run home>/assets`; that directory is testaferro's own disposable state, so
+  `<run home>/blueprints` rather than `<run home>/assets`; that directory is Testaferro's own disposable state, so
   nothing a consumer holds moves.
 - Where the work drive's DOS letter comes from is now stated rather than assumed. reliquary 0.1.0.dev3 determines a
   letter for the first hard disk alone — a later disk's letter depends on how many volumes the disks before it carry,
   which a blueprint does not declare — so a zero-configuration run's `C:` is reliquary's own answer, while a machine
-  that declares its own disk gets testaferro's assumption of one volume per disk. Behavior is unchanged; the guard test
+  that declares its own disk gets Testaferro's assumption of one volume per disk. Behavior is unchanged; the guard test
   now holds the local rule to reliquary wherever reliquary answers, and to non-collision where it declines.
 
 ## [0.1.0.dev0] - 2026-07-27
@@ -536,10 +536,10 @@ with the guest's own file and line.
   together; `start()` costs nothing until a guest runs and registers an `atexit` failsafe, and
   `stop(clear_downloads=True)` also scrubs the cached download. Guest machines still running are stopped before
   anything is swept — including at interpreter exit — so an interrupted run leaves no orphaned virtual machine.
-- Disposable per-run state: each run happens in a fresh reliquary home under testaferro's cache
+- Disposable per-run state: each run happens in a fresh reliquary home under Testaferro's cache
   (`%LOCALAPPDATA%\testaferro` on Windows, `$XDG_CACHE_HOME/testaferro` elsewhere), seeded with a bootable FreeDOS
   image downloaded once and cached; pass `boot_image=` to boot a caller-supplied DOS floppy image instead.
-- The suite executable reaches the guest on a host-directory (hostdir) work drive testaferro adds to the machine and
+- The suite executable reaches the guest on a host-directory (hostdir) work drive Testaferro adds to the machine and
   stages before boot — normally the guest's `C:`. The boot image is never written into.
 - Named test machines: `testaferro.config()` declares reusable reliquary **blueprint** templates, and
   `guest_suite(..., machine=...)` or `platform=...` selects one. A declaration is a template, not a running machine:

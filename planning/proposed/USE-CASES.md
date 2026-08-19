@@ -8,7 +8,7 @@ SPDX-License-Identifier: GPL-3.0-only
 > **Status:** drafted, not pledged. **Nothing is worked from here.**
 > These are the use cases as reconstructed from the project's own
 > prose — [README.md](../../README.md), [AGENTS.md](../../AGENTS.md)
-> and the retired `ROADMAP.md` — when testaferro adopted the planning
+> and the retired `ROADMAP.md` — when Testaferro adopted the planning
 > model (D7). They are the decision surface *once pledged*; until
 > then a citation of a U-number here names a draft, and should be
 > read as weaker than citing an in-force entry. Numbering comes from
@@ -57,11 +57,11 @@ prerequisite F9, and waits in
   call in the developer's own module, or the suite executable
   itself, which the plugin now claims. What it takes to boot a
   machine, get the executable into it, run it and read the results
-  back is testaferro's business; the developer names an executable.
+  back is Testaferro's business; the developer names an executable.
 
 - **U2 — Nothing to configure.** The first run costs one line. A
   developer points the facade at a freshly built suite executable
-  and gets tests: testaferro classifies the binary, boots a DOS
+  and gets tests: Testaferro classifies the binary, boots a DOS
   image it downloaded once and cached, runs the suite, and sweeps
   everything it created. No machine to declare, no image to supply,
   nothing written into the developer's own images and nothing left
@@ -89,12 +89,12 @@ prerequisite F9, and waits in
   one worker, so the whole-suite batching survives. Safety comes
   from isolation rather than from locking: every run has its own
   home and its own image, so no two workers share mutable guest
-  state. That is the isolation testaferro can claim, and the limit is
+  state. That is the isolation Testaferro can claim, and the limit is
   worth naming — a distinct backend process and port per machine is
   reliquary's guarantee, relied on here rather than re-checked (P1).
 
 - **U6 — A different guest test framework.** The guest unit-test
-  framework is testaferro's pluggable aspect. A developer whose
+  framework is Testaferro's pluggable aspect. A developer whose
   guest suite is not CppUTest supplies an adapter — argv builders
   and an output grammar, and nothing else — and everything above it
   is unchanged: the same machine selection, the same batching, the
@@ -118,12 +118,12 @@ prerequisite F9, and waits in
 
 - **U9 — A standard environment, by name.** Between nothing and a
   declaration sits a name: `machine="freedos"` selects a standard
-  environment testaferro itself curates — an authored machine
+  environment Testaferro itself curates — an authored machine
   document and a once-downloaded cached image, today's
   zero-configuration machine made plural and nameable as guests
   grow. Resolution runs project declarations first, then the
   standard catalog (D10), and never the user's reliquary home
-  (D6): a test run depends only on state testaferro authored or
+  (D6): a test run depends only on state Testaferro authored or
   the project checked in. *(Resolution and the catalog are built:
   `machine="freedos"` names the standard DOS environment. Plural
   is what waits — a second entry arrives with a second guest.)*
@@ -134,7 +134,7 @@ prerequisite F9, and waits in
   interactive tool, check what it printed — with no natural
   `Group.Name` decomposition and no guest-side self-reporting grammar
   for a framework adapter to parse. The developer wants the same
-  zero-configuration guest testaferro already gives U1 and U2 — a
+  zero-configuration guest Testaferro already gives U1 and U2 — a
   cached image, a disposable per-session overlay, host files staged
   in — without inventing a suite shape, or a framework adapter, for
   output that was never going to exist. They get a live guest handle

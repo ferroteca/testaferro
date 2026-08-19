@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 Paul Galbraith
 SPDX-License-Identifier: GPL-3.0-only
 -->
 
-# testaferro Contributor Copyright Assignment
+# Testaferro Contributor Copyright Assignment
 
 > **Status: not yet reviewed by a lawyer.**
 > This document states the project's intended terms and is written to be
@@ -16,18 +16,18 @@ SPDX-License-Identifier: GPL-3.0-only
 
 ## Why this exists
 
-testaferro is published under the GNU General Public License v3.0 only.
+Testaferro is published under the GNU General Public License v3.0 only.
 The owner **reserves the right to relicense the project** on any terms at
 any time. Nothing is planned; the reservation exists so the option is not
 lost by default.
 
 Relicensing is only possible for a party who holds rights in the whole
-work. If parts of testaferro were owned by different people, the project
+work. If parts of Testaferro were owned by different people, the project
 would be permanently fixed under its current licence — not by anyone's
 decision, but by arithmetic. This agreement is how the project stays able
 to make that choice deliberately rather than losing it by accident.
 
-It has a second purpose that matters just as much. testaferro is copyleft
+It has a second purpose that matters just as much. Testaferro is copyleft
 because it is meant to stay free, and a copyleft licence is only as good
 as someone's ability to enforce it. **Only a copyright owner can bring an
 infringement action.** Consolidated ownership is what makes the GPL on
@@ -58,7 +58,7 @@ unsure whether something crosses that line, ask — the answer is usually
 ## Definitions
 
 - **"Owner"** means Paul Galbraith.
-- **"Project"** means testaferro, including all its source code,
+- **"Project"** means Testaferro, including all its source code,
   documentation, and associated materials.
 - **"You"** means the individual or legal entity signing this agreement.
 - **"Contribution"** means any work of authorship you intentionally

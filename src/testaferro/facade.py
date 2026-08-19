@@ -78,7 +78,7 @@ def guest_suite(target, framework=None, enumerator=None,
     test list, and `environment` names the test environment the suite
     runs in — one declared with testaferro.config() or testaferro.ini
     (searched upward from this call site), or one of the standard
-    environments testaferro curates, such as "freedos". Naming none
+    environments Testaferro curates, such as "freedos". Naming none
     lets the executable's own format select one. `provider` names what
     runs the guest for an environment declared inline here —
     "reliquary" today, the default and the only one built — and a

@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: GPL-3.0-only
-"""The pytest items testaferro produces: what one is called, and how
+"""The pytest items Testaferro produces: what one is called, and how
 a guest failure reads.
 
 Both entry points surface the same guest tests — the embedding facade
@@ -35,7 +35,7 @@ def failure_text(outcome):
 
     The guest side's own file, line and assertion message — what the
     machine that ran the test actually reported — never a traceback
-    into testaferro, which would describe the courier rather than the
+    into Testaferro, which would describe the courier rather than the
     failure. A guest that named no location gets no invented one.
     """
     where = f"{outcome.file}:{outcome.line}: " if outcome.file else ""
@@ -49,7 +49,7 @@ def guest_output_text(error):
     guest said something, and what a consumer needs is what it said —
     not a stack through the courier that carried it. Trying a suite is
     exactly when this happens, so the report names the request, marks
-    the guest's own words as the guest's, and says last what testaferro
+    the guest's own words as the guest's, and says last what Testaferro
     made of them.
 
     The reason comes first because pytest's short summary quotes only

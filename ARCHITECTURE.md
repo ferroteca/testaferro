@@ -36,7 +36,7 @@ equal weight, and they are now at [USE-CASES.md](USE-CASES.md) — one
 of them, U4, armed once a guest actually ran the journey it describes.
 The two halves arm on different events by design: a principle moves
 when the code honors it as a rule, a use case only on *full delivery*,
-which is why this file filled up first and why testaferro promised no
+which is why this file filled up first and why Testaferro promised no
 user a journey for so long. What the entries below bind is the shape
 of the thing rather than a trip through it. Most of them do speak
 past the maintainers: P1 and P2 are the whole guest-facing
@@ -55,12 +55,12 @@ built and verified.
   runs a guest suite — reliquary today, with vagrant, dosbox and wine
   the shape of the others. They occupy one layer — a test environment
   uses one *or* another, and the environment names which (D11);
-  testaferro carries that provider's own configuration to it, for the
+  Testaferro carries that provider's own configuration to it, for the
   provider to validate (P3). *[Amended from "guest-machine provider"
   and pledged by D18: not every provider boots a machine — wine and
   dosbox run a program without one — so the layer is named for what
   it does, which is also why a suite names an environment rather than
-  a machine (P2).]* The axis is testaferro's own: a future provider is
+  a machine (P2).]* The axis is Testaferro's own: a future provider is
   a new binding here, never capability pushed upstream.
 
   **What resolution asks of a binding is two names.**
@@ -96,7 +96,7 @@ built and verified.
 
 - **P2 — Suites name test environments.** A **test environment** is
   what a suite runs in, and naming one is the whole of what a
-  suite-facing consumer writes: a **standard** environment testaferro
+  suite-facing consumer writes: a **standard** environment Testaferro
   authors and names (U9, D10, P17), or a **custom** one the tester
   declares. **The environment is the one place a provider is named**
   (P1, D11), and that is enforced rather than merely said: a
@@ -111,18 +111,18 @@ built and verified.
   is never rationed here, and a tester who needs the provider's most
   specific knob reaches it by writing the provider's own document.
 
-  What testaferro declines is not depth but **vocabulary**: it names
+  What Testaferro declines is not depth but **vocabulary**: it names
   providers and never what a provider drives underneath. It asks no
   consumer for an emulator, keys no table by one, and interprets no
   field below the provider's own — `platform` included, which is a
-  blueprint field the tester wrote (P3) rather than a word testaferro
+  blueprint field the tester wrote (P3) rather than a word Testaferro
   speaks. A `backend-settings` block naming QEMU is the tester
-  configuring *reliquary*, and testaferro carries it without opinion
+  configuring *reliquary*, and Testaferro carries it without opinion
   or comprehension.
 
   Inference must still pick something when a tester declares nothing,
   so the executable's own format picks among the environments the
-  project **declared** — testaferro reading a binary, not a
+  project **declared** — Testaferro reading a binary, not a
   vocabulary the consumer writes in. Declaring none leaves the
   zero-configuration guest, which is the same guest `freedos` names;
   the catalog itself is reached by asking for it and never by falling
@@ -132,13 +132,13 @@ built and verified.
   **platform** and **machine** the consumer's pair, per D3, which
   D18 retires. Then "and nothing underneath one" was struck, having
   read as a limit on what a tester may configure when it was only
-  ever about what testaferro says. Amended again before arming: the
+  ever about what Testaferro says. Amended again before arming: the
   "untouched" restatements of P3 became citations of it, for the
   reason given at P1; and inference was said to select "a standard
   environment", which P8 — since armed — contradicts, the catalog
   being reachable by name alone.]*
 
-- **P4 — The guest test framework is testaferro's own axis, and
+- **P4 — The guest test framework is Testaferro's own axis, and
   CppUTest is the only adapter built.** A **framework adapter** is
   argv builders and an output grammar for one guest unit-test
   framework, and nothing else: `list_argv()`, `run_all_argv()`,
@@ -153,12 +153,12 @@ built and verified.
   command line or an argv list, so an adapter that has never seen one
   does not decide how it is quoted.
 
-  **This is the one pluggable aspect that is testaferro's**;
+  **This is the one pluggable aspect that is Testaferro's**;
   everything about the guest itself is the provider's (P1). The
   difference reaches verification, and in the opposite direction: a
   property of the guest machine is the provider's to guarantee, so
   doubting one produces an upstream bug report, while an adapter is
-  testaferro's own code — a grammar that misreads its framework is a
+  Testaferro's own code — a grammar that misreads its framework is a
   bug *here*, answerable to that framework's own source rather than
   to its maintainers (P9).
 
@@ -243,11 +243,11 @@ built and verified.
   source-derived fixtures cannot prove a real run, so a grammar
   change warrants a real end-to-end run before it is trusted.
 
-- **P10 — testaferro's own unit tier never starts a guest.** This
+- **P10 — Testaferro's own unit tier never starts a guest.** This
   one is about *this repository's* tests of itself, and not about a
   consumer's tests of their suite — whose whole business is starting
   a guest, and which this project exists to make possible. The tier
-  split is by **cost**, not by coverage. testaferro's unit tests may
+  split is by **cost**, not by coverage. Testaferro's unit tests may
   use the provider freely and should — `create_machine()` is cheap
   and self-contained, and running it for real is the best coverage
   available on this side of the line — but `start_machine()`, `stop_machine()` and `exec()`
@@ -257,7 +257,7 @@ built and verified.
   blank sends the provider out to an external image tool, so a
   machine declaring one belongs to integration too. **Naming that
   tool is not this principle's business** — what a provider reaches
-  for underneath is the provider's own (P2), and what testaferro can
+  for underneath is the provider's own (P2), and what Testaferro can
   see is only that the call stopped being cheap.
 
   **The tier those calls belong to now exists** — `tests/integration/`,
@@ -273,10 +273,10 @@ built and verified.
 
   *[Amended before arming: this read
   "never launch a hypervisor", and named the tool. Both spoke a layer
-  below the provider, which P1 and P2 put out of testaferro's
+  below the provider, which P1 and P2 put out of Testaferro's
   vocabulary. The boundary is unchanged and one step wider on
   purpose: a provider that runs a program without booting a machine
-  starts a guest all the same, and testaferro's unit tests may
+  starts a guest all the same, and Testaferro's unit tests may
   not.]*
 
 - **P11 — The standard library, plus three dependencies at named
@@ -320,12 +320,12 @@ built and verified.
   named exception, concerning trying a suite out rather than
   defining tests.
 
-  **A consumer-facing option is testaferro's own vocabulary, not what
+  **A consumer-facing option is Testaferro's own vocabulary, not what
   passes through it.** `memory`, `drives` and `platform` are the
   provider's words in an authored document (P2, P3) — carried
   untouched, never interpreted — so their having no
   `--testaferro-memory` is the boundary working rather than a
-  shortfall. The keywords this binds are the ones testaferro itself
+  shortfall. The keywords this binds are the ones Testaferro itself
   defines: `environment`, `machine_config`, `boot_image`, `suites`,
   `timeout`. `template` is an alias of `machine_config` rather than a
   keyword of its own.
@@ -346,29 +346,29 @@ built and verified.
   keyword added to one and not the others is the bug this principle
   names.
 
-- **P17 — What testaferro offers, testaferro authors.** Every
-  environment testaferro puts a name on — the standard catalog's
+- **P17 — What Testaferro offers, Testaferro authors.** Every
+  environment Testaferro puts a name on — the standard catalog's
   own (U9, D10), and any blueprint, script or medium shipped
   with one — is authored here and complete in itself: the document,
   the drives it declares, and the media those locate. **Nothing
-  testaferro offers is a name resolved out of the provider's own
+  Testaferro offers is a name resolved out of the provider's own
   shipped content**: reliquary's codex is not an input to a test
   run, at resolution or at materialization, and neither is the
   user's reliquary home (D6). This is P5's hermeticity read forward
   from the guest session to the catalog — P5 governs what a run may
-  *reach*, this governs what testaferro may *offer* — and the reason
-  is the same twice: a test run depends only on state testaferro
+  *reach*, this governs what Testaferro may *offer* — and the reason
+  is the same twice: a test run depends only on state Testaferro
   authored or the project checked in, and a curated environment
   leaning on a provider's catalog inherits that catalog's
   versioning, availability and install cost while owning none of
   them (D10: an install per session is not a price a test run pays).
   Provider content stays reachable the way everything else does —
   the tester declares it (P1, P3), which is their choice to make and
-  never testaferro's default to drift into.
+  never Testaferro's default to drift into.
 
   **An entry declaring nothing is still complete.** `freedos` names
   only its platform and takes the binding's zero-configuration boot
-  image, which is testaferro's own authored media definition —
+  image, which is Testaferro's own authored media definition —
   a URL and its hashes, written in `src/testaferro/reliquary.py` — and
   not a name looked up anywhere. What this principle forbids is
   reaching into the provider's shipped content for a name, not

@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: GPL-3.0-only
 """Unit tests for the reliquary provider binding: executable
-interrogation and the testaferro-managed reliquary home.
+interrogation and the Testaferro-managed reliquary home.
 
 `binding` is testaferro.reliquary; `reliquary_dist` is the provider
 distribution it drives. What is stubbed below is `reliquary_dist.
@@ -137,7 +137,7 @@ class _BindingFixture(unittest.TestCase):
         self.addCleanup(cache_patch.stop)
 
     def _blueprint(self, home):
-        """The machine spec testaferro authored for one run home."""
+        """The machine spec Testaferro authored for one run home."""
         path = os.path.join(home, "blueprints", "testaferro.rlqb")
         with open(path, encoding="utf-8") as handle:
             return json.load(handle)[0]
@@ -151,7 +151,7 @@ class _BindingFixture(unittest.TestCase):
         Every caller declares a **boot image**, deliberately: the
         zero-configuration path now boots a layered system disk, and
         both layering it and building it are things this tier may not
-        do (P10). What is under test here is testaferro's own
+        do (P10). What is under test here is Testaferro's own
         bookkeeping, which a floppy exercises just as well.
         """
         seen = []
@@ -178,7 +178,7 @@ class _BindingFixture(unittest.TestCase):
         """Stub only what needs a live virtual machine.
 
         Machine *creation* is real: reliquary parses the blueprint
-        testaferro authored, resolves its media and materializes the
+        Testaferro authored, resolves its media and materializes the
         drives, all of which is cheap and hypervisor-free. Booting is
         not — `start_machine` starts a guest for real (P10) — so every
         call that needs a running machine is stubbed and nothing else.
@@ -265,7 +265,7 @@ class ReliquarySuiteBackendTests(_BindingFixture):
         The declared boot image here is ten bytes of text, not a FAT
         volume — which no longer matters, because the default
         location was never going to be the boot floppy in the first
-        place. testaferro's own vvfat work drive is a sibling of
+        place. Testaferro's own vvfat work drive is a sibling of
         whatever else the machine declares, always, so the suite
         lands there regardless of whether the boot image could have
         taken a write at all (0.1.0a2, D108 retired the reactive
@@ -327,7 +327,7 @@ class ReliquarySuiteBackendTests(_BindingFixture):
         # P5's promise, and it was not kept: the image was attached in
         # place, so a guest writing to A: — which DOS does for reasons
         # of its own — edited the file its tester handed over. What
-        # boots is testaferro's copy inside the guest's own home.
+        # boots is Testaferro's copy inside the guest's own home.
         backend = binding.suite_backend(self.exe, boot_image=self.image)
 
         with self._fake_machine():
@@ -487,7 +487,7 @@ class WorkDrivePlacementTests(unittest.TestCase):
     """Slot choice — pure declaration arithmetic, so every case is
     worth stating.
 
-    Slot choice is all testaferro decides; what letter DOS gives that
+    Slot choice is all Testaferro decides; what letter DOS gives that
     slot is `_letter_map`, exercised below — computed deterministically
     from the declaration rather than read back (0.1.0a2 removed the
     provider's own answer, D108).
@@ -555,7 +555,7 @@ class PlacedLetterTests(unittest.TestCase):
             {"A": "floppy0", "B": "floppy1", "C": "hdd0"})
 
     def test_a_cdrom_takes_no_letter_at_all(self):
-        # testaferro never declares one for a runtime guest today
+        # Testaferro never declares one for a runtime guest today
         # (only the install script attaches one, temporarily); this
         # pins that a stray cdrom key does not shift hard-disk
         # lettering the way one loaded as a driver could.
@@ -577,7 +577,7 @@ class DeclaredPlacementTests(_BindingFixture):
     def _staging(self, put_side_effect=None):
         """Stub the at-rest seam and the volume it resolves against.
 
-        `_resolve_volume` is testaferro's own, and it is stubbed here
+        `_resolve_volume` is Testaferro's own, and it is stubbed here
         rather than the calls beneath it because this fixture's
         machine has no volume for a real one to find. What each
         resolution *does* is proved in `VolumeResolutionTests`.
@@ -609,7 +609,7 @@ class DeclaredPlacementTests(_BindingFixture):
 
     def test_a_declared_location_that_refuses_does_not_fall_back(self):
         # The consumer named that address; smoothing it over with a
-        # drive of testaferro's own would hide the one thing they can
+        # drive of Testaferro's own would hide the one thing they can
         # act on. The refusal survives.
         refusal = at_rest.AtRestError(
             "invalid fat disk image: directory 'HARNESS' not found")
@@ -625,7 +625,7 @@ class DeclaredPlacementTests(_BindingFixture):
     def test_a_letter_the_machine_does_not_have_refuses(self):
         """The resolution's own refusal, not the write's.
 
-        This machine has A: (the boot floppy) and C: (testaferro's
+        This machine has A: (the boot floppy) and C: (Testaferro's
         own work drive, `_letter_map` computed) and nothing else, so
         E: is refused before any boot — the consumer named that
         address and is the only one who can correct it.
@@ -664,7 +664,7 @@ class DeclaredPlacementTests(_BindingFixture):
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
 class PlacementTests(unittest.TestCase):
-    """Where a run lands when nobody said (F4): testaferro's own work
+    """Where a run lands when nobody said (F4): Testaferro's own work
     drive, always, at whatever letter `_letter_map` computes for it.
     """
 
@@ -695,7 +695,7 @@ class VolumeResolutionTests(unittest.TestCase):
 
     At rest there are no drive letters, so an address has to be
     resolved to a volume before a byte can be written. One computation
-    now for every drive, testaferro's own or a `machine_config`
+    now for every drive, Testaferro's own or a `machine_config`
     template's alike (`_letter_map`, D108) — there is no split between
     a guaranteed answer and a looked-up one any more.
     """
@@ -736,7 +736,7 @@ class VolumeResolutionTests(unittest.TestCase):
     def test_a_declared_hard_disk_resolves_too(self):
         # The capability 0.1.0a2 took away and _letter_map gives back:
         # a machine_config's own declared disk resolves exactly like
-        # testaferro's own, since the same deterministic computation
+        # Testaferro's own, since the same deterministic computation
         # now covers both. hdd1 is the *second* hard disk here, so D:.
         session = self._session(hdd0="sys.qcow2", hdd1="data.qcow2")
 
@@ -777,10 +777,10 @@ class VolumeResolutionTests(unittest.TestCase):
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
 class BlueprintAcceptanceTests(_BindingFixture):
-    """Documents testaferro authors are ones **reliquary accepts**.
+    """Documents Testaferro authors are ones **reliquary accepts**.
 
-    `BlueprintAuthoringTests` below reads back the dict testaferro
-    composed, which proves testaferro consistent with itself and
+    `BlueprintAuthoringTests` below reads back the dict Testaferro
+    composed, which proves Testaferro consistent with itself and
     nothing more: a document reliquary rejects passes it. This suite
     hands each document to `create_machine(dry_run=True)` — 0.1.0.dev5's
     preflight, which resolves media, assigns drives and validates the
@@ -793,7 +793,7 @@ class BlueprintAcceptanceTests(_BindingFixture):
     declaration and never touches an image, so a few bytes of
     placeholder stand in for the built system. What this catches is
     the failure the authoring tests structurally cannot: reliquary's
-    schema moving under a document testaferro still composes happily.
+    schema moving under a document Testaferro still composes happily.
 
     Letters are deliberately absent here. `_letter_map` is pure
     declaration arithmetic now (0.1.0a2 deleted the provider's own
@@ -802,7 +802,7 @@ class BlueprintAcceptanceTests(_BindingFixture):
     """
 
     def _dry_plan(self, document):
-        """Reliquary's own plan for a document testaferro authored."""
+        """Reliquary's own plan for a document Testaferro authored."""
         home = os.path.join(self.tempdir.name, "acceptance")
         blueprints = os.path.join(home, "blueprints")
         os.makedirs(blueprints, exist_ok=True)
@@ -845,7 +845,7 @@ class BlueprintAcceptanceTests(_BindingFixture):
         system_disk = self._drive(plan, "hdd0")
         self.assertEqual(system_disk["materialize"], "difference")
         self.assertEqual(system_disk["base"], system)
-        # The work drive is the one testaferro appended, at the slot
+        # The work drive is the one Testaferro appended, at the slot
         # `_work_slot` chose, served from the staged directory itself.
         staged = self._drive(plan, key)
         self.assertEqual((staged["medium"], staged["slot"]), ("hdd", 1))
@@ -889,7 +889,7 @@ class BlueprintAcceptanceTests(_BindingFixture):
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
 class BlueprintAuthoringTests(_BindingFixture):
-    """The document testaferro composes, without materializing it."""
+    """The document Testaferro composes, without materializing it."""
 
     def _document(self, backend, boot=None):
         # `_blueprint` authors over locations that are already staged,

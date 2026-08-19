@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: GPL-3.0-only
-"""testaferro: a pytest plugin for tests that run inside a guest.
+"""Testaferro: a pytest plugin for tests that run inside a guest.
 
 A suite compiled for and running on a remote target surfaces as
 ordinary pytest tests on the host. There are two ways in, and they
@@ -26,7 +26,7 @@ The executable is interrogated to select its test environment (DOS
 programs run in a guest reliquary provides; anything else is
 rejected), the framework adapter defaults to testaferro.cpputest
 (`framework=` overrides), and the runner's working state lives in
-testaferro-managed disposable directories. Named test environments
+Testaferro-managed disposable directories. Named test environments
 are declared with config() or an optional per-project testaferro.ini;
 a prebuilt Backend remains the custom escape hatch for callers that
 need a different execution mechanism.
@@ -75,7 +75,7 @@ def load_config(path=None):
 
 
 def start(boot_image=None):
-    """Open a testaferro run: one boot-image choice (or the
+    """Open a Testaferro run: one boot-image choice (or the
     downloaded default) serving every suite until stop(). Costs
     nothing until a guest actually runs; an atexit failsafe sweeps
     the run if stop() is never called."""

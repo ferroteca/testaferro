@@ -9,11 +9,11 @@ the asking, and without it every case below skips. That keeps the
 default `unittest discover -s tests` exactly as cheap as it was,
 whether or not discovery ever learns to recurse in here.
 
-What these prove is the half of testaferro no unit test can reach: a
+What these prove is the half of Testaferro no unit test can reach: a
 machine that actually boots, an executable that actually arrives on a
 drive the guest can name, output a real screen actually carried back,
 and a failure that happened somewhere else surfacing here with the
-guest's own file and line on it. The suite they run is testaferro's
+guest's own file and line on it. The suite they run is Testaferro's
 own (see `guest/`), and it fails one test on purpose, because a run
 where everything passes proves only that output was parsed.
 """
@@ -77,7 +77,7 @@ class GuestSessionTests(unittest.TestCase):
 
     def test_a_failure_carries_the_guests_own_file_and_line(self):
         # The whole point of the courier: what comes back is where the
-        # guest says it went wrong, not where testaferro was standing.
+        # guest says it went wrong, not where Testaferro was standing.
         outcome = self.backend.run_test("Guest", "Fails")
 
         self.assertFalse(outcome.passed)
@@ -94,7 +94,7 @@ class GuestSessionTests(unittest.TestCase):
         """The letter this binding now computes rather than reads,
         proved against the boot it is computed for.
 
-        Zero configuration boots testaferro's own FreeDOS on `hdd0`;
+        Zero configuration boots Testaferro's own FreeDOS on `hdd0`;
         the work drive is always a sibling on `hdd1`, live-served over
         vvfat — one hard disk after the system disk, so `D:` — with
         nothing written into it at rest, since `_gather()` already put
@@ -115,7 +115,7 @@ class GuestSessionTests(unittest.TestCase):
 
     def test_the_guest_reads_the_suite_back_from_where_it_was_staged(self):
         # The staging is real on the guest's side of the glass: DOS
-        # itself lists the file at the address testaferro reports.
+        # itself lists the file at the address Testaferro reports.
         rows = self.backend._session.exec(
             f"DIR {self.backend.location}",
             machine=self.backend._machine, timeout=60)
@@ -164,7 +164,7 @@ class GuestCollectionTests(unittest.TestCase):
             shutil.copy2(SUITE, root / SUITE.name)
             # One section, one environment: declaring only a platform
             # is what the standard catalog's own entry does, so this
-            # runs on testaferro's installed system exactly as naming
+            # runs on Testaferro's installed system exactly as naming
             # nothing would (P8).
             (root / "testaferro.ini").write_text(
                 "[project-dos]\nplatform = dos\nsuites = *.EXE\n",

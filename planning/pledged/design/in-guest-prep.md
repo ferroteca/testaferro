@@ -5,7 +5,7 @@ SPDX-License-Identifier: GPL-3.0-only
 
 # In-guest prep: the design
 
-Design for **F9**'s per-boot prep level — the testaferro half. The
+Design for **F9**'s per-boot prep level — the Testaferro half. The
 provider changes the level rests on are argued separately, as a
 downstream proposal to reliquary:
 [reliquary-proposal.md](reliquary-proposal.md). The split follows
@@ -27,10 +27,10 @@ not have:
    hardware fact of the machine, without which the test is not a
    weaker test but a different one.
 
-The first is testaferro's alone. The second is testaferro's
+The first is Testaferro's alone. The second is Testaferro's
 surface over a provider capability that now exists (`exec(check=
 True)`, reliquary 0.1.0.dev6) but nothing here calls yet. The
-third is not testaferro's at all: it is a machine fact, declared in
+third is not Testaferro's at all: it is a machine fact, declared in
 the environment and passed through untouched (D4), waiting only on
 reliquary having a word for it — the second ask of the
 [downstream proposal](reliquary-proposal.md). That division is this
@@ -38,7 +38,7 @@ document's spine.
 
 ## `files=` and `setup=`
 
-Two declarations, keyword and INI twins (P16), both testaferro's
+Two declarations, keyword and INI twins (P16), both Testaferro's
 own words beside the machine spec — like `provider`, `timeout` and
 `suites`, they never reach the blueprint.
 
@@ -60,7 +60,7 @@ own words beside the machine spec — like `provider`, `timeout` and
   enumeration is answered host-side by `enumerator=` simply never
   boots that session. Setup runs after the readiness wait and
   before anything else. Ordering within the list is the caller's;
-  a wrong order is a consumer bug testaferro does not try to
+  a wrong order is a consumer bug Testaferro does not try to
   detect.
 
 - **Setup failure is loud, and reported once.** A setup command
@@ -74,17 +74,17 @@ own words beside the machine spec — like `provider`, `timeout` and
 - **A suite that declares neither runs exactly as today.** No new
   concept reaches a self-contained suite.
 
-## What testaferro declines to own
+## What Testaferro declines to own
 
 Declining these is what keeps the feature small, and each decline
 lands as a named obligation on the caller — acceptable, because
 each is a thing the caller can straightforwardly do right and
-testaferro can only do wrong.
+Testaferro can only do wrong.
 
 - **No pre-boot validation of `setup` against `files`.** The
   tempting check — refuse a setup command whose first token names
   no staged file and no known shell builtin — requires a builtin
-  vocabulary testaferro would keep on the shell's behalf, varying
+  vocabulary Testaferro would keep on the shell's behalf, varying
   by DOS flavor and shell version: the kind of mirrored rule
   `_work_drive()` just paid to delete. And the staged-file half
   refuses legitimate commands naming programs on the system disk,
@@ -94,7 +94,7 @@ testaferro can only do wrong.
 - **No parsing of setup output.** Whether a command succeeded is
   detected by the provider — the [downstream
   proposal](reliquary-proposal.md)'s first ask — never by
-  testaferro reading a screen. The obligation this pushes back:
+  Testaferro reading a screen. The obligation this pushes back:
   **a setup program owes an honest exit code.** A TSR can —
   INT 21h AH=31h carries a return code even when staying
   resident — and a driver's install failing silently is a defect
@@ -103,7 +103,7 @@ testaferro can only do wrong.
 - **No device vocabulary, no engine words.** Which hardware a
   machine exposes is declared in the environment as blueprint
   fields, passing through untouched for the provider to validate
-  (D4) — testaferro interprets no field below the provider's own.
+  (D4) — Testaferro interprets no field below the provider's own.
   The INI needs no change either: a `devices` list is a
   structured literal, which `testaferro.ini` values already parse.
 
@@ -116,15 +116,15 @@ testaferro can only do wrong.
 F9 hard-depended on one provider change alone: `exec()` reporting
 whether a command succeeded, the downstream proposal's first ask.
 That ask shipped in reliquary 0.1.0.dev6 (D89 there, retiring F26)
-as `exec(check=True)`, and testaferro's pin has since moved past it,
+as `exec(check=True)`, and Testaferro's pin has since moved past it,
 to 0.1.0a2 — the ordering the pin (D4) exists to make deliberate,
 already run, for reasons unrelated to this feature. What is left is
-entirely testaferro's own side: nothing in `reliquary.py` calls
+entirely Testaferro's own side: nothing in `reliquary.py` calls
 `check=` yet, and the declarations below are unwritten.
 
 The proposal's other two asks serve the sibling machine fact — the
-declared device — which needs no testaferro change at all and gates
+declared device — which needs no Testaferro change at all and gates
 no pledged feature. The `devices` declaration, when it ships, needs
-no testaferro release either: an environment declares it and the
+no Testaferro release either: an environment declares it and the
 document passes through (D4). No order is promised there, here or
 anywhere.

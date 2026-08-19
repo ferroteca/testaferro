@@ -99,9 +99,9 @@ than churn.
 **What is pledged says what the project owes and nothing about
 when.** U7 and F9 are the same debt seen twice: U7 is the journey,
 and F9 is the work that completes it. Neither can arm or deliver
-alone, but the debt is entirely testaferro's own to pay now: the
+alone, but the debt is entirely Testaferro's own to pay now: the
 provider capability F9 was gated on — reliquary's `exec(check=True)`
-— shipped before this pledge, ahead of testaferro's own pin, so
+— shipped before this pledge, ahead of Testaferro's own pin, so
 nothing here waits on reliquary.
 
 **The planning root holds what does not move.** The map, the rule,
@@ -140,10 +140,10 @@ has made rather than a condition nobody has met. The interface
 enumeration beside it stays regardless, being what the vetting rule
 looks up. Together with the normative
 specifications they are the project's **vision**: the standing
-statement of what testaferro is and is for.
+statement of what Testaferro is and is for.
 
 **Both root lists exist now, and one of them took months.**
-testaferro adopted this model
+Testaferro adopted this model
 after the code was written (D7), so its whole vision was drafted at
 once into [proposed/](proposed/):
 [proposed/USE-CASES.md](proposed/USE-CASES.md),
@@ -169,7 +169,7 @@ the work owing and armed when it landed.
 
 **Then a guest ran, and U4 armed** — the first use case of any kind
 to, and the reason root `USE-CASES.md` exists at all. For as long as
-nothing had booted, the honest answer to "what does testaferro promise
+nothing had booted, the honest answer to "what does Testaferro promise
 *a user*?" was *no journey yet stated*, however much the architecture
 asserted; a use case arms on delivery, and delivery is a journey
 working rather than code existing. **One use case is pledged now**:
@@ -215,7 +215,7 @@ Neither directory exists yet.
 **Nothing under `planning/` describes a delivered interface.** Once
 an interface ships, its normative specification is current truth and
 moves out of here. That is a one-way move: a norm never comes back.
-testaferro holds no normative specifications today — what norms its
+Testaferro holds no normative specifications today — what norms its
 interfaces is an open question in [DECISIONS.md](DECISIONS.md).
 
 ## How an idea enters

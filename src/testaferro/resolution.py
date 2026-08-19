@@ -45,7 +45,7 @@ import os
 
 from . import binfmt
 
-# The providers testaferro binds, spelled as a declaration spells
+# The providers Testaferro binds, spelled as a declaration spells
 # them. A binding is named for its provider (D16), so a name here is
 # also the sibling module that implements it — imported only once
 # resolution has selected it, and never derived from anything a
@@ -62,7 +62,7 @@ def resolve_backend(target, environment=None, provider=None,
     `target` is the suite executable. `environment` names a test
     environment — one the project declared with `testaferro.config()`
     or `testaferro.ini`, or one of the standard environments
-    testaferro curates. `provider` names what runs the guest, for an
+    Testaferro curates. `provider` names what runs the guest, for an
     environment declared inline here rather than by name; a named
     environment carries its own, so the two cannot be combined.
     `search_from` is the directory the search for a project
@@ -108,7 +108,7 @@ def resolve_backend(target, environment=None, provider=None,
         # the format inferred — never an option anyone typed — so the
         # refusal names whichever it was. Which platforms are runnable
         # is the binding's own answer, not a table kept here: a
-        # provider knows what it serves and testaferro does not.
+        # provider knows what it serves and Testaferro does not.
         source = (f"test environment {name!r} declares platform"
                   if name is not None else "the executable's format is")
         raise ValueError(

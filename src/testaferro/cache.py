@@ -1,9 +1,9 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: GPL-3.0-only
-"""testaferro's durable filespace, shared by the guest bindings.
+"""Testaferro's durable filespace, shared by the guest bindings.
 
 Also where a finished guest home is handed back, because whether one
-is swept or kept is testaferro's own policy rather than any one
+is swept or kept is Testaferro's own policy rather than any one
 binding's: `release_guest_home()` is the single place that decides,
 and the exploration option that flips it (`keep_guest_homes()`) is
 asked here by whoever reports it. Nothing in this module knows which
@@ -61,11 +61,11 @@ def release_guest_home(path):
 
 
 def cache_root():
-    """testaferro's own filespace: each guest binding's image cache
+    """Testaferro's own filespace: each guest binding's image cache
     plus its disposable guest homes.
 
     The layout says which span made what (D15): `runs/run-*/` is one
-    testaferro run — `start()` to `stop()`, one staged image shared by
+    Testaferro run — `start()` to `stop()`, one staged image shared by
     many suites — and `guests/guest-*/` inside it is one guest
     session's home. A guest belonging to no run sits in `guests/` at
     this level instead. Stale directories from killed processes can

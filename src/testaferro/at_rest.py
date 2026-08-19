@@ -16,7 +16,7 @@ of what that boot will do rather than a fact about it (D23; the
 same conclusion reliquary reached in its own D107). What this
 module takes is an image, a volume within it, and a path within
 that volume. Which volume a guest will call `C:` is answered
-elsewhere — by testaferro guaranteeing it on a disk testaferro
+elsewhere — by Testaferro guaranteeing it on a disk Testaferro
 authored, or by asking the guest once it is up.
 
 **The device type is declared, not sniffed.** A qcow2 file records
@@ -38,7 +38,7 @@ import os
 import remanence
 
 
-# What testaferro's guest drives are, declared because the image
+# What Testaferro's guest drives are, declared because the image
 # does not say: a hard disk carrying an MBR, addressed in CHS.
 DEVICE_TYPE = "mbr-sector-hd"
 
@@ -50,7 +50,7 @@ SEPARATOR = "\\"
 
 
 class AtRestError(Exception):
-    """A refusal from the at-rest layer, in testaferro's vocabulary.
+    """A refusal from the at-rest layer, in Testaferro's vocabulary.
 
     Wraps whatever the dependency refused so the seam holds: a
     caller catches this and never imports remanence to do it.
@@ -70,7 +70,7 @@ def split_address(address):
     text = str(address).strip()
     if len(text) < 2 or text[1] != ":" or not text[0].isalpha():
         raise AtRestError(
-            f"{address!r} is not a guest address: testaferro expects "
+            f"{address!r} is not a guest address: Testaferro expects "
             "a drive letter, a colon, and a path — \"D:\\\\TESTS\"")
     letter = text[0].upper()
     path = text[2:].replace("/", SEPARATOR).strip(SEPARATOR)
@@ -94,13 +94,13 @@ def _volume(medium, volume):
               if space is not None]
     if not spaces:
         raise AtRestError(
-            "this disk carries no filesystem testaferro can read; "
+            "this disk carries no filesystem Testaferro can read; "
             "remanence claims FAT12 and FAT16 over an MBR")
     try:
         return spaces[volume]
     except IndexError:
         raise AtRestError(
-            f"this disk has {len(spaces)} volume(s) and testaferro was "
+            f"this disk has {len(spaces)} volume(s) and Testaferro was "
             f"asked for volume {volume}") from None
 
 

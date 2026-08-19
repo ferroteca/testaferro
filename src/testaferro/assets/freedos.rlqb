@@ -3,11 +3,11 @@
 //
 // A plain FreeDOS system, installed from the LiveCD.
 //
-// **This is testaferro's own** (P17). It began as reliquary's codex
+// **This is Testaferro's own** (P17). It began as reliquary's codex
 // entry of the same name and is vendored here deliberately: what
-// testaferro offers by name, testaferro authors, and the provider's
+// Testaferro offers by name, Testaferro authors, and the provider's
 // codex is not an input to a test run at resolution or at
-// materialization. Nothing reads this but testaferro, and it is read
+// materialization. Nothing reads this but Testaferro, and it is read
 // once — the install it drives produces the disk image the cache
 // keeps, so a test run never pays for an install (D10).
 //

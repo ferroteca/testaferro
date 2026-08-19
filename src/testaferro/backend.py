@@ -10,7 +10,7 @@ backends (e.g. a SuiteBackend whose runner boots per operation) have
 no guest session to manage.
 
 "Guest session" rather than "session": pytest owns that word for the
-whole run, and testaferro would otherwise say it of three different
+whole run, and Testaferro would otherwise say it of three different
 spans (D15). Here it means one guest up and able to answer — from
 start_guest() to stop_guest().
 """

@@ -4,16 +4,16 @@
 
 A **test environment** is what a suite runs in, and naming one is the
 whole of what a suite-facing consumer writes (P2): a standard
-environment testaferro authors and names, or a custom one declared
+environment Testaferro authors and names, or a custom one declared
 here. A declaration is reusable configuration, not a running guest: it
 is the authored blueprint document reliquary materializes afresh for
-every backend session. testaferro carries the authored JSON through
+every backend session. Testaferro carries the authored JSON through
 untouched and mirrors none of reliquary's schema — validation happens
 when reliquary parses it, and ``platform`` is one of the fields
-passing through rather than a word testaferro speaks (P3).
+passing through rather than a word Testaferro speaks (P3).
 
 ``provider`` runs the other way: it is the one guest-related word
-testaferro *does* speak, naming what actually runs the suite
+Testaferro *does* speak, naming what actually runs the suite
 (``reliquary`` today, the default and the only one built), and the
 environment is the one place it is named (P1, P2, D11). So it never
 reaches the blueprint — reliquary's document has no field for who is
@@ -26,7 +26,7 @@ reads that file; the entry point searches upward from wherever it was
 reached so test modules can name only the suite executable.
 
 ``select()`` is where a name becomes a declaration: the project's own
-first, then the standard catalog testaferro curates (D10, and
+first, then the standard catalog Testaferro curates (D10, and
 ``catalog.py``). Nothing else is consulted — never the user's
 reliquary home (D6).
 """
@@ -59,10 +59,10 @@ _HYPHENATED = types.MappingProxyType({
     "backend_settings": "backend-settings",
 })
 
-# Options testaferro consumes itself rather than passing to the
+# Options Testaferro consumes itself rather than passing to the
 # blueprint: which provider runs this environment, how long one guest
 # command may take, which files this environment's guest suites are,
-# and where a test run lands in the guest. `provider` is testaferro's
+# and where a test run lands in the guest. `provider` is Testaferro's
 # own word and reliquary's document has no field for it, which is
 # exactly why it belongs here rather than passing through (P1, P3,
 # D11) — and `files`, `location` and `program` are the same argument
@@ -99,7 +99,7 @@ class EnvironmentSpec:
     ``spec.drives``), with underscores standing in for the hyphens the
     blueprint spells (``spec.backend_settings``).
 
-    ``provider``, ``timeout`` and ``suites`` are testaferro's own
+    ``provider``, ``timeout`` and ``suites`` are Testaferro's own
     rather than blueprint fields: which provider runs this environment
     (``None`` until one is named, the default being resolution's to
     apply), how long one guest command may take, and the file-name
@@ -107,7 +107,7 @@ class EnvironmentSpec:
     suites — what a collection scan needs to know that a file is a
     suite at all, and which environment runs it.
 
-    ``files``, ``location`` and ``program`` are testaferro's own for
+    ``files``, ``location`` and ``program`` are Testaferro's own for
     the same reason and describe **test placement** (F4): the host
     files staged into the guest beside the suite, the guest address
     they land at (``D:\\TESTS`` — a letter, not a slot), and the guest
@@ -182,7 +182,7 @@ def configure(name, machine_config=None, template=None, boot_image=None,
 
     ``provider`` names what actually runs this environment's guests —
     ``reliquary`` today, the default and the only one built (P1, D11).
-    It, ``timeout`` and ``suites`` are testaferro's own rather than
+    It, ``timeout`` and ``suites`` are Testaferro's own rather than
     blueprint fields, so they may be said beside a complete template
     as well as beside constructed fields.
     """
@@ -245,7 +245,7 @@ def configure(name, machine_config=None, template=None, boot_image=None,
 def _provider(value):
     """Normalize a declared ``provider`` name, or None when unsaid.
 
-    Case-folding here is testaferro's own vocabulary being tidied, not
+    Case-folding here is Testaferro's own vocabulary being tidied, not
     a provider's document being touched (P3): ``provider`` is a word
     this project defines and reliquary's blueprint has no field for.
     Unsaid stays None — which provider a nameless environment gets is

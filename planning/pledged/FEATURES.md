@@ -24,11 +24,11 @@ what demands it.
 
 > **The gate cleared before the pledge.** Reliquary's `exec --check`
 > shipped in 0.1.0.dev6 (D89 there, retiring the F26 reliquary had
-> entered for this ask), and testaferro's pin has since moved past it
+> entered for this ask), and Testaferro's pin has since moved past it
 > to 0.1.0a2 (D4) — for reasons unrelated to this feature, but the
 > effect is the same: the provider capability F9 was gated on is
-> already in testaferro's dependency closure. Nothing here is built
-> yet; what remains is entirely testaferro's own side.
+> already in Testaferro's dependency closure. Nothing here is built
+> yet; what remains is entirely Testaferro's own side.
 
 Serves **U7** (pledged). Two levels, both declared, both optional.
 The per-boot level's design is settled in
@@ -39,7 +39,7 @@ first ask has since shipped and is already in hand.
 
 - **Per-boot prep**: one declaration now, carrying the keyword and
   INI spellings every declaration has (P16), and not a blueprint
-  field — like `provider` and `timeout` it is testaferro's own
+  field — like `provider` and `timeout` it is Testaferro's own
   word, said beside the machine spec, never inside it.
 
   **`files=` shipped with F4** and is not owed here. It was always
@@ -60,13 +60,13 @@ first ask has since shipped and is already in hand.
   in the existing `GuestOutputError` shape: the command sent and
   the screen that came back.
 
-  Failure is the provider's to detect, never testaferro's to
+  Failure is the provider's to detect, never Testaferro's to
   parse: `reliquary.Session.exec(check=True)` reports each command's
   success (guest-side mechanics belong to reliquary, D2), and a
   consumer's setup programs owe an honest exit code in return.
   **Weighed and declined:** pre-boot validation of
   `setup` commands against the staged files and a shell-builtin
-  list. The builtin list is a vocabulary testaferro would have to
+  list. The builtin list is a vocabulary Testaferro would have to
   keep on the shell's behalf — the kind of mirror the drive-letter
   inference paid to delete — and the staged-file check refuses
   legitimate commands naming programs on the system disk, a
@@ -87,7 +87,7 @@ under test drives — is deliberately not this feature. It is a
 machine fact, declared in the environment and passed through
 untouched exactly as every blueprint field is (D4), so it becomes
 expressible the day reliquary ships the `devices` vocabulary the
-downstream proposal argues, with no testaferro change at all.
+downstream proposal argues, with no Testaferro change at all.
 
 The prep vocabulary is new declaration surface and lands through
 the interface-change rule; one declaration, three spellings, so it

@@ -11,12 +11,12 @@ SPDX-License-Identifier: GPL-3.0-only
 > provider's, as this proposal asked it to be: one report rather
 > than two, answered from a record read at every start, with the
 > at-rest recognition claim narrowed to FAT12/FAT16/FAT16B in the
-> same change. testaferro consumes the letter-map slice and has
+> same change. Testaferro consumes the letter-map slice and has
 > moved its pin; the closing paragraph below — that it stays on
 > 0.1.0.dev4 until a release carries the surface — is spent, and
 > kept because it records the terms the pin was held on.
 
-A **downstream proposal to reliquary**, from testaferro, its
+A **downstream proposal to reliquary**, from Testaferro, its
 consumer. It serves F4 (test placement, designed in
 [test-placement.md](test-placement.md)), and it is written the way
 consumer-side input should be: the shape that costs the consumer
@@ -51,7 +51,7 @@ what drives it has and what they actually hold.
   why* — D78's honesty carried into the answer, never smoothed
   over.
 
-Not all of this serves testaferro — the letter map is the slice F4
+Not all of this serves Testaferro — the letter map is the slice F4
 consumes, for defaulting where tests land — but the rest is not
 speculative surface: it is a report over readings 0.1.0.dev5
 already performs. The at-rest layer walks the partition table, pins
@@ -113,7 +113,7 @@ just finished punishing.
 
 Two things were ruled on the way here (owner, 2026-07-29), and both
 shape what is *not* being asked. First, a consumer-side bridge —
-testaferro asserting volume counts of its own to feed
+Testaferro asserting volume counts of its own to feed
 `drive_letters` — existed briefly in a working tree and was rejected
 the same hour: a rule held by the vocabulary's owner is a shortcut
 with a retirement path, while the same rule adopted by a consumer is
@@ -124,11 +124,11 @@ BPBs, the counts are computed and cached for the file verbs, and the
 letter map consumes them. How the surface produces its answer —
 that reading, or any shortcut of the provider's own choosing (a
 directory-source disk being one volume by construction is its
-documented rule already) — is an implementation detail testaferro
+documented rule already) — is an implementation detail Testaferro
 does not need to know, and this proposal deliberately does not ask
 to know it. What it asks for is the answer.
 
-testaferro therefore stays pinned to 0.1.0.dev4 — not adopting
+Testaferro therefore stays pinned to 0.1.0.dev4 — not adopting
 0.1.0.dev5 at all — until a release carries the surface.
 
 ## What this proposal does not ask
@@ -142,5 +142,5 @@ testaferro therefore stays pinned to 0.1.0.dev4 — not adopting
   words the file verbs already use.
 - No guest inspection: everything here is P10's read-on-the-host
   source, exactly as the letter map itself uses it.
-- No sequencing and no dates: testaferro pins exactly (D4) and
+- No sequencing and no dates: Testaferro pins exactly (D4) and
   moves the pin as its own deliberate act when the release exists.

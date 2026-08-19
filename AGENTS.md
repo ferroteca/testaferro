@@ -1,6 +1,6 @@
 # AGENTS.md — repository guidance
 
-Canonical, agent-agnostic guidance for working on testaferro — how to
+Canonical, agent-agnostic guidance for working on Testaferro — how to
 change this repository safely. Human usage documentation belongs in
 [README.md](README.md); where the project is going, what it has
 decided, and how work enters is
@@ -18,7 +18,7 @@ the migration to the blueprint model, so end-to-end proof is owed
 execution provider (P1, in force), and the provider is a choice a
 tester **declares**: `provider=` has all three spellings, dispatch is
 keyed by it, and reliquary is the default and the one binding built.
-testaferro's pluggable aspect is the guest unit-test framework
+Testaferro's pluggable aspect is the guest unit-test framework
 (U6).
 
 Package layout under `src/` (each module states its contract in its
@@ -70,11 +70,11 @@ docstring):
   `config()`). An `EnvironmentSpec` holds the *authored* reliquary
   blueprint JSON and mirrors none of reliquary's schema: fields pass
   through untouched — `platform` among them, which is the provider's
-  word rather than testaferro's (P2) — and reliquary validates them
+  word rather than Testaferro's (P2) — and reliquary validates them
   when it parses the document. Keys hyphenated in the blueprint
   (`backend-settings`, `control-planes`) are written with underscores
   in Python and INI and normalized on construction. **`provider`,
-  `timeout` and `suites` are testaferro's own** and never reach the
+  `timeout` and `suites` are Testaferro's own** and never reach the
   blueprint: `provider` names what runs the guest (P1, D11), and
   reliquary's document has no field for who is reading it, which is
   exactly why it is declared beside the machine spec rather than
@@ -84,7 +84,7 @@ docstring):
   catalog second (D10); the platform *inferred* from the executable
   matches declarations only, so zero configuration stays zero (P8).
 - [src/testaferro/catalog.py](src/testaferro/catalog.py) — the standard
-  environments testaferro curates, reachable by name
+  environments Testaferro curates, reachable by name
   (`environment="freedos"`). Each entry is an authored provider document
   carried through untouched, exactly as a declaration is (P3);
   `freedos` declares only its platform, which is what makes naming it
@@ -109,20 +109,20 @@ docstring):
   currently mapped to None. Shared by the facade's dispatch and
   each guest binding's own guard.
 - [src/testaferro/assets/](src/testaferro/assets/) — the FreeDOS recipe
-  testaferro authors: a blueprint and the install script that drives
+  Testaferro authors: a blueprint and the install script that drives
   it. Vendored from the provider's codex deliberately and read only
   from here (P17, D20), and read **once** — what a test run touches is
   the disk the install produced, never this. Shipped inside the
   package (`package-data` in [pyproject.toml](pyproject.toml)) because
   the package reads it at run time.
 - [src/testaferro/cache.py](src/testaferro/cache.py) — `cache_root()`,
-  testaferro's durable filespace (LOCALAPPDATA or XDG_CACHE_HOME),
+  Testaferro's durable filespace (LOCALAPPDATA or XDG_CACHE_HOME),
   shared by the guest bindings. Also where a finished guest home is
   handed back: `release_guest_home()` is the single place that sweeps
   or keeps one, and `keep_guest_homes()`/`kept_guest_homes()` are the
   exploration switch and its report. The layout is the vocabulary made
   physical (D15): `runs/run-*/guests/guest-*/`, and `guests/` at the
-  cache root for a guest belonging to no run. That policy is testaferro's, not
+  cache root for a guest belonging to no run. That policy is Testaferro's, not
   any binding's, which is what lets the plugin read the answer without
   importing a binding — or a provider.
 - [src/testaferro/at_rest.py](src/testaferro/at_rest.py) — at-rest
@@ -149,7 +149,7 @@ docstring):
   typeable.
 - [src/testaferro/reliquary.py](src/testaferro/reliquary.py) — the reliquary
   provider binding, for DOS guests (D16). Named for the provider it
-  binds, because that is the layer testaferro talks to: every call in
+  binds, because that is the layer Testaferro talks to: every call in
   it is a reliquary call, and what reliquary drives underneath is its
   own business and appears nowhere in this package.
 
@@ -159,14 +159,14 @@ docstring):
   deleted outright, and neither will say which letter a volume gets —
   a fact about a booted guest, never a stopped image. **Testaferro
   now answers it instead, deterministically, for every drive it ever
-  declares** — `_letter_map()` — because testaferro authors the whole
+  declares** — `_letter_map()` — because Testaferro authors the whole
   document: a floppy controller's drives take `A:`/`B:` by position
   and a hard disk takes `C:` onward by slot order, one volume per
-  disk, which holds by construction for testaferro's own media and is
+  disk, which holds by construction for Testaferro's own media and is
   taken as given for a `machine_config` template too. This reinstates,
   as **deliberate, permanent policy** rather than a stopgap, the
   inference D78 killed upstream for the general case — the difference
-  is that testaferro now *states* the one-volume-per-disk assumption
+  is that Testaferro now *states* the one-volume-per-disk assumption
   as its own rather than presenting it as something read back.
   Checked against a real boot: the zero-configuration guest's system
   disk answers `C:` and its work-drive sibling `D:`, exactly as
@@ -177,7 +177,7 @@ docstring):
   one thing it tells resolution about itself — the guests this
   provider serves, its own answer to give.
 
-  **Zero configuration boots a FreeDOS system testaferro installed**
+  **Zero configuration boots a FreeDOS system Testaferro installed**
   (D20), not a downloaded floppy. `assets/` holds the recipe — the
   blueprint and its install script, vendored so nothing resolves out
   of the provider's codex at run time (P17) — and
@@ -188,7 +188,7 @@ docstring):
   zero configuration could not have worked; nothing had looked until
   an integration run did. `boot_image=` is unchanged and still boots a
   tester's own floppy (U3) — what changed is only what happens when
-  nobody says. The suite is staged onto testaferro's own **work
+  nobody says. The suite is staged onto Testaferro's own **work
   drive**, a vvfat sibling of the system disk, and the guest reads it
   at **`D:\`**.
 
@@ -222,14 +222,14 @@ docstring):
     formerly `_context()`; 0.1.0a2 made the session the only door,
     P26 there, so every provider verb this binding calls is now a
     method on the object it returns), so resolution sees only what
-    testaferro authored for that run — never the user's reliquary
+    Testaferro authored for that run — never the user's reliquary
     home or the built-in codex. Reaching a blueprint by name from
     the user's home is a deliberate decision, not a default to
     drift into. `Session` itself now refuses construction without a
     home (`dir.unassigned`), which is what 0.1.0.dev6's autoseeding
     deletion (D88 there) was already heading toward: there is no
     process-global left to fence off.
-  - **testaferro's own work drive is a standing fixture, not a
+  - **Testaferro's own work drive is a standing fixture, not a
     reaction** (F4, superseding D5, and D108's own consequence). A
     vvfat medium — a host directory QEMU serves live as a FAT volume,
     never materialized into an image — is a sibling of whatever else
@@ -245,7 +245,7 @@ docstring):
     remanence, F16, D23) to write it there, since that drive is not
     live-served.
 
-    Three declarations drive placement, each testaferro's own word
+    Three declarations drive placement, each Testaferro's own word
     and none of them a blueprint field: `files=` (host paths staged
     beside the suite), `location=` (the guest address they land at)
     and `program=` (what to run, `{location}` substituted). Each
@@ -254,13 +254,13 @@ docstring):
     `D:\` for the zero-configuration guest.
 
     **There is no more reactive fallback.** Through 0.1.0.dev7 an
-    unwritable primary drive made testaferro append its own drive,
+    unwritable primary drive made Testaferro append its own drive,
     recreate the machine and stage there instead; since the work
     drive is now a standing fixture rather than something appended on
     failure, there is nothing left to react to — a placement that
     fails now simply fails, naming the address that would not
     resolve, before any boot.
-  - **A started machine is not a ready guest, and testaferro waits.**
+  - **A started machine is not a ready guest, and Testaferro waits.**
     `start_machine()` launches a machine and never claimed to wait for
     the guest inside it. Reliquary ships **no readiness script on
     purpose** — what "ready" means belongs to whatever is being built
@@ -274,10 +274,10 @@ docstring):
     that never reports itself ready
     fails there rather than being typed at. Skipping this is what made
     the first command of every run come back as the boot's own output.
-    The prompt is matched as a **pattern**, because testaferro's
+    The prompt is matched as a **pattern**, because Testaferro's
     installed system boots to `C:` and a tester's floppy to `A:`.
   - **A declared boot image is staged too, and for a different
-    reason.** What boots is testaferro's copy inside the guest home,
+    reason.** What boots is Testaferro's copy inside the guest home,
     because the tester's own file is read and never written (P5). A
     drive attached in place is one the guest may write to, and
     reliquary parses a media's `read-only` without passing it to
@@ -312,7 +312,7 @@ docstring):
   the caller was reached. Its imports stay stdlib-only;
   `environments` (and so reliquary) is imported inside the call.
 - [src/testaferro/items.py](src/testaferro/items.py) — the pytest items
-  testaferro produces, which is the fifth interface: `item_id()` (the
+  Testaferro produces, which is the fifth interface: `item_id()` (the
   dash rule), `failure_text()` (the guest's own file, line and
   assertion) and `guest_output_text()` (the guest's own screen, when
   its answer could not be read at all — D19). Both entry points
@@ -393,7 +393,7 @@ both batched and `-k`-narrowed.
   use cases and P-numbered architectural principles carry equal
   weight and are the surface every significant change is weighed
   against; when a plan of any kind disagrees with them, they govern
-  and the plan is realigned. testaferro adopted this model after the
+  and the plan is realigned. Testaferro adopted this model after the
   code was written (D7), so its vision began wholly drafted in
   [planning/proposed/](planning/proposed/); U4 and P16 were pledged
   first (D13), then P1 and P2 (D18), and nothing had reached the
@@ -423,7 +423,7 @@ both batched and `-k`-narrowed.
   enumeration it scopes over is
   [planning/proposed/ARCHITECTURE.md](planning/proposed/ARCHITECTURE.md)
   "The interfaces" — the embedding API, the machine declaration,
-  `testaferro.ini`, the `Backend` ABC, the pytest items testaferro
+  `testaferro.ini`, the `Backend` ABC, the pytest items Testaferro
   produces, and the cache layout. Ask "does this change an
   interface?" **first**, and answer it by lookup against that list
   rather than from intuition about the diff. A yes is never
@@ -478,11 +478,11 @@ principle governs.
 - Reliquary and remanence are both pinned to exact versions in
   [pyproject.toml](pyproject.toml) (D4; P18's enumerated set, of one
   each). Both APIs are still moving fast — reliquary has already removed
-  the layer testaferro was built on twice, the drive letter map and then
+  the layer Testaferro was built on twice, the drive letter map and then
   the file verbs themselves, together in 0.1.0a2 (D108 there) — and
   neither will ever answer a drive-letter question again (remanence's
   own D57), by design rather than by gap. `_letter_map()` is
-  testaferro's own answer instead, computed deterministically from
+  Testaferro's own answer instead, computed deterministically from
   every drive it declares — see `reliquary.py` above. Moving either
   pin is a deliberate task — expect the binding or the at-rest module
   to need work, and re-run the checks below against the new version.
@@ -501,7 +501,7 @@ principle governs.
   `PluginTests` guards each of those four, and
   `test_a_named_file_that_is_not_a_program_is_left_alone` guards the
   one that already went wrong once.
-- Every environment testaferro offers by name is testaferro's own
+- Every environment Testaferro offers by name is Testaferro's own
   (P17): a standard-catalog entry — and any blueprint, script or
   medium shipped with one — is authored here and complete in itself,
   never a name resolved out of reliquary's codex or the user's
@@ -509,7 +509,7 @@ principle governs.
   catalog document declares its media beside the machine that uses
   them. Provider content reaches a run only because a tester
   declared it.
-- As a reusable library, testaferro never names specific consuming
+- As a reusable library, Testaferro never names specific consuming
   projects in source, tests, README.md, or repository guidance (P12). Refer
   to consumers and runners only in general instructional terms.
 - Tests are stdlib `unittest` under `tests/`, integration included:
@@ -517,7 +517,7 @@ principle governs.
   set, so the constraint is not spent on a second runner.
 - Licensing is GPL-3.0-only, REUSE-style. The full policy — the
   relicensing reservation, the dependency licence tiers, and the
-  standing of every project testaferro references — is the
+  standing of every project Testaferro references — is the
   "Licensing" and "Prior art and external references" sections
   below, and breaking it is the one mistake in this file that cannot
   be repaired later. Contributor-facing submission terms live in
@@ -572,7 +572,7 @@ vetting to a weaker bar would forfeit the reserved option invisibly.
 So the question to ask of any external source is **"could this ship
 inside a proprietary product?"** — never "is this GPL-compatible?"
 The second question has a comfortable answer far more often than the
-first, which is exactly why it is the wrong one. testaferro's own GPL
+first, which is exactly why it is the wrong one. Testaferro's own GPL
 arm could absorb a great deal that a commercial arm never could, and
 the difference between those two sets is precisely what the
 reservation is holding open.
@@ -616,12 +616,12 @@ something it cannot get back.
 
 **Reliquary and remanence are the standing exceptions to tier 3, and
 ownership is why.** Both are GPL-3.0-only — reliquary from
-`0.1.0.dev5` — and testaferro imports both, which for any other
+`0.1.0.dev5` — and Testaferro imports both, which for any other
 author's code would be refused outright. They are dependable here
 because all three projects belong to the same owner, and each one's
 contribution policy (assignment, the same reserved relicensing right)
 keeps it relicensable by the same hand — so a commercial arm of
-testaferro can only exist as a decision that licenses all three
+Testaferro can only exist as a decision that licenses all three
 together, which is the owner's to make. Record each dependency's
 standing as **owner-relicensable**, not tier 1: the moment either
 contained code its owner could not relicense, this analysis would
@@ -661,7 +661,7 @@ is re-verified then, at the version in question.
 
 The only guest-machine provider (P1, D1) and a declared, imported
 runtime dependency. GPL-3.0-only from its `0.1.0.dev5`; the release
-testaferro currently pins (`0.1.0a2`, D4) is well past that
+Testaferro currently pins (`0.1.0a2`, D4) is well past that
 conversion, so today's installed closure is the copyleft one this
 standing was written for, not merely anticipating it. Imported GPL
 is tier 3 for any other author's work; reliquary is
@@ -677,7 +677,7 @@ the one place this repository carries another repository's files —
 and is not third-party material for the same reason: same owner, so
 title is already consolidated. What reliquary drives underneath is
 its own business: **QEMU appears nowhere in this package** (P2), is
-deliberately never named in testaferro's source or docs, and there is
+deliberately never named in Testaferro's source or docs, and there is
 nothing to vet here because nothing is referenced. Keep it that way —
 the arm's-length analysis for QEMU lives in reliquary, the project
 that actually invokes it.
@@ -697,7 +697,7 @@ Two distinct uses, both deliberate:
   implementation — the doctrine's exception, made on the licence
   ground the doctrine usually refuses to rest on. It holds because
   what is taken is the program's observable interface (what it
-  prints, what argv it accepts) re-expressed as testaferro's own
+  prints, what argv it accepts) re-expressed as Testaferro's own
   parsing code, and because BSD-3-Clause is sublicensable, so even
   the most conservative reading — a derivation of BSD-licensed
   source — survives the commercial bar with attribution carried.
@@ -762,7 +762,7 @@ Nothing further to hold.
 ### FreeDOS — the zero-configuration guest
 
 GPL programs, and **tier 2 by the machine boundary**: a guest
-operating system testaferro installs and boots inside a VM, never
+operating system Testaferro installs and boots inside a VM, never
 linked, never imported, never shipped. The LiveCD is downloaded by
 the tester's machine at run time and the installed image lives in the
 tester's cache (D20). That separation is load-bearing: **never bundle
@@ -773,7 +773,7 @@ would demote the tier.
 ### pytest-embedded — concept reference
 
 Espressif's host-pytest-around-a-native-guest-framework plugin is the
-closest prior art to testaferro's shape, and the one README
+closest prior art to Testaferro's shape, and the one README
 comparison that is a genuine concept reference rather than
 positioning. MIT (each package in its repo licenses separately; the
 repo root is a compound MIT/CC0 notice — cite the package licence,
@@ -869,7 +869,7 @@ asset list grows.
 what [MANIFEST.in](MANIFEST.in)'s `prune tests` is for. The same call
 was made in reliquary the same day (D96 there, which forbids its
 suite *and* its `planning/` tree in both artifacts), so this is a
-standing rule across these projects rather than a testaferro
+standing rule across these projects rather than a Testaferro
 preference. Setuptools'
 default sdist picks up the top-level `tests/*.py` and nothing under
 `tests/integration/`, so before that line the sdist shipped *half* a
@@ -931,7 +931,7 @@ so such a machine belongs in an integration test.
 this is the boundary moving rather than a rule relaxing. The default
 system materializes through a guest *install*, and a guest session
 layers a `difference` overlay over it; neither is the unit tier's to
-do. Unit cases that are about testaferro's own bookkeeping declare a
+do. Unit cases that are about Testaferro's own bookkeeping declare a
 `boot_image` instead and stay cheap, and `tests/test_reliquary.py`
 refuses `_build_default_image` at module scope so that reaching it
 fails on the spot.
@@ -945,7 +945,7 @@ a first start that never happens. Eleven of them cost about fifteen
 seconds together, against roughly fifteen for a *single* boot.
 
 **That file exists because mocks at this seam go stale silently.**
-`PlacementTests` in the unit suite holds testaferro's own policy over
+`PlacementTests` in the unit suite holds Testaferro's own policy over
 a resolution it stubs; it is only as good as the stub's shape being
 right, and a stub cannot notice that the real answer moved — which is
 exactly what happened when 0.1.0a2 deleted the drive-letter report
@@ -957,10 +957,10 @@ letter-map cross-check this file used to carry is gone with the
 report it checked**, not merely stale: there is no provider answer
 left to confirm the zero-configuration guarantee against, so that
 half of the guarantee now rests on the guarantee alone (still true —
-testaferro's own one-disk machine still has one FAT16 volume — but
+Testaferro's own one-disk machine still has one FAT16 volume — but
 unconfirmed by a second source). Keep both remaining halves: the unit
 tier is the always-on guard, and this is what keeps its fixtures
-honest. Remanence's at-rest answers are machine input that testaferro
+honest. Remanence's at-rest answers are machine input that Testaferro
 *acts* on, and a wrong reading places a suite on the wrong drive —
 which is the variability-times-blast-radius that earns pinned
 coverage.
@@ -974,8 +974,8 @@ reliquary would have acted on. So the **zero-configuration document
 is now unit-testable**: a placeholder file stands in for the built
 system, because nothing reads it. `BlueprintAcceptanceTests` is that
 suite, and it exists because `BlueprintAuthoringTests` structurally
-cannot fail the way that matters — reading back testaferro's own
-dict proves testaferro consistent with itself, and a document
+cannot fail the way that matters — reading back Testaferro's own
+dict proves Testaferro consistent with itself, and a document
 reliquary has since stopped accepting passes it unmoved. Prefer a
 dry create whenever the question is *would reliquary take this*; it
 costs under a second. What a dry run cannot answer is anything read
@@ -1009,9 +1009,9 @@ rest (D78 there) and 0.1.0.dev6 answered with `describe_drives()`
 instead (D83 there) — and 0.1.0a2 deletes that report outright, with
 no provider answer left to ask for and remanence refusing the same
 question by design (its own D57). What comes back reinstates D78's
-assumption deliberately, as testaferro's own stated policy rather
+assumption deliberately, as Testaferro's own stated policy rather
 than something read back: one volume per hard disk, true by
-construction for testaferro's own media and taken as given for a
+construction for Testaferro's own media and taken as given for a
 `machine_config` template. `WorkDrivePlacementTests` states every
 slot case; `PlacedLetterTests` holds the letter computation, pure
 declaration arithmetic with no machine or session in sight.
@@ -1028,7 +1028,7 @@ live-served with no write at rest at all, reading its suite back from
 `D:\` with DOS's own `DIR`.
 
 **The integration tier exists and passes** — `tests/integration/`,
-holding testaferro's own CppUTest DOS suite (`guest/`, with its
+holding Testaferro's own CppUTest DOS suite (`guest/`, with its
 source, its Open Watcom makefile and the built `SUITE.EXE`) and the
 cases that boot it. Six of them: the guest enumerates, runs batched
 and singly, replays a failure with the guest's own file and line,
@@ -1040,5 +1040,5 @@ Three defects fell out of building it, which is what it was for. A
 grammar that ended a failure message on a blank line the transport
 drops (fixed above). An `exec()` that returned screen text it could
 not attribute to the command (`ferroteca/reliquary#6`, fixed in
-0.1.0.dev4). And testaferro typing at a guest that was not listening —
+0.1.0.dev4). And Testaferro typing at a guest that was not listening —
 **ours**, and the readiness contract above is the fix.

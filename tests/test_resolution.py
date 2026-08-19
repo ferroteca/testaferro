@@ -76,7 +76,7 @@ class BackendResolutionTests(_ResolutionCase):
         factory.assert_called_once_with(exe, machine_config=machine_config)
 
     def test_a_standard_name_resolves_from_the_catalog(self):
-        # Nothing declared: "freedos" is testaferro's own, and it
+        # Nothing declared: "freedos" is Testaferro's own, and it
         # carries only a platform, so the binding boots exactly what
         # zero configuration boots (D10, U9).
         from testaferro import catalog

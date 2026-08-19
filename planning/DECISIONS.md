@@ -76,7 +76,7 @@ than a separate one, since what settles them is an entry below.
 Nothing here binds anything; a question leaves this section by
 becoming a D-number, and the commit that moves it is the record.
 
-- **What norms testaferro's interfaces.** The project holds no
+- **What norms Testaferro's interfaces.** The project holds no
   normative document today: [README.md](../README.md) describes the
   public surface but does not bind it, so there is nothing an
   implementation currently answers to and no artifact whose edit
@@ -91,12 +91,12 @@ becoming a D-number, and the commit that moves it is the record.
   tolerable is two norms for one surface. Settle this before writing
   any document that looks normative, and before pointing any
   doc-sync tooling at the tree.
-- **Whether testaferro needs a document format of its own.** A
+- **Whether Testaferro needs a document format of its own.** A
   declaration already *is* an authored reliquary blueprint (D4), and
   `machine_config=` already accepts a whole blueprint document or a
-  `.rlqb` path, so the original case for a testaferro-owned
+  `.rlqb` path, so the original case for a Testaferro-owned
   superset document has mostly dissolved. What it would still buy is
-  testaferro-specific keys sitting beside the blueprint — reliquary's
+  Testaferro-specific keys sitting beside the blueprint — reliquary's
   schema is closed (`additionalProperties: false`), so such keys
   would have to nest the blueprint rather than merge with it — and a
   `spec=` / `exe_type=` spelling at the call site. Against: a second
@@ -111,7 +111,7 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
-### D23 — testaferro computes every drive letter itself, permanently, and stages before materialization
+### D23 — Testaferro computes every drive letter itself, permanently, and stages before materialization
 
 **Decided** owner, 2026-08-19. **Supports** P1 and P17, through the
 reliquary 0.1.0a2 pin move — this entry's own reopening condition
@@ -124,13 +124,13 @@ it was answered on gave way.
 computes a DOS drive letter for every drive a document declares — a
 floppy controller's drives take `A:`/`B:` by position and a hard disk
 takes `C:` onward by slot order, one volume per disk — and this is
-testaferro's own stated answer now, for every drive alike: its own
+Testaferro's own stated answer now, for every drive alike: its own
 system disk, its own work drive, and a `machine_config` template's
 declared drives. There is no split left between a guarantee and a
 lookup; one computation serves both, and a declared machine's
-`location=` resolves through it exactly as testaferro's own does.
+`location=` resolves through it exactly as Testaferro's own does.
 
-**testaferro's own work drive is a permanent fixture, staged before
+**Testaferro's own work drive is a permanent fixture, staged before
 the machine exists.** A vvfat medium — a host directory QEMU serves
 live as a FAT volume, never materialized into an image — is a
 sibling of whatever else a session's machine declares, in every
@@ -146,15 +146,15 @@ live-served.
 the declared-machine lookup to the guest reporting its own letters
 once booted, drafted as **F17** and never pledged. Retired outright,
 by owner direction, as part of a standing policy across reliquary,
-remanence and testaferro: neither sibling project will ever answer a
+remanence and Testaferro: neither sibling project will ever answer a
 drive-letter question again (remanence's own D57), so the answer is
-testaferro's to own rather than to keep asking for. A boot-time
+Testaferro's to own rather than to keep asking for. A boot-time
 report would have been the more *conservative* fact — confirmed
 per-run rather than assumed — but the cost of confirming it (a
 staged marker, a second machine variable, a guest round trip before
 any placement could be known) bought back only the one case D78
 already named as the risk: a disk holding more volumes than declared.
-testaferro accepts that risk knowingly now, as policy, rather than
+Testaferro accepts that risk knowingly now, as policy, rather than
 paying to confirm its absence every run.
 
 **Reversed: staging before materialization.** Declined in this
@@ -167,7 +167,7 @@ defaulted address had nothing left to retry onto, so making the work
 drive a standing fixture removes a failure mode rather than reopening
 one. P8's zero-configuration promise is unaffected — `pytest
 tests/SUITE.EXE` still needs nothing declared — and the media
-testaferro now supplies for every run is a live-served directory, not
+Testaferro now supplies for every run is a live-served directory, not
 an image it must build or own.
 
 **The cost, restated rather than deferred.** A wrong declared
@@ -208,7 +208,7 @@ set rather than standing as the claim itself.
 disjoint set directly, or a provider whose releases are additive by
 policy, which would make a floor true rather than merely convenient.
 
-### D21 — testaferro is GPL-3.0-only, relicensing is reserved, and contributions are assigned
+### D21 — Testaferro is GPL-3.0-only, relicensing is reserved, and contributions are assigned
 
 **Decided** owner, 2026-07-29. **Supports** (none): no use case or
 principle demands a licence, and the governing vision is silent on
@@ -218,7 +218,7 @@ state. The record was searched first and holds no prior licensing
 entry; D1, D4, D20 and P17 bear on the vetting below and are cited
 where they do.
 
-**The licence is GPL-3.0-only, replacing BSD-3-Clause.** testaferro
+**The licence is GPL-3.0-only, replacing BSD-3-Clause.** Testaferro
 is copyleft from here: it may be run, studied, modified, and
 redistributed freely, and may not be taken into a proprietary
 product. Releases through `0.1.0.dev7` went out under BSD and stay
@@ -262,7 +262,7 @@ licence, because that is the strictest realistic outcome and vetting
 weaker forfeits the option invisibly — live in AGENTS.md, their
 normative home.
 
-**The vetting round produced three testaferro-specific rulings**, and
+**The vetting round produced three Testaferro-specific rulings**, and
 they are the reason this entry is not a bare adoption of D82:
 
 - **The CppUTest derivation is a recorded doctrine exception.** The
@@ -313,7 +313,7 @@ normative home of the tiers and the reference standings),
 [../tests/integration/guest/](../tests/integration/guest/), and the
 SPDX header of every file in the repository.
 
-### D20 — testaferro installs its own FreeDOS, once
+### D20 — Testaferro installs its own FreeDOS, once
 
 **Decided** owner, 2026-07-28. **Supports** U2, U4 (pledged), P17, P8.
 
@@ -325,10 +325,10 @@ waited for a prompt that was not coming and timed out. U2 and U4 both
 promise that a suite executable and nothing else runs; the first
 integration run ever made found that it could not have.
 
-**The image is now testaferro's own, installed rather than
+**The image is now Testaferro's own, installed rather than
 downloaded.** The recipe — reliquary's codex `freedos` blueprint and
 its install script — is **vendored into `src/testaferro/assets/`** and
-read from there, so nothing about the environment testaferro offers by
+read from there, so nothing about the environment Testaferro offers by
 name resolves out of the provider's codex at run time (P17). The
 install runs **once**, into the cache; every guest session afterwards
 layers a `difference` overlay over the result, so no session can write
@@ -338,14 +338,14 @@ into the copy they all share. It took 326 seconds and produced 13MB.
 the codex install recipe *per session* — "an install per session is
 not a price a test run pays" — and that stands unchanged: a run
 attaches a disk that already exists. What is new is only that the
-disk is one testaferro built rather than one it fetched.
+disk is one Testaferro built rather than one it fetched.
 
 **The consequence is recorded rather than left to be discovered: zero
 configuration has left the cheap half of P10's line.** A layered
 system drive materializes through an external image tool and the
 system itself materializes through a guest install, so the
 zero-configuration path is no longer something the unit tier may walk.
-Cases that were about testaferro's own bookkeeping now declare a boot
+Cases that were about Testaferro's own bookkeeping now declare a boot
 image and stay cheap. This is not a shortfall against P10 — that
 entry forbids the unit tier starting a guest and this is the boundary
 moving, not the rule.
@@ -365,7 +365,7 @@ assumption — flagged in AGENTS.md as unverified past the first disk —
 is now exercised by a real guest and correct.
 
 **Recorded because the surface is enumerated.** The **cache location
-and layout** is the sixth interface, and what testaferro puts there
+and layout** is the sixth interface, and what Testaferro puts there
 changed: `boot.img` becomes `freedos.qcow2`, and
 `stop(clear_downloads=True)` now discards an install rather than a
 download — minutes to replace, not seconds. The **embedding API**'s
@@ -375,8 +375,8 @@ download — minutes to replace, not seconds. The **embedding API**'s
 **Weighed and declined:** answering the installer's prompt with `N`,
 which does reach `A:\>` — I tried it. It works today and makes the
 curated environment depend on an installer's wording, which a FreeDOS
-release can move under us; P17 says what testaferro offers,
-testaferro authors, and "boots an installer and declines it" is not
+release can move under us; P17 says what Testaferro offers,
+Testaferro authors, and "boots an installer and declines it" is not
 that. Also declined: publishing a prebuilt image for consumers to
 download, which is faster on first use and costs a hosting decision
 and an artifact to keep in step; it stays available if the install
@@ -398,7 +398,7 @@ U4 promises that a trial "does not fail blind": a suite that boots
 nothing, or whose output no framework adapter recognizes, is reported
 by what the guest actually showed. It was not built. A grammar's
 `ValueError` escaped both entry points, so a developer trying a suite
-for the first time met three frames of testaferro's internals with
+for the first time met three frames of Testaferro's internals with
 the guest's one useful line buried under them — and pytest's short
 summary, which quotes only a report's first line, dropped that line
 entirely. The fix states the contract the defect revealed had never
@@ -439,7 +439,7 @@ traceback and leaves the adapter presenting a guest it has never seen,
 which is exactly the boundary D17 drew. Also declined: reporting
 through an exception subclass so the short summary keeps its
 `reprcrash`. `CollectError` gives no summary text at all, which is the
-trade testaferro already makes for ordinary guest failures — one
+trade Testaferro already makes for ordinary guest failures — one
 convention for both beats a summary line for one of them.
 
 **Folded into:** [../src/testaferro/backend.py](../src/testaferro/backend.py)
@@ -459,7 +459,7 @@ entry). Overrules D3.
 
 **The amendment is the argument** ([INTERFACES.md](INTERFACES.md)),
 and this is the hard case that rule exists for: the vocabulary
-testaferro speaks was settled by D3, so nothing about it could be
+Testaferro speaks was settled by D3, so nothing about it could be
 argued as a feature on its own merits. P1 and P2, amended and argued
 in [proposed/](proposed/), have won and move to
 [pledged/ARCHITECTURE.md](pledged/ARCHITECTURE.md).
@@ -472,7 +472,7 @@ refuses, verbatim.
 
 **P2 — a suite names a test environment.** One noun replaces D3's
 pair. A **test environment** is what a suite runs in: a standard one
-testaferro authors and names, or a custom one the tester declares as a
+Testaferro authors and names, or a custom one the tester declares as a
 choice of provider plus that provider's configuration. `platform` goes
 back to being what it always was — a field in an authored blueprint,
 the provider's word, passing through untouched (P3, D4) — rather than
@@ -482,16 +482,16 @@ a concept a consumer writes in.
 goes as deep as the provider does: a complete blueprint, its drives,
 its provisioning scripts, its `backend-settings`, carried through for
 the provider to validate. The boundary is vocabulary, not reach —
-testaferro names providers and never what one drives, interpreting no
+Testaferro names providers and never what one drives, interpreting no
 field below the provider's own. An earlier draft of P2 said "and
 nothing underneath one", which read as a limit on the tester rather
-than on testaferro, and was struck before this pledge.
+than on Testaferro, and was struck before this pledge.
 
 **D3 retires** to the retired section, its text intact. Note what
 survives it: its *weighed and declined* clause refused emulator names
 in the consumer-facing surface, and that refusal is not loosened here
 — it is strengthened, since D16 has since taken the emulator out of
-testaferro's own naming too.
+Testaferro's own naming too.
 
 **Pledged severed**, on the reading D13 used for U4. Both entries cite
 drafted material — P3, P8, P17, U9 — and the map's rule against a
@@ -585,7 +585,7 @@ offered.** `testaferro/qemu.py` becomes `src/testaferro/reliquary.py` and
 `QemuSuiteBackend` becomes `ReliquarySuiteBackend`, because the module
 was named for something it never touches: every call in it is a
 reliquary call, and QEMU is what reliquary drives — a layer below the
-one testaferro talks to. The question had asked whether to name it for
+one Testaferro talks to. The question had asked whether to name it for
 the *platform* instead (`dos.py`); that is the other thing it is not.
 A platform is what a suite is built for, while a binding is the seam
 to whoever runs it, and those are different axes — one provider will
@@ -595,7 +595,7 @@ providers (D11). So `_PLATFORM_BINDINGS` becomes
 that way until the vocabulary work makes the provider the thing a
 tester names.
 
-**testaferro names providers and never what is under them.** The
+**Testaferro names providers and never what is under them.** The
 distinction the owner drew is the operative one: reliquary, vagrant,
 dosbox and wine are things this project may know about; QEMU is
 reliquary's implementation detail and belongs in no name, docstring or
@@ -604,7 +604,7 @@ docstring, the facade's, the error a non-DOS declaration raises, the
 distribution's own description and keywords, and the guidance.
 
 **Two mentions are kept deliberately**, and neither makes QEMU
-testaferro's vocabulary: [../README.md](../README.md)'s "Where it
+Testaferro's vocabulary: [../README.md](../README.md)'s "Where it
 fits" section, which describes what *other* projects do (pytest-cpp's
 qemu harness, pytest-embedded's QEMU service, Go's vmtest), and the
 `backend-settings` fixture in the project-config tests, which is a
@@ -644,7 +644,7 @@ because it renames two of the five operations on an enumerated
 interface and relabels the cache layout, and because the confusion it
 removes is the kind that returns silently if nobody wrote down why.
 
-**"Session" had three claimants**, two of them testaferro's own and
+**"Session" had three claimants**, two of them Testaferro's own and
 nesting inside each other:
 
 - **pytest's session** — the whole run. Not ours, unrenameable, and
@@ -664,7 +664,7 @@ using a third word for the middle thing in the same sentence as the
 word for the outer one.
 
 **The middle thing is a guest session**, and the ABC operations are
-`start_guest()` / `stop_guest()`. "Guest" is testaferro's established
+`start_guest()` / `stop_guest()`. "Guest" is Testaferro's established
 consumer-facing prefix — `guest_suite()` is the public entry point,
 the items are guest tests, a failure is a guest failure — so this is
 no new vocabulary, and it survives the amendments to P1 and P2, which
@@ -682,7 +682,7 @@ all, because it is not one — it is shared setup for a run.
 carried the word.
 
 **The cache layout follows the vocabulary** (the sixth interface):
-`runs/run-*/` is one testaferro run, `guests/guest-*/` inside it is
+`runs/run-*/` is one Testaferro run, `guests/guest-*/` inside it is
 one guest session's home, and a guest belonging to no run sits in
 `guests/` at the cache root. What were called "run homes" were never
 runs' — each is one guest's — so `--testaferro-keep-run-home` becomes
@@ -819,7 +819,7 @@ front of the first command U4 is about.
 [proposed/](proposed/), [README.md](README.md),
 [../AGENTS.md](../AGENTS.md).
 
-### D12 — testaferro is a pytest plugin, distributed as pytest-testaferro
+### D12 — Testaferro is a pytest plugin, distributed as pytest-testaferro
 
 **Decided** owner, 2026-07-28. **Supports** U1, U4 (drafted).
 
@@ -858,26 +858,26 @@ org naming coheres); deleting the PyPI name (above).
 
 **Folded into:**
 [proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md) ("What
-testaferro is"), [../README.md](../README.md),
+Testaferro is"), [../README.md](../README.md),
 [../pyproject.toml](../pyproject.toml), `tombstone/`,
 [../CHANGELOG.md](../CHANGELOG.md).
 
-### D11 — Providers are testaferro's axis, named in the declaration
+### D11 — Providers are Testaferro's axis, named in the declaration
 
 **Decided** owner, 2026-07-28. **Supports** P1, P2, P3 (drafted, as
 amended).
 
 The vision names more guest-machine providers than reliquary —
-vagrant and kin as possibilities — and the axis is **testaferro's
+vagrant and kin as possibilities — and the axis is **Testaferro's
 own**: reliquary and vagrant occupy the same space, so a machine
-uses one *or* the other, and a future provider is a testaferro
+uses one *or* the other, and a future provider is a Testaferro
 binding rather than capability pushed upstream — reliquary is
 already large, and growing it into a portmanteau of runners serves
-neither project. The provider is nothing testaferro hides: the
+neither project. The provider is nothing Testaferro hides: the
 tester declares it (`reliquary` today, the default and the only
 supported one), and a tester who wants specific machines from a
 provider passes that provider's own configuration through —
-testaferro carries it untouched, exactly as it carries reliquary
+Testaferro carries it untouched, exactly as it carries reliquary
 blueprints (P3, generalized). Suites still name platforms and
 machines only; the declaration is the one place a provider appears
 (P2).
@@ -888,11 +888,11 @@ configuration, provisioning, guest control — and its refusals are
 about not building or abstracting that piece here: no structural
 runner contract, no conformance kit, no mirrored configuration
 hierarchy, no abstraction ahead of concrete need. All of that
-holds unchanged; testaferro still builds none of it (D2). What D1
+holds unchanged; Testaferro still builds none of it (D2). What D1
 did not contemplate is more than one external provider of the
 piece it refused to build, and this entry adds that recognition:
 the "no `runner=` override" clause refused a caller-supplied
-virtualization contract, not a choice among testaferro's own
+virtualization contract, not a choice among Testaferro's own
 provider bindings. The annotation at that clause points here so
 the narrower reading is the recorded one. The seam a provider
 implements is the `Backend` ABC D1 already blessed, any richer
@@ -901,8 +901,8 @@ actually arrives, and construction still waits on a second
 concrete provider.
 
 **Weighed and declined:** placing machine-shaped providers in
-reliquary as its backends, keeping testaferro provider-blind. It
-reads clean from testaferro's side and bloats reliquary from its
+reliquary as its backends, keeping Testaferro provider-blind. It
+reads clean from Testaferro's side and bloats reliquary from its
 own, and the two projects' owner prefers the seam here. Also
 declined: building the provider dimension now — a seam with one
 implementation, the exact shape D1 killed.
@@ -917,11 +917,11 @@ Closes the open question "What a machine name resolves to."
 
 `machine="freedos"` resolves against the project's declared
 machines first (`config()` / `testaferro.ini`), then against a
-curated catalog of **standard environments** testaferro itself
+curated catalog of **standard environments** Testaferro itself
 authors — "freedos" naming today's zero-configuration machine,
 siblings arriving as guests grow. Never the user's reliquary home:
 D6's hermeticity holds, and a test run depends only on state
-testaferro authored or the project checked in.
+Testaferro authored or the project checked in.
 
 **Weighed and declined:** resolving names from the user's reliquary
 home — re-declined on D6's unchanged ground. Also declined: reading
@@ -946,10 +946,10 @@ standard for the pytest-facing half: mask-gated tree scans,
 always-claim for explicitly named files, framework facades,
 per-test filter argv. Its `cpp_harness` options — wrapping
 execution in qemu or wine for cross-compiled binaries — are the
-degenerate form of the problem testaferro exists for, and mark
+degenerate form of the problem Testaferro exists for, and mark
 exactly where the reference stops transferring: a command prefix
 cannot carry a machine lifecycle. Where pytest-cpp probes binaries
-by executing them, testaferro declares or defaults — probing here
+by executing them, Testaferro declares or defaults — probing here
 means booting a guest.
 
 **Weighed and declined:** the wrapper CLI — retired F1's `run`
@@ -971,7 +971,7 @@ interface note).
 
 The governance model this project adopted (D7) is the one in force
 across the owner's projects, and that standard moved after
-testaferro instantiated it. Three changes, taken together:
+Testaferro instantiated it. Three changes, taken together:
 
 - **The second shelf is `pledged/`, and the lifecycle word with
   it**: *proposed, pledged, completed, rejected*. `accepted/` named
@@ -1011,7 +1011,7 @@ here already knows the rules (D7).
 [INTERFACES.md](INTERFACES.md), the banners under
 [proposed/](proposed/), [AGENTS.md](../AGENTS.md).
 
-### D7 — testaferro adopts the planning governance model, and keeps no roadmap
+### D7 — Testaferro adopts the planning governance model, and keeps no roadmap
 
 **Decided** owner, 2026-07-27. **Supports** P14, P15 (drafted).
 
@@ -1052,7 +1052,7 @@ the same direction with nothing deciding which wins.
 
 Each backend session pins `reliquary.Context(home_dir=…,
 cache_dir=…, blueprints_dir=<session dir>, autoseed=False)` under
-testaferro's own cache, so resolution sees only what testaferro
+Testaferro's own cache, so resolution sees only what Testaferro
 authored for that run — never the user's reliquary home and never the
 built-in codex. The declaration is written into that private home as a
 blueprint and the machine is created and booted from it there.
@@ -1066,14 +1066,14 @@ now takes two arguments rather than one.
 
 **Weighed and declined:** resolving a blueprint by name from the
 user's reliquary home. That would make a test run depend on state
-testaferro did not author and cannot sweep. It remains available as a
+Testaferro did not author and cannot sweep. It remains available as a
 deliberate future decision — it is what the `machine="freedos"` open
 question above turns on — not a default to drift into.
 
 **Folded into:** `testaferro/qemu.py` (stated as an invariant in its
 module contract), [AGENTS.md](../AGENTS.md).
 
-### D5 — testaferro supplies the work drive itself
+### D5 — Testaferro supplies the work drive itself
 
 **Decided** owner, 2026-07-27. **Supports** U1, U3 (drafted).
 **Superseded** 2026-07-30 by the delivery of F4, whose design is
@@ -1087,23 +1087,23 @@ drive that needed it, and the letter is **read off the created
 machine** rather than mirrored — reliquary 0.1.0.dev6's
 `describe_drives()` answers it, so the mirror this entry accepted as
 a cost is deleted. What survives is the fallback: a machine offering
-no writable room of its own still gets a testaferro-supplied
+no writable room of its own still gets a Testaferro-supplied
 directory-source drive, now an implementation detail rather than the
 promise. The "eventual shape (F4)" this entry named is the shape
 that landed.
 
 The suite executable reaches the guest on a host-directory drive
-that **testaferro adds to the blueprint**, at the lowest free disk
+that **Testaferro adds to the blueprint**, at the lowest free disk
 slot, staging the executable into it before the machine boots.
 
 **Weighed and declined:** requiring the blueprint to declare a
-hostdir drive for testaferro to copy into, which is how the original
+hostdir drive for Testaferro to copy into, which is how the original
 design assumed insertion would work. Supplying the drive is strictly
 better for the consumer: a declaration then says nothing about
 testing, and a plain machine blueprint works unmodified. Two
 constraints came with the choice — the backend snapshots a host
 directory when the drive is attached, so staging cannot be lazy; and
-testaferro must name the drive letter the guest will give it, which
+Testaferro must name the drive letter the guest will give it, which
 means locally mirroring reliquary's DOS letter-assignment rule until
 reliquary exposes that mapping. A specified insertion point remains
 the eventual shape (F4).
@@ -1115,31 +1115,31 @@ cross-check test), [AGENTS.md](../AGENTS.md).
 
 **Decided** owner, 2026-07-27. **Supports** U3, P3 (drafted).
 
-Reliquary's `Runner`/`MachineConfig` layer — the layer testaferro was
+Reliquary's `Runner`/`MachineConfig` layer — the layer Testaferro was
 first built on — was removed in reliquary 0.1.0.dev2 and replaced by
 blueprints and the machine lifecycle. `config()`, `testaferro.ini`
 and `machine_config=` were moved onto blueprints directly: a
-declaration *is* an authored blueprint document, and testaferro
+declaration *is* an authored blueprint document, and Testaferro
 carries the JSON through untouched for reliquary to validate.
 
 **Weighed and declined:** mirroring reliquary's schema in
-testaferro — validating fields, normalizing values, or restating the
+Testaferro — validating fields, normalizing values, or restating the
 document's shape. Passing it through means a new blueprint field is
-expressible the day reliquary ships it, without a testaferro change.
+expressible the day reliquary ships it, without a Testaferro change.
 Only one normalization is kept, and deliberately: keys hyphenated in
 the blueprint (`backend-settings`, `control-planes`) are written with
 underscores in Python and INI and normalized on construction,
 because neither host spelling admits a hyphen.
 
 The same decision fixed reliquary's pin at an exact version. Its API
-has already removed the layer testaferro was built on once; a
+has already removed the layer Testaferro was built on once; a
 floating requirement would break consumers without warning, so
 moving the pin is a deliberate task rather than a chore.
 
 **Folded into:** `testaferro/machines.py`, `testaferro/qemu.py`,
 `pyproject.toml`, [AGENTS.md](../AGENTS.md), [README.md](../README.md).
 
-### D2 — Guest-side mechanics belong to reliquary, never to testaferro
+### D2 — Guest-side mechanics belong to reliquary, never to Testaferro
 
 **Decided** owner, 2026-07-18. **Supports** P1 (drafted).
 
@@ -1147,11 +1147,11 @@ Any guest-side agent or listener that handles execute requests
 inside a VM belongs to reliquary. So do guest-OS platform workflows
 beyond DOS — install media, unattended setup, platform-specific
 completion detection, and the former win9x install/cache plans.
-testaferro binds a platform reliquary already supports, and the
+Testaferro binds a platform reliquary already supports, and the
 binding is thin.
 
 **Weighed and declined:** building any in-guest component in
-testaferro to make a workflow work sooner. It would duplicate the
+Testaferro to make a workflow work sooner. It would duplicate the
 runner's whole reason to exist and leave two projects owning guest
 mechanics.
 
@@ -1162,14 +1162,14 @@ ownership between the two projects.
 
 **Decided** owner, 2026-07-18. **Supports** P1 (drafted).
 
-testaferro integrates directly with reliquary's blueprint and
+Testaferro integrates directly with reliquary's blueprint and
 machine-lifecycle interface. There is no `runner=` override
-["runner" here is the virtualization piece itself, which testaferro
+["runner" here is the virtualization piece itself, which Testaferro
 still does not build; choosing among external providers of it is
 D11's axis], no structural runner contract, no conformance kit, and
 no mirrored configuration hierarchy. Reliquary owns QEMU lifecycle, machine
 configuration and validation, provisioning, guest control,
-completion detection, and all in-guest mechanics; testaferro owns
+completion detection, and all in-guest mechanics; Testaferro owns
 executable-to-platform and machine selection, durable caches,
 isolated per-session reliquary homes, getting the suite executable
 into the guest, pytest sessions and parallelism, test-framework

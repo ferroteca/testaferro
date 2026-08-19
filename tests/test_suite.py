@@ -43,7 +43,7 @@ class ScriptedRunner:
 class ScriptedFramework:
     """Stands in for the framework aspect: the five callables P4 says
     an adapter supplies, in an argv spelling and an output grammar
-    nothing in testaferro knows. Deliberately unlike CppUTest's, so a
+    nothing in Testaferro knows. Deliberately unlike CppUTest's, so a
     composition reaching for the real adapter rather than the one it
     was handed fails here instead of passing by coincidence.
 

@@ -7,7 +7,7 @@ SPDX-License-Identifier: GPL-3.0-only
 
 The planning root holds what does not move ([README.md](README.md)),
 and this file is the handle ledger: **the next number to issue for
-every handle sequence testaferro carries**. Issue from here and
+every handle sequence Testaferro carries**. Issue from here and
 advance the mark in the same edit, on `main`.
 
 **These lines are not status columns.** Each records what its
@@ -54,13 +54,13 @@ commit message still resolves to one thing.
   [TASKS.md](TASKS.md). None has been issued: the queue has held no
   numbered entry, and T1 is genuinely free.
 
-**testaferro numbers no application surfaces.** Its interfaces are
+**Testaferro numbers no application surfaces.** Its interfaces are
 enumerated as an ordered list in
 [proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md), normative by
 lookup rather than by handle, so there is no S sequence to keep a
 mark for. Adding one is a governance change, not a ledger entry.
 
-**Not every handle in this tree is testaferro's**, which is the
+**Not every handle in this tree is Testaferro's**, which is the
 other reason to issue from a ledger rather than from a count. A
 downstream proposal to the provider cites the provider's numbers —
 the drive-geometry proposal names an `F29` that reliquary entered

@@ -1,6 +1,6 @@
-# Contributing to testaferro
+# Contributing to Testaferro
 
-Thank you for helping improve testaferro. Bug reports, documentation
+Thank you for helping improve Testaferro. Bug reports, documentation
 fixes, tests, and code changes are welcome when they preserve the
 project's pluggable-aspect design and GPL licensing.
 
@@ -15,7 +15,7 @@ learned before the work than after.
 **Open an issue first for anything substantial.** The issue tracker
 is the open door — anyone may file there, and filing commits you to
 nothing. It is also, deliberately, the only way in for a change that
-touches what testaferro promises: the project decides direction
+touches what Testaferro promises: the project decides direction
 before work is picked up, so finished work arriving with no agreed
 proposal behind it is refused for *not having argued the merit* —
 never for its quality and never for who wrote it. That is a door, not
@@ -29,7 +29,7 @@ judgement:
 - **Does it change an interface?** The surfaces are enumerated in
   [planning/proposed/ARCHITECTURE.md](planning/proposed/ARCHITECTURE.md)
   "The interfaces" — the public Python API, the machine declaration,
-  `testaferro.ini`, the `Backend` class, the pytest items testaferro
+  `testaferro.ini`, the `Backend` class, the pytest items Testaferro
   produces, and the cache layout. A yes is never a small change,
   however small the diff, and takes the argued route.
 - **Is it tiny *and* clearly a problem?** A small cleanup or a small
@@ -50,7 +50,7 @@ the facade's batching behavior.
 
 ## Development setup
 
-testaferro supports Python 3.12 and newer.
+Testaferro supports Python 3.12 and newer.
 [uv](https://docs.astral.sh/uv/) provisions the environment — one
 command creates `.venv`, installs the project editable, and installs
 its dependencies from the committed `uv.lock`:
@@ -121,14 +121,14 @@ the backend seam, an output grammar, packaging, or licensing behavior.
 
 ## Contribution licensing
 
-testaferro is licensed under the [GNU General Public License v3.0
+Testaferro is licensed under the [GNU General Public License v3.0
 only](LICENSE). It is copyleft: anyone may run, study, modify, and
 redistribute it, and any distributed work incorporating it must also
 be GPL-3.0-only. It cannot be taken into a proprietary product.
 
 ### The reserved right, stated plainly
 
-Paul Galbraith holds copyright in testaferro and **reserves the right
+Paul Galbraith holds copyright in Testaferro and **reserves the right
 to relicense it**, on any terms, at any time. No relicensing is
 planned or in preparation. The reservation exists so that the option
 is not lost by default — not because there is a plan behind it.
@@ -198,7 +198,7 @@ This applies with particular force to code from **GPL-licensed
 projects**. GPL compatibility is not the test here; assignability is,
 and copyleft code from another author fails it.
 
-If a third-party component genuinely belongs in testaferro, it comes
+If a third-party component genuinely belongs in Testaferro, it comes
 in as a **declared dependency** with its own licence intact, never as
 copied source, and only after discussion. See [AGENTS.md](AGENTS.md)
 for the rules governing which licences may be depended on and on what
@@ -206,7 +206,7 @@ terms.
 
 ### Reference projects and clean-room work
 
-testaferro studies prior art openly. The default boundary is absolute
+Testaferro studies prior art openly. The default boundary is absolute
 and it is **not** a licensing conclusion:
 
 > Designs may be studied and reimplemented. Code is never read for
@@ -223,7 +223,7 @@ CppUTest's own source, a choice the project made with the licence
 vetted and the reasons recorded in [AGENTS.md](AGENTS.md). An
 exception like that is the owner's to make and record — never a
 contributor's to assume. AGENTS.md carries the full doctrine and the
-standing of every project testaferro references.
+standing of every project Testaferro references.
 
 ### The project name
 

@@ -194,7 +194,7 @@ class GuestSuiteFile(pytest.File):
         # Enumeration is the first contact with the guest, so it is
         # where a broken setup shows up — and a collector says so
         # through CollectError rather than by letting an exception
-        # escape, which would print testaferro's own frames for
+        # escape, which would print Testaferro's own frames for
         # something that went wrong somewhere else entirely.
         try:
             if twin is None:
@@ -254,7 +254,7 @@ class GuestTestItem(pytest.Item):
             raise GuestTestFailure(failure_text(outcome))
 
     def repr_failure(self, excinfo, style=None):
-        """The guest's own report, not a traceback into testaferro."""
+        """The guest's own report, not a traceback into Testaferro."""
         if isinstance(excinfo.value, GuestTestFailure):
             return str(excinfo.value)
         return super().repr_failure(excinfo, style=style)
@@ -301,7 +301,7 @@ class _Suite:
 
 
 def _claimed(config, path):
-    """Whether this file is a guest suite testaferro should collect.
+    """Whether this file is a guest suite Testaferro should collect.
 
     The claiming policy, in one place. Its load-bearing distinction is
     that `binfmt`'s "dos" verdict has two very different strengths: a
@@ -421,7 +421,7 @@ def _backend_for(config, path):
                 _rooted(config, part.strip())
                 for part in str(value).split(",") if part.strip())
     # Guest addresses, passed through as written: what a valid one is
-    # belongs to the guest platform, and testaferro never rewrites a
+    # belongs to the guest platform, and Testaferro never rewrites a
     # host path into one (P17).
     for name in ("location", "program"):
         value = _setting(config, name)

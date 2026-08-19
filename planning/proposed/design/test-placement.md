@@ -24,7 +24,7 @@ SPDX-License-Identifier: GPL-3.0-only
 Serves **F4**, and settles its design (owner, 2026-07-29). The
 trigger was concrete: reliquary 0.1.0.dev5 (D78 there) stopped
 assuming one volume per disk, and with the assumption went the only
-public way testaferro had to *infer* a drive letter before boot —
+public way Testaferro had to *infer* a drive letter before boot —
 34 unit tests fail on the pin move, all from `_work_drive()`. The
 design answers with the correction reliquary itself made, applied
 downstream: **the letter stops being inferred anywhere.**
@@ -42,7 +42,7 @@ nothing else said still runs (P8):
 | location | a guest address: `location="D:\TESTDIR"` | chosen over the enumerated drive map (below) |
 | program | a guest address of what to run | location + the executable's own name |
 
-`files`, `location` and `program` are **testaferro's own words**,
+`files`, `location` and `program` are **Testaferro's own words**,
 said beside the machine spec and never inside it — exactly as
 `provider` and `timeout` are (D18): reliquary's document has no
 field for what a test run stages. Each carries the keyword, ini and
@@ -68,24 +68,24 @@ at-rest file verbs, spell the command from the same address.**
   outright under the old assumption — becomes simply *supported*:
   the consumer's address plus the provider's reading replaces the
   guess.
-- A defaulted address is *chosen over the enumerated map*: testaferro
+- A defaulted address is *chosen over the enumerated map*: Testaferro
   asks the provider what drive letters the created machine actually
   has, then applies its own policy to pick one. The facts are the
-  provider's; the choice is testaferro's; nothing is inferred by
+  provider's; the choice is Testaferro's; nothing is inferred by
   either. The map is the one provider capability this design still
   lacks — the letter-map slice of the drive-geometry report argued
   downstream in
   [reliquary-drive-geometry-proposal.md](reliquary-drive-geometry-proposal.md).
 
 The leading default policy, settled finally at the pledge: the last
-letter of the map — the drive testaferro appended when it appended
+letter of the map — the drive Testaferro appended when it appended
 one, the boot disk's own volume when it did not — with the staged
-area a directory under it that testaferro names.
+area a directory under it that Testaferro names.
 
 ## The placement is reported, not merely performed
 
 A consumer must be able to learn **where their harness landed** —
-the location as resolved, whether they declared it or testaferro's
+the location as resolved, whether they declared it or Testaferro's
 default policy chose it for them. Placing files somewhere a
 consumer cannot name afterwards would leave their own harness logic
 — setup steps that reference staged files, tooling that collects
@@ -96,7 +96,7 @@ design exists to make declarative. The contract:
   guest address (`D:\TESTDIR`), the same terms a declaration uses —
   the symmetry that makes the surface learnable: what you could
   have declared is what you are told. And it is the *same* answer
-  whether the consumer stated it or testaferro chose it; who chose
+  whether the consumer stated it or Testaferro chose it; who chose
   is deliberately not part of the answer, the courtesy this design
   asks of the provider one seam down applied at its own surface —
   the asker learns the fact, never the mechanism.
@@ -107,9 +107,9 @@ design exists to make declarative. The contract:
 - **In-guest references resolve by placeholder.** Declared text
   that must name the location before it is known — a setup command
   naming a staged file, a `program=` under a defaulted location —
-  uses substitution testaferro already speaks: `{stem}` and
+  uses substitution Testaferro already speaks: `{stem}` and
   `{name}` in the enumerator option are the precedent, and the
-  location joins that vocabulary, substituted when testaferro
+  location joins that vocabulary, substituted when Testaferro
   knows. Spelling settled at the pledge.
 - **Host-side code asks after resolution.** The embedding surface
   answers from the moment the location is settled — immediately for
@@ -138,7 +138,7 @@ D5's constraints dissolve rather than transfer: "the backend
 snapshots a host directory at attach, so staging cannot be lazy"
 becomes "staging happens at rest, between create and start" — a
 narrower rule that no blueprint-authoring code can quietly break. A
-testaferro-supplied directory-source drive may survive as an
+Testaferro-supplied directory-source drive may survive as an
 implementation detail where a machine offers no writable room (a
 tester's write-protected floppy), but the *surface* stops promising
 one: what is promised is the location.
@@ -156,7 +156,7 @@ one: what is promised is the location.
   the downstream ask — however the provider chooses to answer it,
   that being an implementation detail this side never learns (the
   proposal records why a consumer-side bridge was rejected).
-  testaferro stays on 0.1.0.dev4 until then, and the pin move (D4)
+  Testaferro stays on 0.1.0.dev4 until then, and the pin move (D4)
   lands with what it waited for.
 - **Interface changes, enumerated for the vetting rule**: the
   embedding API and `testaferro.ini` gain three declarations; the
@@ -179,4 +179,4 @@ one: what is promised is the location.
   derivable without guessing, which the letter inference never was.
 - **U2, U3 unchanged in promise**; U3's tester-owned floppy keeps
   its read-never-written guarantee (P5) because staging writes only
-  testaferro's copy.
+  Testaferro's copy.

@@ -8,7 +8,7 @@ SPDX-License-Identifier: GPL-3.0-only
 > **Status:** drafted, not pledged. **Nothing is worked from here.**
 > Large capability the project may want, each carrying whatever
 > design is already settled about it — migrated from the retired
-> `ROADMAP.md` when testaferro adopted the planning model (D7). A
+> `ROADMAP.md` when Testaferro adopted the planning model (D7). A
 > feature arrives in `pledged/FEATURES.md` by being moved there, and
 > the commit that moves it is the record of the pledge.
 
@@ -83,7 +83,7 @@ F9): an install-recipe machine document implies provisioning and
 reuse rather than a fresh machine per session.
 
 Note the tension with **P5**: a machine surviving a session is state
-testaferro created and did not sweep. Pledging this feature means
+Testaferro created and did not sweep. Pledging this feature means
 saying exactly what remains, where, and how a user gets rid of it —
 U8 already demands it be enumerable and removable.
 
@@ -107,7 +107,7 @@ A guest OS beyond DOS surfacing through the facade: a platform name,
 its binary formats and default boot media in `binfmt`, and a thin
 binding module. Waits entirely on reliquary — install media,
 unattended setup and platform-specific completion detection are its
-work, not testaferro's (D2). This entry is shapeless until a
+work, not Testaferro's (D2). This entry is shapeless until a
 specific platform is named, and cutting it means naming one.
 
 ## F18 — `guest_session()`, a lower-level guest primitive

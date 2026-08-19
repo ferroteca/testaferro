@@ -1,9 +1,9 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: GPL-3.0-only
-"""The at-rest surface testaferro stages through, against a real disk.
+"""The at-rest surface Testaferro stages through, against a real disk.
 
 **Integration by fixture cost, not by slowness.** These need
-testaferro's installed FreeDOS system — a genuine FAT16 volume in a
+Testaferro's installed FreeDOS system — a genuine FAT16 volume in a
 qcow2, built once by an install nothing here may repeat (P10) — so
 they sit on this side of the line. What they do *not* need is a
 boot: everything below happens between `create_machine()` and the
@@ -11,7 +11,7 @@ machine's first start, which is the window F4's staging lives in.
 One case costs a couple of seconds, which is what makes covering
 this surface properly affordable.
 
-**Why cover it here at all.** What testaferro does with a real disk
+**Why cover it here at all.** What Testaferro does with a real disk
 is *act* on it: a resolution places the suite, a refusal decides
 whether a run fails now or fails as a missing program inside a
 guest. That combination — high variability, wide blast radius — is
@@ -117,7 +117,7 @@ class AtRestFixture(unittest.TestCase):
         """What is at an address, by retrieving it. Names only.
 
         There is no at-rest listing verb and none is added for a
-        test: retrieval is the operation testaferro actually
+        test: retrieval is the operation Testaferro actually
         performs, so reading a result back the way the product does
         is the stronger check anyway.
         """
@@ -129,14 +129,14 @@ class AtRestFixture(unittest.TestCase):
 
 
 class InstalledSystemTests(AtRestFixture):
-    """What testaferro's own FreeDOS disk actually is."""
+    """What Testaferro's own FreeDOS disk actually is."""
 
     def test_the_installed_system_carries_exactly_one_fat16_volume(self):
         """The fact the guaranteed location rests on (F16, D23).
 
         One volume is what makes `C:` the only letter DOS can hand
         out, so the guarantee is not a guess about a machine — it is
-        a statement about a disk testaferro built. A second volume
+        a statement about a disk Testaferro built. A second volume
         appearing here would break the guarantee silently, which is
         why this is pinned rather than assumed.
         """
@@ -192,7 +192,7 @@ class InstalledSystemTests(AtRestFixture):
 
 class StagingTests(AtRestFixture):
     """Writing into a stopped machine's disk, which is how a suite
-    reaches the guest since F4 — and testaferro's own work since
+    reaches the guest since F4 — and Testaferro's own work since
     F16."""
 
     def test_the_staged_set_lands_at_the_address(self):
@@ -208,7 +208,7 @@ class StagingTests(AtRestFixture):
 
     def test_the_location_directory_is_created_rather_than_required(self):
         # `C:\TESTS` does not exist on a fresh FreeDOS install, and
-        # testaferro never creates it itself — staging does, which is
+        # Testaferro never creates it itself — staging does, which is
         # what lets a defaulted location name a directory nobody made.
         machine = self._create()
 
@@ -266,9 +266,9 @@ class StagingTests(AtRestFixture):
     def test_a_name_a_dos_guest_could_not_type_is_refused(self):
         """8.3 is the dependency's rule, and it is enforced here.
 
-        testaferro re-checks nothing, so this is the case that says
+        Testaferro re-checks nothing, so this is the case that says
         the inherited refusal is real — and that it arrives in
-        testaferro's own vocabulary rather than the dependency's.
+        Testaferro's own vocabulary rather than the dependency's.
         """
         machine = self._create()
         source = self._staged("SUITE.EXE")
@@ -298,7 +298,7 @@ class DeclaredAddressTests(AtRestFixture):
 
     def test_a_declared_machines_own_letter_resolves(self):
         # The capability 0.1.0a2 took away and _letter_map gives back
-        # (D108): a machine testaferro did not build zero-config
+        # (D108): a machine Testaferro did not build zero-config
         # still resolves its own declared disk deterministically —
         # this fixture's own thin blueprint stands in for one.
         machine = self._create()
@@ -325,7 +325,7 @@ class UnreadableDriveTests(AtRestFixture):
                          "materialize": "use"}}
 
     def test_an_unreadable_disk_refuses_the_write_by_name(self):
-        """remanence's refusal, in testaferro's vocabulary.
+        """remanence's refusal, in Testaferro's vocabulary.
 
         A fake cannot prove this about a real disk — only a genuine
         FAT-blind image, opened for real, raises the type `at_rest`
@@ -338,7 +338,7 @@ class UnreadableDriveTests(AtRestFixture):
 
     def test_the_letter_map_ignores_whether_a_disk_can_be_read(self):
         # `_letter_map` is pure declaration arithmetic (0.1.0a2,
-        # D108): a junk disk ahead of testaferro's work drive still
+        # D108): a junk disk ahead of Testaferro's work drive still
         # gives the work drive D:, since nothing here reads any disk
         # to answer the question — only PlacedLetterTests (unit tier)
         # needs proving this positional rule at all, but a junk disk

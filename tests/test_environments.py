@@ -29,7 +29,7 @@ class EnvironmentConfigurationTests(unittest.TestCase):
                          ("win98", template))
 
     def test_platform_is_a_blueprint_field_passing_through(self):
-        # Not testaferro's word (P2): it is written where every other
+        # Not Testaferro's word (P2): it is written where every other
         # blueprint field is written, and read back the same way.
         config = environments.configure("win98", platform="win9x",
                                         memory=64)
@@ -40,7 +40,7 @@ class EnvironmentConfigurationTests(unittest.TestCase):
 
     def test_a_template_is_complete_so_fields_are_not_said_beside_it(self):
         # Including `platform`, which used to be the exception that
-        # let testaferro cross-check somebody else's document.
+        # let Testaferro cross-check somebody else's document.
         template = environments.EnvironmentSpec({"platform": "dos"})
 
         with self.assertRaisesRegex(TypeError, "complete template"):
@@ -160,7 +160,7 @@ class StandardCatalogTests(unittest.TestCase):
 
     def test_every_standard_document_is_testaferros_own(self):
         # A standard environment is fully owned: its document names
-        # no blueprint and no medium testaferro did not author beside
+        # no blueprint and no medium Testaferro did not author beside
         # it, so nothing resolves from reliquary's codex or from the
         # user's reliquary home (D6, D10).
         for name, document in catalog.STANDARD.items():

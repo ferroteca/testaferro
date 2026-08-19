@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """The reliquary provider binding, for DOS guests.
 
-Named for the provider it binds, which is the layer testaferro
+Named for the provider it binds, which is the layer Testaferro
 actually talks to: everything in this module is a reliquary call, and
 whatever the provider drives underneath is the provider's own
 business — it has no name anywhere in this package (D16, P1, P2). The
@@ -19,7 +19,7 @@ ReliquarySuiteBackend drives a reliquary machine on the caller's
 behalf.
 Each **guest session** — one guest up, from `start_guest()` to
 `stop_guest()` — gets a fresh, disposable reliquary home under
-testaferro's cache directory (LOCALAPPDATA or XDG_CACHE_HOME): the
+Testaferro's cache directory (LOCALAPPDATA or XDG_CACHE_HOME): the
 declaration is written there as a blueprint, reliquary creates and
 boots one machine from it, and every guest run is one `reliquary.exec`
 against that machine. Guest homes sit inside the active **run**'s
@@ -27,7 +27,7 @@ area when `start()` opened one (`runs/run-*/guests/guest-*`) and
 directly under the cache otherwise; the two spans and why neither is
 called a "session" on its own are D15.
 
-The suite reaches the guest on testaferro's own **work drive** — a
+The suite reaches the guest on Testaferro's own **work drive** — a
 vvfat medium (a host directory QEMU serves live as a FAT volume,
 never materialized into an image), attached as a sibling of whatever
 else the machine declares. It is `_gather()`ed *before* the machine
@@ -41,7 +41,7 @@ more, by design rather than by gap** (0.1.0a2, D108 there; remanence's
 own D57). `describe_drives` and the rest of the file-verb layer are
 deleted outright, and remanence refuses the same question by name — a
 fact about a booted guest, never a stopped image. **Testaferro answers
-it instead, deterministically, because testaferro authors the whole
+it instead, deterministically, because Testaferro authors the whole
 document** (`_letter_map()`): DOS gives a floppy `A:`/`B:` by
 controller position and a hard disk `C:` onward by slot order, one
 volume per disk, and every drive this binding ever declares — its own
@@ -49,13 +49,13 @@ system disk, its own work drive, a `machine_config` template passed
 through unmodified — keeps to that shape by construction. Checked
 against a real boot: the zero-configuration guest's system disk is
 `C:` and its work-drive sibling is `D:`, exactly as computed, with
-nothing shifted by a CD-ROM driver claiming a letter first (testaferro's
+nothing shifted by a CD-ROM driver claiming a letter first (Testaferro's
 own FreeDOS install loads none).
 
 **The write this module still asks `testaferro.at_rest` for is the
 one case the work drive cannot cover on its own** — a `location=` a
 consumer declared naming some *other* drive the machine carries, not
-testaferro's own. Reading and writing a stopped machine's disk is not
+Testaferro's own. Reading and writing a stopped machine's disk is not
 execution, so that write is not the provider's to supply (F16, D23);
 `at_rest` does it over remanence.
 """
@@ -86,17 +86,17 @@ from .suite import SuiteBackend
 # directly, exactly as `binfmt` is shared between the two (D16).
 PLATFORMS = ("dos",)
 
-# The blueprint name testaferro writes into each session's private
+# The blueprint name Testaferro writes into each session's private
 # blueprints directory, and the machine created from it.
 _BLUEPRINT_NAME = "testaferro"
-# testaferro's own drive, a vvfat sibling of whatever else the
+# Testaferro's own drive, a vvfat sibling of whatever else the
 # machine declares — always present now (D108: reliquary no longer
 # answers a drive-letter question at all, so there is nothing left
 # to react to; the drive is simply always there instead).
 _WORK_MEDIA_NAME = "testaferro-work"
 _BOOT_MEDIA_NAME = "testaferro-boot"
 # Where `_letter_map()` starts counting each drive family — DOS's own
-# rule, not testaferro's: a floppy controller's drives take A:/B: by
+# rule, not Testaferro's: a floppy controller's drives take A:/B: by
 # position, and a hard disk takes C: onward by slot order, neither
 # ever read off anything.
 _FLOPPY_BASE_LETTER = "A"
@@ -105,7 +105,7 @@ _HDD_BASE_LETTER = "C"
 # `{name}` in the enumerator template are the precedent; this joins
 # that vocabulary rather than inventing a second one (F4).
 _LOCATION_PLACEHOLDER = "location"
-# testaferro's installed FreeDOS system, shared by every guest session
+# Testaferro's installed FreeDOS system, shared by every guest session
 # that declared nothing of its own.
 _SYSTEM_MEDIA_NAME = "testaferro-freedos"
 _DEFAULT_MEMORY = "32M"
@@ -113,10 +113,10 @@ _DEFAULT_MEMORY = "32M"
 _DEFAULT_TIMEOUT = 120
 _HDD_SLOTS = 4
 
-# testaferro's own FreeDOS system, and the recipe that makes it.
+# Testaferro's own FreeDOS system, and the recipe that makes it.
 #
 # The recipe is authored here (P17): `assets/` holds the blueprint and
-# the install script, so nothing about the environment testaferro
+# the install script, so nothing about the environment Testaferro
 # offers by name is resolved out of the provider's own codex at run
 # time. What the recipe *produces* is a plain installed FreeDOS system
 # on a disk, kept in the cache and reused — an install is a price paid
@@ -132,7 +132,7 @@ _FREEDOS_BLUEPRINT = "freedos"
 _FREEDOS_IMAGE_NAME = "freedos.qcow2"
 # The readiness script's label and the variable its last step sets.
 # Reliquary ships no readiness script on purpose — what "ready" means
-# belongs to whatever is being built — so this one is testaferro's
+# belongs to whatever is being built — so this one is Testaferro's
 # answer for a guest suite: the guest will take a command. Bare stem,
 # no `.rlqs`: `run_script()` resolves it against the session's own
 # scripts directory (`_ASSETS`, pinned in `start_guest()`).
@@ -159,7 +159,7 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
     the guest address they land at (e.g. `D:\\`); `program` is the
     guest address of what to run, in which `{location}` stands for
     the location however it was settled. Saying none of them is the
-    one-liner case: the executable alone, at testaferro's default
+    one-liner case: the executable alone, at Testaferro's default
     location, run by its own name."""
     exe_path = os.fspath(exe_path)
     fmt = binfmt.classify(exe_path)
@@ -185,7 +185,7 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
                                  location=location, program=program)
 
 
-# The active testaferro run opened by start(), or None: its
+# The active Testaferro run opened by start(), or None: its
 # disposable directory (holding the staged boot image and every guest
 # home) plus the recorded image choice, staged lazily on first use.
 # A *run* is the outer span — one image choice shared by many suites,
@@ -225,7 +225,7 @@ def _stop_running_machines():
 
 
 def start(boot_image=None):
-    """Open a testaferro run: one boot-image choice serving every
+    """Open a Testaferro run: one boot-image choice serving every
     suite until stop(). The image itself — `boot_image` or the cached
     default — is staged lazily on the first guest use, so calling
     this from a conftest costs nothing when no guest test runs. An
@@ -248,7 +248,7 @@ def start(boot_image=None):
 def stop(clear_downloads=False):
     """Close the run opened by start(), sweeping its whole area —
     staged image and every guest home. Safe to call with no run
-    active. `clear_downloads=True` also removes testaferro's built
+    active. `clear_downloads=True` also removes Testaferro's built
     FreeDOS system, so the next zero-configuration run installs a
     fresh one — which is minutes rather than the seconds the name
     suggests, this being an install and no longer a download."""
@@ -283,7 +283,7 @@ def _run_image():
 
 
 def _cached_default_image():
-    """testaferro's own FreeDOS system, built once and kept.
+    """Testaferro's own FreeDOS system, built once and kept.
 
     The first call installs FreeDOS from the recipe in `assets/` and
     keeps the resulting disk under the cache; every call after that is
@@ -298,7 +298,7 @@ def _cached_default_image():
 
 
 def _build_default_image(destination):
-    """Install FreeDOS once, from testaferro's own authored recipe.
+    """Install FreeDOS once, from Testaferro's own authored recipe.
 
     Everything happens inside a disposable home under the cache and
     against a context pinned to `assets/`, so the codex is no more an
@@ -330,10 +330,10 @@ def _build_default_image(destination):
 
 
 def _open_session(home, blueprints, scripts=None):
-    """A reliquary session pinned to one disposable testaferro home.
+    """A reliquary session pinned to one disposable Testaferro home.
 
     The pinned directories keep resolution hermetic: only what
-    testaferro wrote for this run, never the user's own reliquary home
+    Testaferro wrote for this run, never the user's own reliquary home
     or the built-in codex — a `Session` refuses construction without a
     home at all (`dir.unassigned`), so there is no process-global left
     to fence off (0.1.0dev6's `autoseed` deletion carried this the
@@ -345,7 +345,7 @@ def _open_session(home, blueprints, scripts=None):
     `exec`, the rest — is a method on the object this returns, opened
     once per disposable home and threaded through the calls that
     follow. `scripts` is pinned only where one is actually run —
-    building the default image — and points at testaferro's own
+    building the default image — and points at Testaferro's own
     `assets/` for the same reason the blueprints directory does.
     """
     context = reliquary.Context(home_dir=home,
@@ -356,9 +356,9 @@ def _open_session(home, blueprints, scripts=None):
 
 
 def _work_slot(drives):
-    """Choose the disk slot testaferro's work drive will occupy.
+    """Choose the disk slot Testaferro's work drive will occupy.
 
-    The slot is testaferro's to choose — the lowest free disk — and
+    The slot is Testaferro's to choose — the lowest free disk — and
     that is *all* this decides. **The letter is reliquary's to say,
     and is no longer asked for here**, because at this point there is
     nothing to ask about: this authors a document, and a letter is a
@@ -378,7 +378,7 @@ def _work_slot(drives):
 def _letter_map(drives):
     """The DOS drive letter for every drive this document declares.
 
-    **Deterministic, because testaferro authors the whole document**
+    **Deterministic, because Testaferro authors the whole document**
     (0.1.0a2, D108 — reliquary's own drive-letter report is deleted
     outright, and remanence refuses the same question by design, its
     own D57: a fact about a booted guest, never a stopped image). DOS
@@ -387,22 +387,22 @@ def _letter_map(drives):
     holds by construction for every drive this binding ever declares:
     its own system disk and its own work drive are each exactly one
     FAT volume, and a `machine_config` declaration is expected to keep
-    that shape too, since testaferro cannot look inside a disk it did
+    that shape too, since Testaferro cannot look inside a disk it did
     not build to check.
 
-    Through 0.1.0.dev4 testaferro inferred every letter exactly this
+    Through 0.1.0.dev4 Testaferro inferred every letter exactly this
     way, and 0.1.0.dev5 killed the practice: a *declared* disk could
     hold more volumes than it declared, so reading the real answer was
     the only honest one once reliquary offered it. 0.1.0a2 withdrew
     that offer for good — this is not a fallback for its absence, it
     is the position the project now holds: the assumption inference
-    always rested on is one testaferro states and owns, not one it
+    always rested on is one Testaferro states and owns, not one it
     pretends to have confirmed.
 
     Checked against a real boot (FreeDOS 1.4, one hard disk plus a
     vvfat sibling): the system disk answers `C:` and the sibling `D:`,
     matching this computation exactly, with nothing shifted by a
-    CD-ROM driver claiming a letter first — testaferro's own FreeDOS
+    CD-ROM driver claiming a letter first — Testaferro's own FreeDOS
     install loads none.
     """
     letters = {}
@@ -447,7 +447,7 @@ def _drive_image(key, machine, session):
 def _resolve_volume(address, machine, session, drives):
     """The image and volume a guest address names, for an at-rest write.
 
-    **One computation for every drive now, testaferro's own or
+    **One computation for every drive now, Testaferro's own or
     declared alike** (D23, D108): `_letter_map()` answers deterministically
     from the document, so there is no report left to ask and no split
     between "guaranteed" and "looked up" any more — a letter the
@@ -464,7 +464,7 @@ def _resolve_volume(address, machine, session, drives):
 
 
 def _default_location(drives, work_key):
-    """Where a run lands when nobody said (F4, P8): testaferro's own
+    """Where a run lands when nobody said (F4, P8): Testaferro's own
     work drive, at whatever letter `_letter_map()` computes for it.
 
     Its root, not a subdirectory — F4's original *last letter of the
@@ -484,7 +484,7 @@ def _resolve_program(program, location, exe_name):
     Defaulted it is the staged executable under the location, which
     is the whole of the one-liner case. Declared it is the consumer's
     own address, with `{location}` substituted — the location is
-    settled by now whether they stated it or testaferro chose it, and
+    settled by now whether they stated it or Testaferro chose it, and
     that is precisely what makes one placeholder enough.
     """
     if program is None:
@@ -544,8 +544,8 @@ class ReliquarySuiteBackend(SuiteBackend):
         one answer — a guest address like `C:\\TESTS`, the same terms a
         declaration uses, so what you could have declared is what you
         are told. And the same answer whether the consumer stated it
-        or testaferro chose it: who chose is deliberately not part of
-        it, which is the courtesy testaferro asks of the provider one
+        or Testaferro chose it: who chose is deliberately not part of
+        it, which is the courtesy Testaferro asks of the provider one
         seam down, applied at its own surface.
 
         Refuses before the location is settled rather than guessing.
@@ -580,7 +580,7 @@ class ReliquarySuiteBackend(SuiteBackend):
         # under the location.
         self._gather(work)
         # The boot image is staged host-side too, and for a different
-        # reason: what boots is testaferro's copy, so the tester's own
+        # reason: what boots is Testaferro's copy, so the tester's own
         # file is read and never written (P5).
         boot = self._stage_boot_image()
 
@@ -598,7 +598,7 @@ class ReliquarySuiteBackend(SuiteBackend):
             # read and written, and reliquary will still touch them at
             # rest. A declared address that cannot work fails here,
             # before any boot, rather than as a missing program in the
-            # guest — testaferro's own work drive needs nothing
+            # guest — Testaferro's own work drive needs nothing
             # written to it at all, its content having arrived with
             # `_gather()` before the machine ever existed.
             self._place(work)
@@ -628,7 +628,7 @@ class ReliquarySuiteBackend(SuiteBackend):
     def _create(self, blueprints, boot, work):
         """Author this session's blueprint and materialize it.
 
-        `work` is always the real staging directory now: testaferro's
+        `work` is always the real staging directory now: Testaferro's
         own drive is a permanent fixture of every session's document,
         never appended reactively.
         """
@@ -651,7 +651,7 @@ class ReliquarySuiteBackend(SuiteBackend):
         never smoothed over, because the consumer named that address
         and is the only one who can correct it.
 
-        **testaferro's own work drive needs no write at all.** It is a
+        **Testaferro's own work drive needs no write at all.** It is a
         vvfat medium serving `work` live, and `_gather()` already put
         the staged set there before this method — or the machine
         itself — existed. Only a declared address naming some *other*
@@ -788,7 +788,7 @@ class ReliquarySuiteBackend(SuiteBackend):
         `None` when `work` is not given (tests composing a document
         with no work drive at all). `_create()` keeps the key as
         `self._work_key`, which `_place()`/`_default_location()` read
-        `_letter_map()` against to find where DOS put it — testaferro's
+        `_letter_map()` against to find where DOS put it — Testaferro's
         own answer now, not the provider's (0.1.0a2, D108).
         """
         spec = self._machine_config
@@ -808,7 +808,7 @@ class ReliquarySuiteBackend(SuiteBackend):
                 }
                 fields.setdefault("boot", ["floppy0"])
             else:
-                # Zero configuration: testaferro's own installed
+                # Zero configuration: Testaferro's own installed
                 # FreeDOS system. **Layered, never used in place** —
                 # every guest session gets its own overlay, so a guest
                 # writing to C: cannot reach the one copy each of them
@@ -844,7 +844,7 @@ class ReliquarySuiteBackend(SuiteBackend):
         staged into the run's area so every suite boots the same
         bytes. None means nobody said, which is the zero-configuration
         path and not a defaulted floppy: what runs then is
-        testaferro's own installed system, and it is a disk.
+        Testaferro's own installed system, and it is a disk.
         """
         if self._boot_image is not None:
             return self._boot_image
@@ -856,7 +856,7 @@ class ReliquarySuiteBackend(SuiteBackend):
         """This guest's own copy of the declared boot image, or None.
 
         **The tester's image is read and never written** (P5), so what
-        boots is testaferro's copy inside this guest's home — staged
+        boots is Testaferro's copy inside this guest's home — staged
         before boot exactly as the suite executable is, and for the
         same reason: a drive attached in place is one the guest may
         write to, and DOS writes to A: for reasons of its own. Before

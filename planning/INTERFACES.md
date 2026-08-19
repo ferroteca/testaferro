@@ -5,7 +5,7 @@ SPDX-License-Identifier: GPL-3.0-only
 
 # The interface-change rule
 
-> **Status:** the governing rule for changes to testaferro's
+> **Status:** the governing rule for changes to Testaferro's
 > world-facing interfaces. The interfaces themselves are enumerated
 > in [proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md) "The
 > interfaces" — that enumeration is this rule's scope, answered by
@@ -53,7 +53,7 @@ That state has one practical consequence worth naming: the
 housekeeping test below is a lookup against an enumeration that is
 itself only proposed. Use it anyway — an enumeration that has been
 written down is what makes the test a checklist rather than a
-judgement, and its being unpledged affects what testaferro
+judgement, and its being unpledged affects what Testaferro
 *promises* about those surfaces, not which surfaces exist.
 
 ## The housekeeping boundary
@@ -163,7 +163,7 @@ Every approved change then lands the same way:
    single-surface change states why the others are unaffected.
 2. **Land it coherently and completely** — every affected surface,
    document, example, and test moved to the new shape, the old one
-   deleted. testaferro is pre-1.0 and gives no backward-compatibility
+   deleted. Testaferro is pre-1.0 and gives no backward-compatibility
    guarantee, so the old shape is deleted rather than bridged. Cheap
    execution does not make the decision cheap; nothing downstream
    cushions a wrong one.

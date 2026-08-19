@@ -17,9 +17,9 @@ SPDX-License-Identifier: GPL-3.0-only
 > entry keeps its number all the way here. A gap in the numbering is a
 > use case still argued or still owed, not a missing one.
 
-**This file exists at last.** testaferro adopted its planning model
+**This file exists at last.** Testaferro adopted its planning model
 after the code was written (D7), so its whole vision began drafted;
-for months the honest answer to "what does testaferro promise *a
+for months the honest answer to "what does Testaferro promise *a
 user*?" was *no journey yet stated*, because no guest had run since
 the migration to the blueprint model (D4) and a use case arms on
 delivery rather than on intent. A guest has now run — it boots,
@@ -59,7 +59,7 @@ journey works end to end.
   the same executable collected from the tree, or a `guest_suite()`
   call when programmatic control is wanted, and the trial command
   stays valid forever — the step before U1 and the same surface as
-  U1, so adopting testaferro does not start with a leap of faith.
+  U1, so adopting Testaferro does not start with a leap of faith.
 
 **U4 cites U1, U2 and U3, which remain drafted**, and that is a
 citation rather than a dependency. The map's rule against leaning on a
