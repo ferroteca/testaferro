@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pytest-testaferro"
-version = "0.1.0.dev8"
+version = "0.1.0.a1"
 description = "pytest plugin for DOS-based CppUTest unit testing, run in a reliquary guest"
 readme = "README.md"
 authors = [{ name = "Paul Galbraith", email = "paul@galbraiths.ca" }]
