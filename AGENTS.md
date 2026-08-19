@@ -403,18 +403,18 @@ both batched and `-k`-narrowed.
   [ARCHITECTURE.md](ARCHITECTURE.md) carries thirteen principles —
   P1, P2, P4, P6 through P13, P16 and P17 — and root
   [USE-CASES.md](USE-CASES.md) now exists, carrying **U4**, armed once
-  a guest ran the journey it describes. **U7 and F9 are pledged
-  now**, in [planning/pledged/](planning/pledged/) — U7 requires F9,
-  and both are pledged together rather than the citation left resting
-  on something merely proposed. Every other U- or P-number still
-  names either a rule in force or an argument, never something merely
-  owed. Four principles stay drafted: P3 and P5,
-  each contradicted by a small piece of the code and each saying so
-  at its own entry, and P14 and P15, which govern conduct rather
-  than code. An entry may arm without ever being pledged, as most of
-  the principles did — the pledged shelf holds what is *owed*, not a
-  stop every entry makes. Cite a U- or P-number knowing it
-  names a draft unless it sits in
+  a guest ran the journey it describes. **U7, F9, U10 and F18 are
+  pledged now**, in [planning/pledged/](planning/pledged/) — U7
+  requires F9 and U10 requires F18, each pair pledged together rather
+  than a citation left resting on something merely proposed. Every
+  other U- or P-number still names either a rule in force or an
+  argument, never something merely owed. Four principles stay
+  drafted: P3 and P5, each contradicted by a small piece of the code
+  and each saying so at its own entry, and P14 and P15, which govern
+  conduct rather than code. An entry may arm without ever being
+  pledged, as most of the principles did — the pledged shelf holds
+  what is *owed*, not a stop every entry makes. Cite a U- or
+  P-number knowing it names a draft unless it sits in
   [planning/pledged/](planning/pledged/), where it names something
   the project owes and has not yet delivered, or at the root, where a
   divergence is a bug rather than unbuilt work.

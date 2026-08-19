@@ -31,8 +31,9 @@ the trial journey, armed once a guest actually ran it, and root
 P1, P2, P4, P6 through P13, P16 and P17. **No principle is pledged
 any more** — what stays drafted is P3, P5, P14 and P15, so a
 P-citation now points either at a rule in force or at an argument,
-and never at something merely owed. **One use case is pledged**: U7,
-alongside its prerequisite F9, in
+and never at something merely owed. **Two use cases are pledged**:
+U7, alongside its prerequisite F9, and U10, alongside its
+prerequisite F18, in
 [pledged/USE-CASES.md](pledged/USE-CASES.md) and
 [pledged/FEATURES.md](pledged/FEATURES.md). Every other use case is
 drafted in [proposed/USE-CASES.md](proposed/USE-CASES.md), so read a

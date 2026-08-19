@@ -86,15 +86,15 @@ the same artifacts in different states. A thing in `proposed/` moves
 to `pledged/`, and **the commit that moves it is the record**. Each
 mirrored file appears in `pledged/` with its first promoted entry
 rather than standing empty, and leaves again when its last one
-does. **`pledged/` holds two entries today: U7 and F9.**
+does. **`pledged/` holds four entries today: U7, F9, U10 and F18.**
 `FEATURES.md` did the round trip three times over — F7 and F8, then
-F11 and F12, then F13 alone — and holds F9 now, its fourth stay.
-`ARCHITECTURE.md` did it once, holding P1 and P2 from D18 until F12
-built what they promised, and stands empty since. `USE-CASES.md` did
-it once, holding U4 from D13 until a guest ran the journey it
-describes, and holds U7 now, its second stay. Each leaves when its
-last entry arms or delivers, which is the machinery working rather
-than churn.
+F11 and F12, then F13 alone — and holds F9 and F18 now, its fourth
+stay. `ARCHITECTURE.md` did it once, holding P1 and P2 from D18 until
+F12 built what they promised, and stands empty since. `USE-CASES.md`
+did it once, holding U4 from D13 until a guest ran the journey it
+describes, and holds U7 and U10 now, its second stay. Each leaves
+when its last entry arms or delivers, which is the machinery working
+rather than churn.
 
 **What is pledged says what the project owes and nothing about
 when.** U7 and F9 are the same debt seen twice: U7 is the journey,
@@ -103,6 +103,15 @@ alone, but the debt is entirely Testaferro's own to pay now: the
 provider capability F9 was gated on — reliquary's `exec(check=True)`
 — shipped before this pledge, ahead of Testaferro's own pin, so
 nothing here waits on reliquary.
+
+**U10 and F18 are the same shape of debt, with an even shorter
+route to it.** U10 is the journey — a scripted guest interaction
+outside the suite/framework abstraction — and F18 is the work: a
+`guest_session()` primitive drawing on provisioning
+`ReliquarySuiteBackend` already has. Nothing here waits on a
+provider capability at all; the whole of it is Testaferro's own
+refactor and one new entry point, so there is no gate to clear
+before the pledge, unlike F9's.
 
 **The planning root holds what does not move.** The map, the rule,
 the record, the queue and the ledger are machinery rather than
@@ -172,13 +181,14 @@ to, and the reason root `USE-CASES.md` exists at all. For as long as
 nothing had booted, the honest answer to "what does Testaferro promise
 *a user*?" was *no journey yet stated*, however much the architecture
 asserted; a use case arms on delivery, and delivery is a journey
-working rather than code existing. **One use case is pledged now**:
+working rather than code existing. **Two use cases are pledged now**:
 U7, moved to [pledged/USE-CASES.md](pledged/USE-CASES.md) with its
-prerequisite F9, in [pledged/FEATURES.md](pledged/FEATURES.md) —
-pledged together rather than the citation left resting on something
-merely proposed. Several drafted entries describe code that already
-exists; that makes their route short, not automatic — the pledge is
-still an act, and delivery still has to be true.
+prerequisite F9, in [pledged/FEATURES.md](pledged/FEATURES.md), and
+U10, moved there with its own prerequisite F18 — each pledged
+together with what it cites rather than the citation left resting on
+something merely proposed. Several drafted entries describe code that
+already exists; that makes their route short, not automatic — the
+pledge is still an act, and delivery still has to be true.
 
 **What did not arm is worth naming, because the bar is what makes
 the root list mean anything.** P3 and P5 each describe the code, and
