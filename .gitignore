@@ -3,7 +3,6 @@ __pycache__/
 *.egg-info/
 .venv/
 .idea/
-dist/
 build/
 
 # Open Watcom leavings from building the guest suite. SUITE.EXE is
