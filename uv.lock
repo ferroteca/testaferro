@@ -333,7 +333,7 @@ dependencies = [
 requires-dist = [
     { name = "pytest" },
     { name = "reliquary", specifier = "==0.1.0.dev6" },
-    { name = "remanence", specifier = "==0.0.1a5" },
+    { name = "remanence", specifier = "==0.0.1a6" },
 ]
 
 [[package]]
@@ -371,11 +371,11 @@ wheels = [
 
 [[package]]
 name = "remanence"
-version = "0.0.1a5"
+version = "0.0.1a6"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ee/df/576fd287ca6011d893d9bd194e5a7530177442db8e32a07e7dfe7fdc485c/remanence-0.0.1a5.tar.gz", hash = "sha256:4a25d954983d02755f6d3f7499365dd3c6388a6b563b6a906e4a1a78fbba3fd2", size = 3083237, upload-time = "2026-08-16T01:20:52.264Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d4/63/e395b141204a23a5bf44de529b96701e2290649a2f37c8711c85342a03f1/remanence-0.0.1a6.tar.gz", hash = "sha256:123eac4dd8f20e57a4f9e9706a31017a99ef05b8aeb9a67c761cccbc1ce94176", size = 682370, upload-time = "2026-08-19T13:50:40.919Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e1/93/1f92c759d76ee90c58ae1d4727caaf07f1eafe46ad422dafadc800c524f9/remanence-0.0.1a5-cp310-abi3-win_amd64.whl", hash = "sha256:b76d7d348ded36b54c35db448153b147089b5dc3ade92da0123fe6ea8a6a0b08", size = 1217610, upload-time = "2026-08-16T01:20:50.58Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/d7/64d5cc8623b8471f927849733da275baf31968588aa26b1694df8a6a5e52/remanence-0.0.1a6-cp310-abi3-win_amd64.whl", hash = "sha256:268f9da766aca5e2161c8712042474264071ffbd6b8caf88fa37361ed6707912", size = 1235313, upload-time = "2026-08-19T13:50:42.829Z" },
 ]
 
 [[package]]

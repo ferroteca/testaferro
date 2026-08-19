@@ -27,7 +27,7 @@ classifiers = [
 # requires reliquary, which is included as a dependency. remanence is the
 # at-rest seam: it opens the guest's own drive images to stage the suite and
 # read it back, which is not the provider's work (F16, D23).
-dependencies = ["pytest", "reliquary==0.1.0.dev6", "remanence==0.0.1a5"]
+dependencies = ["pytest", "reliquary==0.1.0.dev6", "remanence==0.0.1a6"]
 
 [project.urls]
 Repository = "https://github.com/ferroteca/testaferro"
