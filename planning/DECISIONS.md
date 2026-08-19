@@ -111,61 +111,76 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
-### D23 — At-rest access moves to remanence, and an address is guaranteed or asked
+### D23 — testaferro computes every drive letter itself, permanently, and stages before materialization
 
-**Decided** owner, 2026-08-16. **Supports** P1 and P17, through
-**F16**, delivered and retired; what was built is the record of it,
-and this entry keeps only the shape call and what it cost.
+**Decided** owner, 2026-08-19. **Supports** P1 and P17, through the
+reliquary 0.1.0a2 pin move — this entry's own reopening condition
+from its prior form arrived, and the branch it named broke exactly as
+flagged. Reverses two of that form's own calls, on new evidence: not
+an oversight corrected, a different question asked once the ground
+it was answered on gave way.
 
-**The shape.** Staging and retrieval are remanence calls against the
-image itself, in `src/testaferro/at_rest.py`. A guest address is
-**testaferro's own guarantee where testaferro authored the disk** —
-its one-disk FreeDOS system carries one FAT volume, so `C:` is the
-only letter DOS can assign — and **looked up where it did not**. It
-is never derived on the host.
+**The shape.** `_letter_map()`, in `src/testaferro/reliquary.py`,
+computes a DOS drive letter for every drive a document declares — a
+floppy controller's drives take `A:`/`B:` by position and a hard disk
+takes `C:` onward by slot order, one volume per disk — and this is
+testaferro's own stated answer now, for every drive alike: its own
+system disk, its own work drive, and a `machine_config` template's
+declared drives. There is no split left between a guarantee and a
+lookup; one computation serves both, and a declared machine's
+`location=` resolves through it exactly as testaferro's own does.
 
-**One half was deferred and never became necessary.** The lookup for
-a machine somebody else declared still goes through the provider's
-drive map, which is being deleted upstream; the guest reporting its
-own letters is what replaces it, and that work waits until the pin
-moves and the branch actually breaks. Nothing was added to the
-readiness script, so P17's authored content is untouched.
+**testaferro's own work drive is a permanent fixture, staged before
+the machine exists.** A vvfat medium — a host directory QEMU serves
+live as a FAT volume, never materialized into an image — is a
+sibling of whatever else a session's machine declares, in every
+session, gathered before `create_machine()` runs. Its content exists
+the moment the drive does, so nothing is written into it at rest; the
+zero-configuration guest's default location moves from `C:\TESTS`
+(the system disk, written into over remanence) to `D:\` (the work
+drive, live). Retrieval, and a declared `location=` naming some
+*other* drive, still go through `at_rest` (F16) — that drive is not
+live-served.
 
-**Weighed and declined: keeping the address a provider question.**
-Declined on evidence rather than on argument — reliquary is deleting
-its file family and its drive report outright, and remanence is
-deleting its DOS letter layer, so after both land no authority
-outside the running guest reports a drive letter at all. The deeper
-reason is the one reliquary reached independently in its own D107:
-an address derived from a stopped image is a *prediction* of what
-DOS will assign at boot, and a prediction is not a mapping. F4
-retired **derivation**, which this honors; asking the guest is not
-the same act, and the readiness channel that carries the answer
-already exists.
+**Reversed: asking the guest.** The prior form of this entry deferred
+the declared-machine lookup to the guest reporting its own letters
+once booted, drafted as **F17** and never pledged. Retired outright,
+by owner direction, as part of a standing policy across reliquary,
+remanence and testaferro: neither sibling project will ever answer a
+drive-letter question again (remanence's own D57), so the answer is
+testaferro's to own rather than to keep asking for. A boot-time
+report would have been the more *conservative* fact — confirmed
+per-run rather than assumed — but the cost of confirming it (a
+staged marker, a second machine variable, a guest round trip before
+any placement could be known) bought back only the one case D78
+already named as the risk: a disk holding more volumes than declared.
+testaferro accepts that risk knowingly now, as policy, rather than
+paying to confirm its absence every run.
 
-**Weighed and declined: staging before materialization** — writing
-the set into an image testaferro owns outright before any machine
-exists. Declined on the guest story, which the letter question does
-not change: the zero-configuration guest's writable room is the
-system disk, so this makes testaferro supply media for every run —
-the work-drive fallback promoted back into the promise, after F4
-spent the effort demoting it to an implementation detail for a
-machine offering no room of its own (P8).
+**Reversed: staging before materialization.** Declined in this
+entry's prior form on the guest story — supplying media for every run
+was "the work-drive fallback promoted back into the promise, after F4
+spent the effort demoting it." Adopted now because the fallback it
+was demoting *to* an implementation detail no longer has anything to
+be a fallback *for*: with no drive-letter answer to fail toward, a
+defaulted address had nothing left to retry onto, so making the work
+drive a standing fixture removes a failure mode rather than reopening
+one. P8's zero-configuration promise is unaffected — `pytest
+tests/SUITE.EXE` still needs nothing declared — and the media
+testaferro now supplies for every run is a live-served directory, not
+an image it must build or own.
 
-**The cost this was expected to carry, and did not.** A wrong
-declared `location=` looked like it would stop being refused before
-boot, since nothing host-side would resolve a letter. It still is:
-the guarantee refuses `E:` on an authored guest naming the one drive
-it has, and the residual lookup refuses through the map. F4's
+**The cost, restated rather than deferred.** A wrong declared
+`location=` is still refused before any boot: `_letter_map()` refuses
+a letter no drive answers to, by name, before `create_machine()` — a
+computation, not a report, but a refusal all the same. F4's
 invariant — an address is stated once, staged against, and spelled —
-survives intact.
-
-The cost arrives with the deferred half, when a letter comes back
-from the guest instead, and **P7 already absorbs it**: where nothing
-can be proven the judgement passes to the guest itself, "honesty
-about the limit rather than an exception to the rule". The limit is
-real — a letter does not exist until DOS assigns it — so this is
-recorded now rather than argued again then.
+still holds. What changed is P7's absorption of the limit: the
+"nothing can be proven, so the judgement passes to the guest" framing
+this entry's prior form reserved for the deferred half no longer
+applies to anything real, since nothing here still asks the guest to
+prove it — the limit is now a stated assumption, and P7's carve-out
+stands unused until a case actually needs it.
 
 **What would reopen it:** an authority that reports a *stopped*
 machine's letters without predicting them — letters read off an
