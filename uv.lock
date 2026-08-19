@@ -162,6 +162,15 @@ wheels = [
 ]
 
 [[package]]
+name = "json5"
+version = "0.15.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e4/7d/05c46a96a78147ae3bf99c2f4169ce144a70220b8d6fcd56f6ec368b8ce9/json5-0.15.0.tar.gz", hash = "sha256:7424d1f1eb1d56da6e3d70643f53619862b4ce81440bdb8ecfd6f875e5ba4a71", size = 53278, upload-time = "2026-06-19T20:08:27.716Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/eb/be/59527c99478aade6bb33a68d72e6e18dd4e6ff6eacfc7d01bdb15bc76912/json5-0.15.0-py3-none-any.whl", hash = "sha256:56636a30c0e8a4665fe2179c0212f32eae3796dea89ea6f649b9436ecdb39618", size = 36570, upload-time = "2026-06-19T20:08:26.748Z" },
+]
+
+[[package]]
 name = "keyring"
 version = "25.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -185,6 +194,27 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/da/34/28fff3ab31ccff1fd4f6c7c7b0ceb2b6968d8ea4950663eadcb5720591a0/lark-1.3.1.tar.gz", hash = "sha256:b426a7a6d6d53189d318f2b6236ab5d6429eaf09259f1ca33eb716eed10d2905", size = 382732, upload-time = "2025-10-27T18:25:56.653Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/82/3d/14ce75ef66813643812f3093ab17e46d3a206942ce7376d31ec2d36229e7/lark-1.3.1-py3-none-any.whl", hash = "sha256:c629b661023a014c37da873b4ff58a817398d12635d3bbb2c5a03be7fe5d1e12", size = 113151, upload-time = "2025-10-27T18:25:54.882Z" },
+]
+
+[[package]]
+name = "markdown-it-py"
+version = "4.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "mdurl" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/06/ff/7841249c247aa650a76b9ee4bbaeae59370dc8bfd2f6c01f3630c35eb134/markdown_it_py-4.2.0.tar.gz", hash = "sha256:04a21681d6fbb623de53f6f364d352309d4094dd4194040a10fd51833e418d49", size = 82454, upload-time = "2026-05-07T12:08:28.36Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b3/81/4da04ced5a082363ecfa159c010d200ecbd959ae410c10c0264a38cac0f5/markdown_it_py-4.2.0-py3-none-any.whl", hash = "sha256:9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a", size = 91687, upload-time = "2026-05-07T12:08:27.182Z" },
+]
+
+[[package]]
+name = "mdurl"
+version = "0.1.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
 ]
 
 [[package]]
@@ -332,7 +362,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "pytest" },
-    { name = "reliquary", specifier = "==0.1.0.dev6" },
+    { name = "reliquary", specifier = "==0.1.0a2" },
     { name = "remanence", specifier = "==0.0.1a6" },
 ]
 
@@ -356,17 +386,19 @@ wheels = [
 
 [[package]]
 name = "reliquary"
-version = "0.1.0.dev6"
+version = "0.1.0a2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "json5" },
     { name = "keyring" },
     { name = "lark" },
     { name = "pillow" },
     { name = "qemu-qmp" },
+    { name = "rich" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/92/d5/798fa66e1188f64083c4c476a7fe20169ba7f91e40f056b64f985084faee/reliquary-0.1.0.dev6.tar.gz", hash = "sha256:eee29916f66c27c6b6fd82c3f842732aace6dd09437a5331ae48b6d53a45e7cb", size = 642227, upload-time = "2026-07-30T19:17:25.272Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/3d/6df07c580b3d3f4b57e4266e040072e5befd76a67a6a312788fe0be8517e/reliquary-0.1.0a2.tar.gz", hash = "sha256:4d1b58f78a18c989441bf6277c00b75a00506711a420ef78fe9e0caabc4953a3", size = 588209, upload-time = "2026-08-19T14:27:24.239Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1c/e6/012699470dd6fc3229a2fae13ceeb004fd9ec30f0696d10fbd490b290fba/reliquary-0.1.0.dev6-py3-none-any.whl", hash = "sha256:dbe71d1897909f7a92a73970246edd511301d2f30f3101c9a76bc80833e17be0", size = 266135, upload-time = "2026-07-30T19:17:24.109Z" },
+    { url = "https://files.pythonhosted.org/packages/32/1a/462d7764d7ce92ff54c48986779a3a9530a9531f567aa93704f1bd9df691/reliquary-0.1.0a2-py3-none-any.whl", hash = "sha256:c7d7cf537b0b92986f369b5dcf7f89038166643bf14223498c054def2ee1cad6", size = 307203, upload-time = "2026-08-19T14:27:25.579Z" },
 ]
 
 [[package]]
@@ -376,6 +408,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d4/63/e395b141204a23a5bf44de529b96701e2290649a2f37c8711c85342a03f1/remanence-0.0.1a6.tar.gz", hash = "sha256:123eac4dd8f20e57a4f9e9706a31017a99ef05b8aeb9a67c761cccbc1ce94176", size = 682370, upload-time = "2026-08-19T13:50:40.919Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a8/d7/64d5cc8623b8471f927849733da275baf31968588aa26b1694df8a6a5e52/remanence-0.0.1a6-cp310-abi3-win_amd64.whl", hash = "sha256:268f9da766aca5e2161c8712042474264071ffbd6b8caf88fa37361ed6707912", size = 1235313, upload-time = "2026-08-19T13:50:42.829Z" },
+]
+
+[[package]]
+name = "rich"
+version = "15.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "markdown-it-py" },
+    { name = "pygments" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c0/8f/0722ca900cc807c13a6a0c696dacf35430f72e0ec571c4275d2371fca3e9/rich-15.0.0.tar.gz", hash = "sha256:edd07a4824c6b40189fb7ac9bc4c52536e9780fbbfbddf6f1e2502c31b068c36", size = 230680, upload-time = "2026-04-12T08:24:00.75Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/82/3b/64d4899d73f91ba49a8c18a8ff3f0ea8f1c1d75481760df8c68ef5235bf5/rich-15.0.0-py3-none-any.whl", hash = "sha256:33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb", size = 310654, upload-time = "2026-04-12T08:24:02.83Z" },
 ]
 
 [[package]]

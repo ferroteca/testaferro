@@ -522,17 +522,19 @@ def _coerce_machine_config(value):
     if isinstance(value, collections.abc.Mapping):
         return _from_document(value)
     if isinstance(value, (str, os.PathLike)):
-        # The .rlqb dialect (comments, trailing commas): a declaration
-        # is authored blueprint JSON, so it is read the way reliquary
-        # reads it. Imported here rather than at module scope so that
+        # The .rlqb dialect (JSON5: comments, trailing commas,
+        # unquoted keys): a declaration is authored blueprint JSON, so
+        # it is read the way reliquary reads it (0.1.0a2, D102 —
+        # reliquary's own JSONC dialect retired in favor of published
+        # JSON5). Imported here rather than at module scope so that
         # importing this module stays stdlib-cheap — the plugin
         # auto-loads into every pytest run, and a run that claims no
         # guest suite must not pay for reliquary.
-        from reliquary import jsonc
+        from reliquary import json5reader
 
         path = os.fspath(value)
         with open(path, encoding="utf-8") as handle:
-            document = jsonc.load(handle)
+            document = json5reader.load(handle)
         return _from_document(document)
     if isinstance(value, collections.abc.Sequence):
         return _from_document(list(value))

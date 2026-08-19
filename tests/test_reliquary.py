@@ -3,8 +3,11 @@
 """Unit tests for the reliquary provider binding: executable
 interrogation and the testaferro-managed reliquary home.
 
-`binding` is testaferro.reliquary; the bare "reliquary." strings
-patched below are the provider distribution it drives.
+`binding` is testaferro.reliquary; `reliquary_dist` is the provider
+distribution it drives. What is stubbed below is `reliquary_dist.
+Session`'s own methods (0.1.0a2, P26 — every provider verb this
+binding calls is one of them now), patched with `autospec=True` so a
+side effect receives the session instance as its own first argument.
 """
 
 import contextlib
@@ -153,8 +156,9 @@ class _BindingFixture(unittest.TestCase):
         """
         seen = []
 
-        def fake_exec(command, *, machine=None, context=None, timeout=None):
-            home = context.home_dir
+        def fake_exec(session, command, *, machine=None, timeout=None,
+                      blueprint=None, check=False):
+            home = session._context.home_dir
             drives = self._blueprint(home)["drives"]
             image = drives["floppy0"]["location"]["local"]
             with open(image, "rb") as boot:
@@ -179,25 +183,37 @@ class _BindingFixture(unittest.TestCase):
         not — `start_machine` starts a guest for real (P10) — so every
         call that needs a running machine is stubbed and nothing else.
 
-        **`execute_script` is one of them, and not obviously.** A
-        script's `machine` header is a precondition reliquary
-        *establishes*: the readiness script says `running`, so running
-        one against a machine this fixture never really started starts
-        it for real. Stubbing `start_machine` alone is not enough, and
-        the way that announces itself is a unit run booting QEMU.
+        **`run_script` is one of them, and not obviously.** A script's
+        `machine` header is a precondition reliquary *establishes*:
+        the readiness script says `running`, so running one against a
+        machine this fixture never really started starts it for real.
+        Stubbing `start_machine` alone is not enough, and the way that
+        announces itself is a unit run booting QEMU.
 
         Creation stays cheap only while every drive's media is `use`
         (attached in place). A blueprint declaring a blank (`size`)
         makes reliquary reach for an external image tool, which belongs
         in an integration test instead.
+
+        Every patch here is `autospec=True`: 0.1.0a2 moved these from
+        module functions to `Session` methods (P26), so a side effect
+        now receives the session instance as its own first argument —
+        `fake_exec` above reads `session._context.home_dir` off it,
+        where the old fake read a `context=` kwarg no method takes any
+        more.
         """
         return _patched(
-            mock.patch("reliquary.start_machine"),
-            mock.patch("reliquary.stop_machine"),
-            mock.patch("reliquary.execute_script"),
-            mock.patch("reliquary.get_machine_var", return_value="yes"),
-            mock.patch("reliquary.exec", side_effect=exec_side_effect,
-                       **exec_kwargs))
+            mock.patch.object(reliquary_dist.Session, "start_machine",
+                              autospec=True),
+            mock.patch.object(reliquary_dist.Session, "stop_machine",
+                              autospec=True),
+            mock.patch.object(reliquary_dist.Session, "run_script",
+                              autospec=True),
+            mock.patch.object(reliquary_dist.Session, "get_machine_var",
+                              autospec=True, return_value="yes"),
+            mock.patch.object(reliquary_dist.Session, "exec",
+                              autospec=True, side_effect=exec_side_effect,
+                              **exec_kwargs))
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
 class ReliquarySuiteBackendTests(_BindingFixture):
@@ -243,16 +259,18 @@ class ReliquarySuiteBackendTests(_BindingFixture):
             finally:
                 backend.stop_guest()
 
-    def test_a_machine_with_no_writable_room_falls_back_to_a_work_drive(self):
-        """The fallback F4 left standing, and this fixture is it.
+    def test_the_boot_floppy_is_never_a_staging_target(self):
+        """The work drive is a standing fixture, not a reaction.
 
         The declared boot image here is ten bytes of text, not a FAT
-        volume, so reliquary refuses to stage into it at rest — which
-        is exactly the "machine offering no writable room" the design
-        keeps the directory-source drive for. testaferro appends one,
-        recreates, and stages there instead, so the run still happens.
-        A *declared* location would have surfaced the refusal rather
-        than falling back; only a defaulted one may.
+        volume — which no longer matters, because the default
+        location was never going to be the boot floppy in the first
+        place. testaferro's own vvfat work drive is a sibling of
+        whatever else the machine declares, always, so the suite
+        lands there regardless of whether the boot image could have
+        taken a write at all (0.1.0a2, D108 retired the reactive
+        fallback along with the report it depended on to recreate the
+        machine after a failed write).
         """
         backend = binding.suite_backend(self.exe, boot_image=self.image)
 
@@ -397,8 +415,8 @@ class ReliquarySuiteBackendTests(_BindingFixture):
             finally:
                 backend.stop_guest()
         guest_exec.assert_called_once_with(
-            "C:\\SUITE.EXE -v",
-            machine="testaferro-0", context=mock.ANY, timeout=mock.ANY)
+            mock.ANY, "C:\\SUITE.EXE -v",
+            machine="testaferro-0", timeout=mock.ANY)
 
     def test_the_command_line_spells_every_argv_token(self):
         """The framework hands over tokens and this binding spells the
@@ -418,8 +436,8 @@ class ReliquarySuiteBackendTests(_BindingFixture):
             finally:
                 backend.stop_guest()
         guest_exec.assert_called_once_with(
-            "C:\\SUITE.EXE -v -sg Vring -sn Wraps",
-            machine="testaferro-0", context=mock.ANY, timeout=mock.ANY)
+            mock.ANY, "C:\\SUITE.EXE -v -sg Vring -sn Wraps",
+            machine="testaferro-0", timeout=mock.ANY)
 
     def test_the_nearest_speaker_sets_the_guest_command_timeout(self):
         # The call speaks about this run and a declaration about the
@@ -469,11 +487,10 @@ class WorkDrivePlacementTests(unittest.TestCase):
     """Slot choice — pure declaration arithmetic, so every case is
     worth stating.
 
-    **The letters left this suite with 0.1.0.dev6.** Slot choice is
-    all testaferro decides; the letter is read off a created machine
-    (`_placed_letter`, exercised below against a real report), so
-    asserting one from declared drives alone would be reinstating the
-    inference the pin move retired.
+    Slot choice is all testaferro decides; what letter DOS gives that
+    slot is `_letter_map`, exercised below — computed deterministically
+    from the declaration rather than read back (0.1.0a2 removed the
+    provider's own answer, D108).
     """
 
     def test_takes_the_first_disk_of_an_empty_machine(self):
@@ -508,56 +525,43 @@ class WorkDrivePlacementTests(unittest.TestCase):
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
 class PlacedLetterTests(unittest.TestCase):
-    """What the guest is told, and where it comes from."""
+    """What the guest is told, and where it comes from.
 
-    def test_the_letter_is_the_one_reliquary_reported(self):
-        # Not a rule testaferro keeps a copy of: the report is the
-        # only source, so a letter it does not carry is not invented.
-        report = {"mapping": {"letters": {
-            "A": {"drive": "floppy0", "volume": 0},
-            "C": {"drive": "hdd0", "volume": 0},
-            "D": {"drive": "hdd1", "volume": 0}}}}
+    Pure declaration arithmetic now (0.1.0a2, D108): there is no
+    report left to ask, so `_letter_map` computes every drive's letter
+    from the `drives` mapping alone, never a machine or a session.
+    """
 
-        with mock.patch("reliquary.describe_drives", return_value=report):
-            self.assertEqual(
-                binding._placed_letter("hdd1", "machine", None), "D")
+    def test_the_only_hard_disk_is_c(self):
+        self.assertEqual(binding._letter_map({"hdd0": {}}), {"C": "hdd0"})
 
-    def test_a_second_volume_does_not_confuse_the_lookup(self):
-        # The case the old inference could not survive: a disk holding
-        # two volumes takes two letters, so the work drive behind it
-        # sits further along than one-letter-per-disk would place it.
-        report = {"mapping": {"letters": {
-            "C": {"drive": "hdd0", "volume": 0},
-            "D": {"drive": "hdd0", "volume": 1},
-            "E": {"drive": "hdd1", "volume": 0}}}}
+    def test_a_second_hard_disk_follows_the_first(self):
+        self.assertEqual(
+            binding._letter_map({"hdd0": {}, "hdd1": {}}),
+            {"C": "hdd0", "D": "hdd1"})
 
-        with mock.patch("reliquary.describe_drives", return_value=report):
-            self.assertEqual(
-                binding._placed_letter("hdd1", "machine", None), "E")
+    def test_position_counts_rather_than_the_slot_number(self):
+        # hdd0 and hdd2 declared, hdd1 free: hdd2 is still the
+        # machine's *second* hard disk, so it is D — one letter per
+        # hdd slot present, in order, never per number.
+        self.assertEqual(
+            binding._letter_map({"hdd0": {}, "hdd2": {}}),
+            {"C": "hdd0", "D": "hdd2"})
 
-    def test_an_unplaced_drive_is_refused_carrying_reliquarys_reason(self):
-        # The specific refusal survives the indirection: whoever reads
-        # this learns which disk blocked it and why, which a summary
-        # ("no letter") would throw away.
-        report = {"mapping": {
-            "letters": {"A": {"drive": "floppy0", "volume": 0}},
-            "undetermined": [
-                {"drive": "hdd1", "id": "drive.no-at-rest-access",
-                 "reason": "drive hdd0 is a drive image, and the qemu "
-                           "adapter cannot read one at rest"}]}}
+    def test_floppies_take_a_and_b_ahead_of_any_hard_disk(self):
+        self.assertEqual(
+            binding._letter_map(
+                {"floppy0": {}, "floppy1": {}, "hdd0": {}}),
+            {"A": "floppy0", "B": "floppy1", "C": "hdd0"})
 
-        with mock.patch("reliquary.describe_drives", return_value=report):
-            with self.assertRaises(ValueError) as caught:
-                binding._placed_letter("hdd1", "machine", None)
-
-        self.assertIn("cannot read one at rest", str(caught.exception))
-        self.assertIn("drive.no-at-rest-access", str(caught.exception))
-
-    def test_a_drive_the_report_never_mentions_fails_closed(self):
-        with mock.patch("reliquary.describe_drives",
-                        return_value={"mapping": {"letters": {}}}):
-            with self.assertRaisesRegex(ValueError, "no letter and no refusal"):
-                binding._placed_letter("hdd1", "machine", None)
+    def test_a_cdrom_takes_no_letter_at_all(self):
+        # testaferro never declares one for a runtime guest today
+        # (only the install script attaches one, temporarily); this
+        # pins that a stray cdrom key does not shift hard-disk
+        # lettering the way one loaded as a driver could.
+        self.assertEqual(
+            binding._letter_map({"hdd0": {}, "cdrom0": {}}),
+            {"C": "hdd0"})
 
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
@@ -618,19 +622,18 @@ class DeclaredPlacementTests(_BindingFixture):
 
         self.assertIn("'HARNESS' not found", str(caught.exception))
 
-    def test_an_unreachable_declared_letter_refuses_by_name(self):
+    def test_a_letter_the_machine_does_not_have_refuses(self):
         """The resolution's own refusal, not the write's.
 
-        A machine with no `E:` cannot be staged onto at `E:\\HARNESS`,
-        and the consumer is the only one who can correct it.
+        This machine has A: (the boot floppy) and C: (testaferro's
+        own work drive, `_letter_map` computed) and nothing else, so
+        E: is refused before any boot — the consumer named that
+        address and is the only one who can correct it.
         """
         backend = binding.suite_backend(self.exe, boot_image=self.image,
                                         location="E:\\HARNESS")
 
-        with self._fake_machine(), \
-                mock.patch("reliquary.describe_drives",
-                           return_value={"mapping": {"letters": {"A": {
-                               "drive": "floppy0", "volume": 0}}}}):
+        with self._fake_machine():
             with self.assertRaises(ValueError) as caught:
                 backend.start_guest()
 
@@ -650,7 +653,7 @@ class DeclaredPlacementTests(_BindingFixture):
                 backend.stop_guest()
 
         self.assertTrue(
-            guest_exec.call_args.args[0].startswith("E:\\HARNESS\\SUITE.EXE"))
+            guest_exec.call_args.args[1].startswith("E:\\HARNESS\\SUITE.EXE"))
 
     def test_the_location_refuses_before_a_guest_session(self):
         backend = binding.suite_backend(self.exe, boot_image=self.image)
@@ -661,64 +664,24 @@ class DeclaredPlacementTests(_BindingFixture):
 
 @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
 class PlacementTests(unittest.TestCase):
-    """Where a run lands, and how that address is spelled (F4).
-
-    The primary path — staging at rest into a drive the machine
-    already has — needs a machine with a real FAT volume, which is an
-    image this tier may not build (P10). So the provider's two calls
-    are stubbed here and the *policy over them* is what is tested:
-    which letter is chosen, what is done with a declared one, and
-    which failures may fall back. `tests/integration/` proves the same
-    policy against a booted guest.
+    """Where a run lands when nobody said (F4): testaferro's own work
+    drive, always, at whatever letter `_letter_map` computes for it.
     """
 
-    def _report(self, *letters):
-        return {"mapping": {"letters": {
-            letter: {"drive": f"hdd{index}", "volume": 0}
-            for index, letter in enumerate(letters)}}}
+    def test_the_zero_configuration_guest_defaults_to_its_work_drive(self):
+        # hdd0 is the system disk, hdd1 the work drive — a second hard
+        # disk, so D:, matching a real boot exactly (see _letter_map).
+        self.assertEqual(
+            binding._default_location(
+                {"hdd0": {}, "hdd1": {}}, work_key="hdd1"),
+            "D:\\")
 
-    def test_an_authored_disk_guarantees_its_location_unasked(self):
-        """The zero-configuration guest answers from what was built.
-
-        testaferro authored the recipe, the install and the blueprint,
-        so its one-disk machine has one FAT volume and DOS has one
-        letter to assign. Nothing is read back, which is why the
-        provider's map is not consulted at all (F16, D23).
-        """
-        with mock.patch("reliquary.describe_drives") as describe:
-            self.assertEqual(
-                binding._default_location("m", None, authored=True),
-                "C:\\TESTS")
-        describe.assert_not_called()
-
-    def test_the_default_location_is_the_last_letter(self):
-        # A machine somebody else declared: the map still answers,
-        # for as long as the provider still reports one. Last rather
-        # than first, because a default must not scatter a stranger's
-        # files across somebody's C:\ root.
-        with mock.patch("reliquary.describe_drives",
-                        return_value=self._report("C", "D")):
-            self.assertEqual(binding._default_location("m", None),
-                             "D:\\TESTS")
-
-    def test_a_single_drive_machine_takes_that_drive(self):
-        with mock.patch("reliquary.describe_drives",
-                        return_value=self._report("C")):
-            self.assertEqual(binding._default_location("m", None),
-                             "C:\\TESTS")
-
-    def test_undetermined_letters_refuse_rather_than_default(self):
-        report = {"mapping": {"letters": {}, "undetermined": [
-            {"drive": "hdd0", "id": "drive.no-at-rest-access",
-             "reason": "the qemu adapter cannot read one at rest"}]}}
-
-        with mock.patch("reliquary.describe_drives", return_value=report):
-            with self.assertRaises(ValueError) as caught:
-                binding._default_location("m", None)
-
-        # Reliquary's own words, and the way out named.
-        self.assertIn("cannot read one at rest", str(caught.exception))
-        self.assertIn("location=", str(caught.exception))
+    def test_a_lone_work_drive_defaults_to_c(self):
+        # No system disk declared at all: the work drive is the
+        # machine's only hard disk, so C:.
+        self.assertEqual(
+            binding._default_location({"hdd1": {}}, work_key="hdd1"),
+            "C:\\")
 
     def test_the_program_defaults_to_the_staged_executable(self):
         self.assertEqual(
@@ -731,60 +694,60 @@ class VolumeResolutionTests(unittest.TestCase):
     """A guest address to the image and volume it names (F16, D23).
 
     At rest there are no drive letters, so an address has to be
-    resolved to a volume before a byte can be written. Where
-    testaferro authored the disk that resolution is a guarantee;
-    where it did not, it is a lookup — and the lookup is residue,
-    retired when the guest reports its own letters.
+    resolved to a volume before a byte can be written. One computation
+    now for every drive, testaferro's own or a `machine_config`
+    template's alike (`_letter_map`, D108) — there is no split between
+    a guaranteed answer and a looked-up one any more.
     """
 
-    def _machines(self, **paths):
-        return [{"id": "m", "drives": {
+    def _session(self, **paths):
+        session = mock.Mock(spec=reliquary_dist.Session)
+        session.list_machines.return_value = [{"id": "m", "drives": {
             key: {"path": path} for key, path in paths.items()}}]
+        return session
 
-    def test_an_authored_disk_resolves_without_asking(self):
-        with mock.patch("reliquary.list_machines",
-                        return_value=self._machines(hdd0="sys.qcow2")), \
-                mock.patch("reliquary.describe_drives") as describe:
-            self.assertEqual(
-                binding._resolve_volume("C:\\TESTS", "m", None, True),
-                ("sys.qcow2", 0, "TESTS"))
-        describe.assert_not_called()
+    def test_the_system_disk_resolves(self):
+        session = self._session(hdd0="sys.qcow2")
 
-    def test_an_authored_disk_refuses_a_letter_it_does_not_have(self):
-        with mock.patch("reliquary.list_machines",
-                        return_value=self._machines(hdd0="sys.qcow2")):
-            with self.assertRaises(ValueError) as caught:
-                binding._resolve_volume("D:\\TESTS", "m", None, True)
+        self.assertEqual(
+            binding._resolve_volume("C:\\TESTS", "m", session,
+                                    {"hdd0": {}}),
+            ("sys.qcow2", 0, "TESTS"))
 
-        # The one drive it does have is named, so the way out is plain.
-        self.assertIn("one drive, C:", str(caught.exception))
-        self.assertIn("names D:", str(caught.exception))
+    def test_a_letter_the_machine_does_not_have_refuses(self):
+        session = self._session(hdd0="sys.qcow2")
 
-    def test_a_declared_machine_resolves_through_the_map(self):
-        report = {"mapping": {"letters": {
-            "D": {"drive": "hdd1", "volume": 2}}}}
-        with mock.patch("reliquary.describe_drives", return_value=report), \
-                mock.patch("reliquary.list_machines",
-                           return_value=self._machines(hdd1="data.qcow2")):
-            self.assertEqual(
-                binding._resolve_volume("D:\\HARNESS", "m", None, False),
-                ("data.qcow2", 2, "HARNESS"))
+        with self.assertRaises(ValueError) as caught:
+            binding._resolve_volume("D:\\TESTS", "m", session,
+                                    {"hdd0": {}})
 
-    def test_a_drive_with_no_recorded_image_refuses(self):
-        report = {"mapping": {"letters": {
-            "D": {"drive": "hdd1", "volume": 0}}}}
-        with mock.patch("reliquary.describe_drives", return_value=report), \
-                mock.patch("reliquary.list_machines",
-                           return_value=[{"id": "m",
-                                          "drives": {"hdd1": {}}}]):
-            with self.assertRaises(ValueError) as caught:
-                binding._resolve_volume("D:\\HARNESS", "m", None, False)
+        self.assertIn("no D:", str(caught.exception))
 
-        self.assertIn("records no image path", str(caught.exception))
+    def test_a_boot_floppy_resolves(self):
+        # A:'s letter is DOS's own fixed rule: assigned by controller
+        # position, never by content.
+        session = self._session(floppy0="boot.img")
+
+        self.assertEqual(
+            binding._resolve_volume("A:\\TESTS", "m", session,
+                                    {"floppy0": {}}),
+            ("boot.img", 0, "TESTS"))
+
+    def test_a_declared_hard_disk_resolves_too(self):
+        # The capability 0.1.0a2 took away and _letter_map gives back:
+        # a machine_config's own declared disk resolves exactly like
+        # testaferro's own, since the same deterministic computation
+        # now covers both. hdd1 is the *second* hard disk here, so D:.
+        session = self._session(hdd0="sys.qcow2", hdd1="data.qcow2")
+
+        self.assertEqual(
+            binding._resolve_volume("D:\\HARNESS", "m", session,
+                                    {"hdd0": {}, "hdd1": {}}),
+            ("data.qcow2", 0, "HARNESS"))
 
     def test_an_address_without_a_letter_is_refused(self):
         with self.assertRaises(at_rest.AtRestError):
-            binding._resolve_volume("HARNESS", "m", None, True)
+            binding._resolve_volume("HARNESS", "m", None, {"hdd0": {}})
 
     def test_a_root_location_does_not_double_its_separator(self):
         self.assertEqual(
@@ -832,11 +795,10 @@ class BlueprintAcceptanceTests(_BindingFixture):
     the failure the authoring tests structurally cannot: reliquary's
     schema moving under a document testaferro still composes happily.
 
-    Letters are deliberately absent here. The drive report is
-    created-only by the provider's own ruling (D83 there) — a dry run
-    describes what *would* be built — so `_placed_letter` is proved
-    against a real machine in `_BindingFixture` and against reports in
-    `PlacedLetterTests`, never here.
+    Letters are deliberately absent here. `_letter_map` is pure
+    declaration arithmetic now (0.1.0a2 deleted the provider's own
+    drive report, D108) and is proved on its own in
+    `PlacedLetterTests`, never against a dry plan.
     """
 
     def _dry_plan(self, document):
@@ -847,9 +809,9 @@ class BlueprintAcceptanceTests(_BindingFixture):
         path = os.path.join(blueprints, binding._BLUEPRINT_NAME + ".rlqb")
         with open(path, "w", encoding="utf-8") as handle:
             json.dump(document, handle)
-        outcome = reliquary_dist.create_machine(
-            binding._BLUEPRINT_NAME,
-            context=binding._context(home, blueprints), dry_run=True)
+        session = binding._open_session(home, blueprints)
+        outcome = session.create_machine(binding._BLUEPRINT_NAME,
+                                         dry_run=True)
         self.assertEqual(outcome.operation, "create-machine")
         return outcome.plan
 

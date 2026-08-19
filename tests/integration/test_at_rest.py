@@ -20,14 +20,14 @@ happens to pass. A dependency change that moves these answers should
 fail here, naming the fact that moved, rather than surfacing as a
 guest that mysteriously will not run its suite.
 
-**What proves the guarantee, and what cannot.** Since F16 the
-zero-configuration guest's location is *guaranteed* `C:\\TESTS`
-rather than read off a drive map (D23). Half of that is provable
-here: the installed system carries **exactly one** FAT16 volume, so
-there is nothing else for DOS to letter. The other half — that DOS
-actually calls it `C:` — is a fact about a booted guest, and it is
-`test_guest_run.py` that proves it. Neither half is assumed in the
-file that states it.
+**What proves the guarantee, and what cannot.** The system disk's
+letter is *computed* (`_letter_map`, D108), not read off a drive map
+that no longer exists. Half of that is provable here: the installed
+system carries **exactly one** FAT16 volume, matching the assumption
+`_letter_map` rests every hard disk's letter on. The other half —
+that DOS actually calls it `C:` — is a fact about a booted guest, and
+it is `test_guest_run.py` that proves it. Neither half is assumed in
+the file that states it.
 
 The blueprint each case authors is deliberately thin: one drive over
 the built system, layered `difference` so no case can write into the
@@ -54,12 +54,9 @@ class AtRestFixture(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        import reliquary
-
         from testaferro import at_rest
         from testaferro import reliquary as binding
 
-        cls.reliquary = reliquary
         cls.at_rest = at_rest
         cls.binding = binding
         # The install happens at most once for the whole run, and is
@@ -76,8 +73,7 @@ class AtRestFixture(unittest.TestCase):
     def _sweep(self):
         if self.machine is not None:
             try:
-                self.reliquary.destroy_machine(self.machine,
-                                               context=self.context)
+                self.session.destroy_machine(self.machine)
             except Exception:
                 pass
         import shutil
@@ -86,23 +82,21 @@ class AtRestFixture(unittest.TestCase):
 
     def _create(self, drives=None, boot=("hdd0",)):
         """Author a thin blueprint and materialize it. No boot."""
+        self.drives = drives or {"hdd0": {
+            "type": "media", "name": "system",
+            "location": {"local": self.system},
+            "materialize": "difference"}}
         document = [{
             "type": "machine", "name": "atrest", "platform": "dos",
             "memory": "32M",
-            "drives": drives or {"hdd0": {
-                "type": "media", "name": "system",
-                "location": {"local": self.system},
-                "materialize": "difference"}},
+            "drives": self.drives,
             "boot": list(boot),
         }]
         path = os.path.join(self.blueprints, "atrest.rlqb")
         with open(path, "w", encoding="utf-8") as handle:
             json.dump(document, handle)
-        self.context = self.reliquary.Context(
-            home_dir=self.home, cache_dir=os.path.join(self.home, "cache"),
-            blueprints_dir=self.blueprints)
-        self.machine = self.reliquary.create_machine(
-            "atrest", context=self.context)
+        self.session = self.binding._open_session(self.home, self.blueprints)
+        self.machine = self.session.create_machine("atrest")
         return self.machine
 
     def _staged(self, *names):
@@ -113,13 +107,13 @@ class AtRestFixture(unittest.TestCase):
                 handle.write(b"content of " + name.encode("ascii"))
         return source
 
-    def _put(self, machine, source, address="C:\\TESTS", authored=True):
+    def _put(self, machine, source, address="C:\\TESTS"):
         """Stage a host directory at a guest address, as `_place` does."""
         image, volume, path = self.binding._resolve_volume(
-            address, machine, self.context, authored)
+            address, machine, self.session, self.drives)
         return self.at_rest.put_tree(source, image, path, volume=volume)
 
-    def _listing(self, machine, address="C:\\TESTS", authored=True):
+    def _listing(self, machine, address="C:\\TESTS"):
         """What is at an address, by retrieving it. Names only.
 
         There is no at-rest listing verb and none is added for a
@@ -128,7 +122,7 @@ class AtRestFixture(unittest.TestCase):
         is the stronger check anyway.
         """
         image, volume, path = self.binding._resolve_volume(
-            address, machine, self.context, authored)
+            address, machine, self.session, self.drives)
         back = tempfile.mkdtemp(dir=self.home)
         written = self.at_rest.get_tree(image, path, back, volume=volume)
         return sorted(os.path.relpath(name, back) for name in written)
@@ -147,7 +141,7 @@ class InstalledSystemTests(AtRestFixture):
         why this is pinned rather than assumed.
         """
         machine = self._create()
-        image = self.binding._drive_image("hdd0", machine, self.context)
+        image = self.binding._drive_image("hdd0", machine, self.session)
 
         import remanence
 
@@ -161,42 +155,21 @@ class InstalledSystemTests(AtRestFixture):
 
         self.assertEqual(kinds, ["FAT16"])
 
-    def test_the_drive_map_agrees_with_the_guarantee(self):
-        """Cross-check, and **residue** (D23).
-
-        testaferro no longer asks the map where its own suite goes,
-        so this proves nothing the product depends on — it confirms
-        the guarantee matches the provider's own answer while there
-        still is one. It goes when the map does, and if it ever fails
-        the guarantee is what wants looking at.
-        """
-        machine = self._create()
-
-        report = self.reliquary.describe_drives(machine=machine,
-                                                context=self.context)
-
-        letters = report["mapping"]["letters"]
-        self.assertEqual(letters["C"]["drive"], "hdd0")
-        self.assertEqual(letters["C"]["volume"], 0)
-        self.assertEqual(report["mapping"]["undetermined"], [])
-
     def test_a_created_machine_answers_before_it_has_ever_booted(self):
         # The window F4 stages in. If this ever stops being true the
         # whole design moves, so it is stated rather than assumed.
         machine = self._create()
 
-        state = self.reliquary.load_machine_state(machine,
-                                                  context=self.context)
+        state = self.session.load_machine_state(machine)
 
         self.assertEqual(state["phase"], "ready")
 
-    def test_an_authored_disk_defaults_without_reading_anything(self):
+    def test_the_system_disk_defaults_without_reading_anything(self):
         machine = self._create()
 
         self.assertEqual(
-            self.binding._default_location(machine, self.context,
-                                           authored=True),
-            "C:\\TESTS")
+            self.binding._default_location(self.drives, work_key="hdd0"),
+            "C:\\")
 
     def test_the_resolution_finds_the_layered_image_and_its_volume(self):
         """What `_place` hands to the at-rest write.
@@ -209,7 +182,7 @@ class InstalledSystemTests(AtRestFixture):
         machine = self._create()
 
         image, volume, path = self.binding._resolve_volume(
-            "C:\\TESTS", machine, self.context, True)
+            "C:\\TESTS", machine, self.session, self.drives)
 
         self.assertEqual((volume, path), (0, "TESTS"))
         self.assertTrue(os.path.isfile(image))
@@ -263,7 +236,7 @@ class StagingTests(AtRestFixture):
         source = self._staged("SUITE.EXE")
         self._put(machine, source)
         image, volume, path = self.binding._resolve_volume(
-            "C:\\TESTS", machine, self.context, True)
+            "C:\\TESTS", machine, self.session, self.drives)
         back = os.path.join(self.home, "retrieved")
 
         self.at_rest.get_tree(image, path, back, volume=volume)
@@ -311,7 +284,7 @@ class StagingTests(AtRestFixture):
 class DeclaredAddressTests(AtRestFixture):
     """A location the consumer named, resolved against a real disk."""
 
-    def test_a_letter_the_authored_guest_does_not_have_refuses(self):
+    def test_a_letter_the_machine_does_not_have_refuses(self):
         # F4's validation-by-staging, kept: a wrong location fails
         # before any boot, not as a missing program in a guest that
         # started anyway. The one drive it *does* have is named.
@@ -321,35 +294,26 @@ class DeclaredAddressTests(AtRestFixture):
             self._put(machine, self._staged("SUITE.EXE"),
                       address="E:\\HARNESS")
 
-        message = str(caught.exception)
-        self.assertIn("one drive, C:", message)
-        self.assertIn("names E:", message)
-
-    def test_a_letter_a_declared_machine_does_not_have_refuses(self):
-        # The same refusal through the residual lookup, which is the
-        # branch a machine somebody else declared still takes.
-        machine = self._create()
-
-        with self.assertRaises(ValueError) as caught:
-            self._put(machine, self._staged("SUITE.EXE"),
-                      address="E:\\HARNESS", authored=False)
-
         self.assertIn("no E:", str(caught.exception))
 
-    def test_a_declared_address_on_the_disk_that_is_there_is_honoured(self):
+    def test_a_declared_machines_own_letter_resolves(self):
+        # The capability 0.1.0a2 took away and _letter_map gives back
+        # (D108): a machine testaferro did not build zero-config
+        # still resolves its own declared disk deterministically —
+        # this fixture's own thin blueprint stands in for one.
         machine = self._create()
 
-        self._put(machine, self._staged("SUITE.EXE"),
-                  address="C:\\HARNESS", authored=False)
+        written = self._put(machine, self._staged("SUITE.EXE"),
+                            address="C:\\HARNESS")
 
-        self.assertEqual(
-            self._listing(machine, address="C:\\HARNESS", authored=False),
-            ["SUITE.EXE"])
+        self.assertEqual(written, ["HARNESS\\SUITE.EXE"])
+        self.assertEqual(self._listing(machine, address="C:\\HARNESS"),
+                         ["SUITE.EXE"])
 
 
 class UnreadableDriveTests(AtRestFixture):
-    """A disk that cannot be read at rest, which is what the fallback
-    is for — and the case a stubbed report can only imitate."""
+    """A disk that cannot be read at rest — a declared address naming
+    one still fails closed, cleanly, before any boot."""
 
     def _junk_disk(self):
         """A drive image that is not a filesystem at all."""
@@ -363,56 +327,26 @@ class UnreadableDriveTests(AtRestFixture):
     def test_an_unreadable_disk_refuses_the_write_by_name(self):
         """remanence's refusal, in testaferro's vocabulary.
 
-        This is the failure `_place` catches to fall back onto its
-        own work drive, so what it raises has to be the type that
-        path catches — a fake cannot prove that about a real disk.
+        A fake cannot prove this about a real disk — only a genuine
+        FAT-blind image, opened for real, raises the type `at_rest`
+        translates.
         """
         machine = self._create(drives=self._junk_disk())
 
         with self.assertRaises(self.at_rest.AtRestError):
             self._put(machine, self._staged("SUITE.EXE"))
 
-    def test_an_unreadable_disk_is_named_undetermined_with_its_reason(self):
-        # Residue with the map (above): while a declared machine
-        # still resolves through the report, an unreadable disk in it
-        # is not silently skipped.
-        machine = self._create(drives=self._junk_disk())
-
-        report = self.reliquary.describe_drives(machine=machine,
-                                                context=self.context)
-
-        self.assertEqual(report["mapping"]["letters"], {})
-        undetermined = report["mapping"]["undetermined"]
-        self.assertEqual([entry["drive"] for entry in undetermined],
-                         ["hdd0"])
-        self.assertTrue(undetermined[0]["reason"])
-        self.assertTrue(undetermined[0]["id"])
-
-    def test_testaferro_refuses_to_default_onto_a_disk_it_cannot_read(self):
-        # Rather than guessing a letter. The refusal carries
-        # reliquary's own reason and points at the way out.
-        machine = self._create(drives=self._junk_disk())
-
-        with self.assertRaises(ValueError) as caught:
-            self.binding._default_location(machine, self.context)
-
-        self.assertIn("location=", str(caught.exception))
-
-    def test_an_appended_directory_drive_is_placed_behind_the_bad_disk(self):
-        # The fallback's other half: once testaferro adds its own
-        # drive, that drive still needs a letter — and an unreadable
-        # disk ahead of it means it does not get one, which is why the
-        # fallback appends *and* re-reads rather than assuming.
+    def test_the_letter_map_ignores_whether_a_disk_can_be_read(self):
+        # `_letter_map` is pure declaration arithmetic (0.1.0a2,
+        # D108): a junk disk ahead of testaferro's work drive still
+        # gives the work drive D:, since nothing here reads any disk
+        # to answer the question — only PlacedLetterTests (unit tier)
+        # needs proving this positional rule at all, but a junk disk
+        # actually materialized is worth pinning here too.
         drives = self._junk_disk()
-        source = self._staged("SUITE.EXE")
         drives["hdd1"] = {"type": "media", "name": "work",
-                          "location": {"local": source},
+                          "location": {"local": self._staged("SUITE.EXE")},
                           "materialize": "use"}
-        machine = self._create(drives=drives)
 
-        with self.assertRaises(ValueError) as caught:
-            self.binding._placed_letter("hdd1", machine, self.context)
-
-        # The blocking disk answers for the drive behind it — the
-        # specific refusal survives the indirection (P11).
-        self.assertIn("hdd1", str(caught.exception))
+        self.assertEqual(self.binding._letter_map(drives),
+                         {"C": "hdd0", "D": "hdd1"})

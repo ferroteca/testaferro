@@ -68,6 +68,61 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   Paul Galbraith and is not licensed for forks or redistributions; the
   GPL-3.0-only grant covers the software only. Linked from README,
   CONTRIBUTING, CLA, and AGENTS.
+- **The reliquary pin moves to `0.1.0a2`, and two breaking changes
+  land with it.** The session is the only door now (P26 there): every
+  module-level verb this binding called — `create_machine`,
+  `start_machine`, `stop_machine`, `run_script`, `exec`, the rest —
+  is a method on a `reliquary.Session` opened once per disposable
+  home, so `_context()` is now `_open_session()` and returns one. And
+  the provider's whole drive-report layer is deleted outright rather
+  than deprecated (D108 there): `describe_drives` and the file family
+  are gone, and so is reliquary's own dependency on remanence, which
+  is the layer testaferro's own `at_rest` was already standing on
+  (F16, above).
+- **BREAKING: testaferro now computes every drive letter itself,
+  deterministically, and never asks the provider again.**
+  `_placed_letter()` and the declared/authored split in
+  `_resolve_volume()`/`_default_location()` read the provider's
+  drive-letter map; with reliquary's report gone and remanence
+  refusing the same question by design (its own D57 — a fact about a
+  booted guest, not a stopped image), that seam closed for good
+  rather than temporarily. Reliquary and remanence now offer **no**
+  facility for this, permanently, across all three sibling projects —
+  so testaferro owns the answer, and can: it authors the whole
+  document, and DOS assigns a floppy `A:`/`B:` by controller
+  position and a hard disk `C:` onward by slot order, one volume per
+  disk, which holds by construction for every drive this binding
+  declares. `_letter_map()` computes that map from the `drives`
+  mapping alone, and replaces `_placed_letter()`, the authored/
+  declared split, and the reactive fallback all at once.
+- **BREAKING: the suite lands on testaferro's own vvfat work drive,
+  always, not staged onto the system disk at rest.** A vvfat medium —
+  a host directory QEMU serves live as a FAT volume, never
+  materialized into an image — is now a permanent sibling of whatever
+  else a session's machine declares, gathered *before*
+  `create_machine()` even runs. There is nothing to write into it:
+  its content already exists the moment the drive does. The
+  zero-configuration guest's default location moves from `C:\TESTS`
+  (the system disk) to `D:\` (the work drive, one hard disk after the
+  system disk — checked against a real boot). The old reactive
+  fallback — append a directory-source drive and recreate the machine
+  only when the primary write fails — is retired along with the
+  report it depended on to find that drive's letter afterward; the
+  drive is simply always there instead, so there is nothing left to
+  react to. One consequence restores a capability the letter-map
+  deletion first took away: a **declared** machine's explicit
+  `location=` resolves again too, through the same deterministic
+  computation, rather than refusing for lack of a report.
+- This reinstates, as **deliberate, permanent policy**, the
+  one-volume-per-disk inference reliquary's own D78 killed for the
+  general case. The difference is not narrower scope but an owned
+  assumption: testaferro used to treat that inference as something an
+  upstream report would correct if wrong, and states it as its own
+  now instead, since no report is coming.
+- The `.rlqb` reader follows reliquary's own move from its
+  project-specific JSONC dialect to published JSON5 (D102 there):
+  `environments.py` now imports `reliquary.json5reader` in place of
+  the retired `reliquary.jsonc`, both exposing the same `load(fp)`.
 
 ## [0.1.0.dev7] - 2026-07-30
 

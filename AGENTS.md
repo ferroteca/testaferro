@@ -151,23 +151,31 @@ docstring):
   provider binding, for DOS guests (D16). Named for the provider it
   binds, because that is the layer testaferro talks to: every call in
   it is a reliquary call, and what reliquary drives underneath is its
-  own business and appears nowhere in this package. **The one thing
-  it no longer does is write to the guest's disks** (F16, D23): it
-  settles *where* the suite goes and `at_rest` puts it there, so
-  `_place()` and `_retrieve_if_kept()` are a resolution followed by
-  an at-rest call. `_resolve_volume()` is that resolution and it
-  answers two ways — **guaranteed** for the zero-configuration guest,
-  whose one FAT volume DOS can only call `C:`, and **looked up**
-  through the provider's drive map for a machine somebody else
-  declared. The lookup is residue: the map is being deleted upstream
-  and the guest reporting its own letters is what replaces it, so
-  that branch and `_placed_letter()` are what break when the pin
-  moves. What it drives is
-  still a reliquary *machine*, which is why `machine_config=` keeps
-  that word while the noun a suite writes is an environment: it names
-  the provider's own document, passing through as `platform` does.
-  `PLATFORMS` is the one thing it tells resolution about itself — the
-  guests this provider serves, its own answer to give.
+  own business and appears nowhere in this package.
+
+  **Reliquary and remanence answer no drive-letter question at all,
+  by design rather than by gap** (0.1.0a2, D108 there; remanence's
+  own D57): `describe_drives` and the rest of the file-verb layer are
+  deleted outright, and neither will say which letter a volume gets —
+  a fact about a booted guest, never a stopped image. **Testaferro
+  now answers it instead, deterministically, for every drive it ever
+  declares** — `_letter_map()` — because testaferro authors the whole
+  document: a floppy controller's drives take `A:`/`B:` by position
+  and a hard disk takes `C:` onward by slot order, one volume per
+  disk, which holds by construction for testaferro's own media and is
+  taken as given for a `machine_config` template too. This reinstates,
+  as **deliberate, permanent policy** rather than a stopgap, the
+  inference D78 killed upstream for the general case — the difference
+  is that testaferro now *states* the one-volume-per-disk assumption
+  as its own rather than presenting it as something read back.
+  Checked against a real boot: the zero-configuration guest's system
+  disk answers `C:` and its work-drive sibling `D:`, exactly as
+  computed. What reliquary drives underneath is still its own
+  business, which is why `machine_config=` keeps that word while the
+  noun a suite writes is an environment: it names the provider's own
+  document, passing through as `platform` does. `PLATFORMS` is the
+  one thing it tells resolution about itself — the guests this
+  provider serves, its own answer to give.
 
   **Zero configuration boots a FreeDOS system testaferro installed**
   (D20), not a downloaded floppy. `assets/` holds the recipe — the
@@ -180,8 +188,9 @@ docstring):
   zero configuration could not have worked; nothing had looked until
   an integration run did. `boot_image=` is unchanged and still boots a
   tester's own floppy (U3) — what changed is only what happens when
-  nobody says. The system is the machine's one disk, so the suite is
-  staged into it and the guest reads it at **`C:\TESTS`**.
+  nobody says. The suite is staged onto testaferro's own **work
+  drive**, a vvfat sibling of the system disk, and the guest reads it
+  at **`D:\`**.
 
   `suite_backend()` guards with `binfmt.classify()`
   (rejections name the format and architecture) and returns a
@@ -189,7 +198,7 @@ docstring):
   adapter. Each guest session writes the declaration as a blueprint
   into a disposable reliquary home under `cache_root()`, then
   `create_machine()` → `start_machine()`; every guest run is one
-  `reliquary.exec()` against that machine, and `stop_machine()` plus
+  `session.exec()` against that machine, and `stop_machine()` plus
   a sweep of the home ends the guest session. Zero configuration uses
   `boot_image=` or a once-downloaded cached FreeDOS image.
   `start()`/`stop()` (re-exported as `testaferro.start`/`stop`) open
@@ -207,43 +216,50 @@ docstring):
     guest and leak the process. Any new exit path must go through
     `_stop_running_machines()`.
 
-  - **The reliquary context is hermetic.** Each guest session pins
-    `reliquary.Context(home_dir=…, cache_dir=…,
-    blueprints_dir=<guest home>)`, so resolution sees only what
+  - **The reliquary session is hermetic.** Each guest session opens
+    `reliquary.Session(reliquary.Context(home_dir=…, cache_dir=…,
+    blueprints_dir=<guest home>, scripts_dir=…))` (`_open_session()`,
+    formerly `_context()`; 0.1.0a2 made the session the only door,
+    P26 there, so every provider verb this binding calls is now a
+    method on the object it returns), so resolution sees only what
     testaferro authored for that run — never the user's reliquary
     home or the built-in codex. Reaching a blueprint by name from
     the user's home is a deliberate decision, not a default to
-    drift into. The second half of that guarantee used to be pinned
-    here as `autoseed=False`; 0.1.0.dev6 deleted autoseeding
-    outright (D88 there) rather than defaulting it, so the
-    blueprints and scripts directories are now the sole sources by
-    construction and there is no process-global left to fence off.
-  - **Staging happens at rest, and the surface promises a location
-    rather than a drive** (F4, superseding D5). The set is gathered
-    host-side into `<guest home>/work`, then written into the
-    machine's own drives with `put_files()` **between
-    `create_machine()` and `start_machine()`** — the window where
-    images exist and reliquary will still touch them. The address is
-    **stated once, staged against, and spelled**: `_place()` settles
-    it, `put_files` validates it by resolving it against a real disk,
-    and `_run_in_guest` spells the command off the same value, so the
-    command cannot name somewhere the files did not go.
+    drift into. `Session` itself now refuses construction without a
+    home (`dir.unassigned`), which is what 0.1.0.dev6's autoseeding
+    deletion (D88 there) was already heading toward: there is no
+    process-global left to fence off.
+  - **testaferro's own work drive is a standing fixture, not a
+    reaction** (F4, superseding D5, and D108's own consequence). A
+    vvfat medium — a host directory QEMU serves live as a FAT volume,
+    never materialized into an image — is a sibling of whatever else
+    the machine declares in **every** session, gathered host-side
+    into `<guest home>/work` *before* `create_machine()` even runs.
+    There is nothing to write into it at rest: its content already
+    exists the moment the drive does, so `_place()` only needs to
+    settle *where* — the address is **stated once, and spelled**:
+    `_default_location()` picks the work drive's own letter
+    (`_letter_map()`) when nobody said, `_run_in_guest` spells the
+    command off the same settled value, and only a `location=` naming
+    some *other* drive still asks `at_rest.put_tree()` (over
+    remanence, F16, D23) to write it there, since that drive is not
+    live-served.
 
-    Three declarations drive it, each testaferro's own word and none
-    of them a blueprint field: `files=` (host paths staged beside the
-    suite), `location=` (the guest address they land at) and
-    `program=` (what to run, `{location}` substituted). Each defaults,
-    which is what keeps `pytest tests/SUITE.EXE` a one-liner (P8) —
-    the executable alone, at the **last** letter of the drive map in
-    `\TESTS`, run by its own name.
+    Three declarations drive placement, each testaferro's own word
+    and none of them a blueprint field: `files=` (host paths staged
+    beside the suite), `location=` (the guest address they land at)
+    and `program=` (what to run, `{location}` substituted). Each
+    defaults, which is what keeps `pytest tests/SUITE.EXE` a one-liner
+    (P8) — the executable alone, at the work drive's own letter,
+    `D:\` for the zero-configuration guest.
 
-    **The old work drive survives only as the fallback.** A machine
-    offering no writable room — an unreadable disk, a FAT reliquary
-    does not claim, a backend without at-rest write — makes
-    testaferro append the directory-source drive, recreate and stage
-    there. Only a **defaulted** location may fall back: a declared one
-    surfaces reliquary's refusal, because the consumer named that
-    address and is the only one who can correct it.
+    **There is no more reactive fallback.** Through 0.1.0.dev7 an
+    unwritable primary drive made testaferro append its own drive,
+    recreate the machine and stage there instead; since the work
+    drive is now a standing fixture rather than something appended on
+    failure, there is nothing left to react to — a placement that
+    fails now simply fails, naming the address that would not
+    resolve, before any boot.
   - **A started machine is not a ready guest, and testaferro waits.**
     `start_machine()` launches a machine and never claimed to wait for
     the guest inside it. Reliquary ships **no readiness script on
@@ -252,8 +268,10 @@ docstring):
     the caller's own sets one as its last step and the host reads it
     back, cleared at every start so the answer is about *this* boot.
     So `assets/freedos-ready.rlqs` waits for a prompt and sets
-    `ready`, `_wait_ready()` runs it through `execute_script()` and
-    checks the variable, and a guest that never reports itself ready
+    `ready`, `_wait_ready()` runs it by label through `run_script()`
+    (0.1.0a2 retired `load_script()`/`execute_script()` with the rest
+    of the module-level API) and checks the variable, and a guest
+    that never reports itself ready
     fails there rather than being typed at. Skipping this is what made
     the first command of every run come back as the boot's own output.
     The prompt is matched as a **pattern**, because testaferro's
@@ -268,22 +286,8 @@ docstring):
     **already staged** — it copies nothing, which is what keeps the
     snapshot rule above from being quietly broken by a document
     builder.
-  - **`_work_slot()` chooses the slot; `_placed_letter()` reads the
-    letter off the created machine.** The slot is testaferro's — the
-    lowest free disk — and it is all authoring decides. The letter is
-    reliquary's to say and **is not inferred anywhere**: 0.1.0.dev5
-    stopped assuming one volume per disk (D78 there), which ended the
-    derivation, and 0.1.0.dev6 supplied `describe_drives()` in its
-    place (D83 there). So the question is asked between
-    `create_machine()` and `start_machine()` — the window where
-    images exist to read and reliquary will still read them at rest —
-    and the answer is what the guest is told. A drive the report
-    leaves unplaced is refused **carrying reliquary's own reason and
-    id**, never a summary: an unreadable disk ahead of this one
-    shifts every letter behind it, and only the specific refusal says
-    which disk and why.
 
-  Guest output is whatever `reliquary.exec()` returns: the visible
+  Guest output is whatever `session.exec()` returns: the visible
   screen, as rows. A command that scrolls past a screenful leaves
   only its tail, which is why `enumerator=` matters for real suites.
 - [src/testaferro/resolution.py](src/testaferro/resolution.py) — the
@@ -463,7 +467,7 @@ principle governs.
 - Python code: stdlib plus three declared dependencies (P11) — pytest (the
   facade's host surface, imported lazily), reliquary (the only
   supported guest-machine provider, imported by `src/testaferro/reliquary.py` for the
-  machine lifecycle and by `src/testaferro/environments.py` for its JSONC
+  machine lifecycle and by `src/testaferro/environments.py` for its JSON5
   reader alone), and remanence (at-rest access to the guest's own drive
   images, imported by the at-rest module alone — staging a suite into a
   stopped disk is not execution and is not the provider's to supply).
@@ -473,10 +477,13 @@ principle governs.
   [pyproject.toml](pyproject.toml) (D4; P18's enumerated set, of one
   each). Both APIs are still moving fast — reliquary has already removed
   the layer testaferro was built on twice, the drive letter map and then
-  the file verbs themselves — so a floating requirement would break
-  consumers without warning. Moving either pin is a deliberate task —
-  expect the binding or the at-rest module to need work, and re-run the
-  checks below against the new version.
+  the file verbs themselves, together in 0.1.0a2 (D108 there) — and
+  neither will ever answer a drive-letter question again (remanence's
+  own D57), by design rather than by gap. `_letter_map()` is
+  testaferro's own answer instead, computed deterministically from
+  every drive it declares — see `reliquary.py` above. Moving either
+  pin is a deliberate task — expect the binding or the at-rest module
+  to need work, and re-run the checks below against the new version.
 - **The plugin auto-loads, so what it claims is a promise to every
   project that installs it.** One rule carries that weight, and it is
   easy to break by accident: `binfmt`'s `"dos"` verdict has two
@@ -652,10 +659,10 @@ is re-verified then, at the version in question.
 
 The only guest-machine provider (P1, D1) and a declared, imported
 runtime dependency. GPL-3.0-only from its `0.1.0.dev5`; the release
-testaferro currently pins (`0.1.0.dev4`, D4) predates that project's
-own conversion and is BSD-3-Clause, so today's installed closure is
-permissive — but the standing is written for the pin moving forward.
-Imported GPL is tier 3 for any other author's work; reliquary is
+testaferro currently pins (`0.1.0a2`, D4) is well past that
+conversion, so today's installed closure is the copyleft one this
+standing was written for, not merely anticipating it. Imported GPL
+is tier 3 for any other author's work; reliquary is
 dependable because it is the same owner's, under the same assignment
 policy and the same reserved relicensing right, so both projects can
 only ever be relicensed by the same hand and in one decision. That
@@ -900,11 +907,11 @@ start a guest (P10). The boundary is exact:
   materialization, machine state. Unit tests run it for real, and
   should: it is the best coverage available on this side of the line.
 - `start_machine()` starts a guest for real, and leaves a process
-  behind. It, `stop_machine()`, `exec()`, `execute_script()` and
+  behind. It, `stop_machine()`, `exec()`, `run_script()` and
   `get_machine_var()` are stubbed in the unit suite and belong to
   integration.
 
-**`execute_script()` is on that list and not obviously.** A script's
+**`run_script()` is on that list and not obviously.** A script's
 `machine` header is a precondition reliquary *establishes*, so running
 the readiness script — which says `machine running` — against a
 machine the unit fixture never really started **starts it for real**.
@@ -936,18 +943,25 @@ a first start that never happens. Eleven of them cost about fifteen
 seconds together, against roughly fifteen for a *single* boot.
 
 **That file exists because mocks at this seam go stale silently.**
-`PlacementTests` in the unit suite stubs `describe_drives` and holds
-testaferro's policy over the answer; it is only as good as the
-report's shape being right, and a stubbed report cannot notice that
-the real one moved. So the at-rest file pins the provider's actual
-answers against a real qcow2 — the letter map, FAT16 recognition,
-`put_files` creating its own directory, a copy that does not mirror,
-and the refusal's **rule id** rather than its prose. Keep both: the
-unit tier is the always-on guard, and this is what keeps its
-fixtures honest. Reliquary's at-rest answers are machine input that
-testaferro *acts* on, and a wrong reading places a suite on the
-wrong drive — which is the variability-times-blast-radius that earns
-pinned coverage.
+`PlacementTests` in the unit suite holds testaferro's own policy over
+a resolution it stubs; it is only as good as the stub's shape being
+right, and a stub cannot notice that the real answer moved — which is
+exactly what happened when 0.1.0a2 deleted the drive-letter report
+these tests used to stub (D108). So the at-rest file pins remanence's
+actual answers against a real qcow2 instead — FAT16 recognition,
+`at_rest.put_tree` creating its own directory, a copy that does not
+mirror, and the refusal's **rule id** rather than its prose. **The
+letter-map cross-check this file used to carry is gone with the
+report it checked**, not merely stale: there is no provider answer
+left to confirm the zero-configuration guarantee against, so that
+half of the guarantee now rests on the guarantee alone (still true —
+testaferro's own one-disk machine still has one FAT16 volume — but
+unconfirmed by a second source). Keep both remaining halves: the unit
+tier is the always-on guard, and this is what keeps its fixtures
+honest. Remanence's at-rest answers are machine input that testaferro
+*acts* on, and a wrong reading places a suite on the wrong drive —
+which is the variability-times-blast-radius that earns pinned
+coverage.
 
 **A dry create reaches past that line without crossing it**, and it
 is the unit tier's newest reach. `create_machine(dry_run=True)`
@@ -985,37 +999,31 @@ jump outside `test_plugin.py` means something crossed the line;
 `--durations` finds it quickly, and a jump into the *minutes* means
 an install did.
 
-`_work_slot()` chooses the slot; `_placed_letter()` **reads the
-letter off the created machine**. Inference is retired: through
-0.1.0.dev4 the letter was derived while authoring the blueprint,
-which 0.1.0.dev5 ended by reading volumes off the image at rest
-(D78 there) and 0.1.0.dev6 answered with `describe_drives()` (D83
-there). The ask happens between `create_machine()` and
-`start_machine()`, and a drive the report leaves unplaced is refused
-carrying reliquary's own reason and id — a suite run off the wrong
-drive fails as a missing program and explains nothing.
-`WorkDrivePlacementTests` states every slot case and **no letters at
-all**, which is the point; `PlacedLetterTests` holds the reading,
-including the two-volume disk the old inference could not survive
-and the refusal path. Both now serve the **fallback** drive alone
-(F4), which is the only thing that still takes a slot.
+`_work_slot()` chooses the slot; `_letter_map()` **computes every
+drive's letter from the declaration, deterministically** (0.1.0a2,
+D108). Through 0.1.0.dev4 the letter was derived while authoring the
+blueprint, which 0.1.0.dev5 ended by reading volumes off the image at
+rest (D78 there) and 0.1.0.dev6 answered with `describe_drives()`
+instead (D83 there) — and 0.1.0a2 deletes that report outright, with
+no provider answer left to ask for and remanence refusing the same
+question by design (its own D57). What comes back reinstates D78's
+assumption deliberately, as testaferro's own stated policy rather
+than something read back: one volume per hard disk, true by
+construction for testaferro's own media and taken as given for a
+`machine_config` template. `WorkDrivePlacementTests` states every
+slot case; `PlacedLetterTests` holds the letter computation, pure
+declaration arithmetic with no machine or session in sight.
 
 **Placement is where the letter is actually used**, and it is tested
-in three places for three different reasons. `PlacementTests` stubs
-the provider and holds the *policy* — last letter, `\TESTS`,
-`{location}` substitution, and the refusal when letters cannot be
-determined. `DeclaredPlacementTests` runs the real session flow with
-`put_files` stubbed, and holds the rules a policy cannot state: a
-declared address is never defaulted over, never falls back, and is
-the address the command spells. The integration tier holds the thing
-neither can reach — a real guest, staged at rest into a qcow2 with
-**no drive appended at all**, reading its suite back from `C:\TESTS`
-with DOS's own `DIR`.
-
-The unit fixture's boot image is ten bytes of text rather than a FAT
-volume, so `_BindingFixture` exercises the fallback path by
-construction — worth knowing before reading a failure there as a
-staging bug.
+in three places for three different reasons. `PlacementTests` holds
+the *policy* — the work drive's own letter is the default, always,
+computed rather than read. `DeclaredPlacementTests` runs the real
+session flow with `_resolve_volume`/`at_rest.put_tree` stubbed, and
+holds the rules a policy cannot state: a declared address is never
+defaulted over and is the address the command spells. The integration
+tier holds the thing neither can reach — a real guest, its work drive
+live-served with no write at rest at all, reading its suite back from
+`D:\` with DOS's own `DIR`.
 
 **The integration tier exists and passes** — `tests/integration/`,
 holding testaferro's own CppUTest DOS suite (`guest/`, with its

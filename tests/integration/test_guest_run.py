@@ -90,35 +90,35 @@ class GuestSessionTests(unittest.TestCase):
 
         self.assertTrue(outcome.passed)
 
-    def test_the_suite_is_staged_at_rest_with_no_work_drive(self):
-        """F4's primary path, which only a guest can prove.
+    def test_the_suite_lands_on_a_vvfat_sibling_of_the_system_disk(self):
+        """The letter this binding now computes rather than reads,
+        proved against the boot it is computed for.
 
-        Zero configuration boots testaferro's own FreeDOS, whose disk
-        is the only one the machine has — so the default location is a
-        directory on it, staged into the drive *image* between create
-        and start, with no drive appended. Everything above this in
-        the class has already run off that placement; this states it.
+        Zero configuration boots testaferro's own FreeDOS on `hdd0`;
+        the work drive is always a sibling on `hdd1`, live-served over
+        vvfat — one hard disk after the system disk, so `D:` — with
+        nothing written into it at rest, since `_gather()` already put
+        the suite there before the machine existed. Everything above
+        this in the class has already run off that placement; this
+        states it, against a real boot rather than a computation.
         """
-        self.assertEqual(self.backend.location, "C:\\TESTS")
+        self.assertEqual(self.backend.location, "D:\\")
 
         blueprint = Path(self.backend._home) / "blueprints"
         document = json.loads(
             (blueprint / "testaferro.rlqb").read_text(encoding="utf-8"))
         drives = document[0]["drives"]
 
-        # One disk, the system's own: the work drive D5 supplied is
-        # gone rather than merely unused.
-        self.assertEqual(sorted(drives), ["hdd0"])
+        self.assertEqual(sorted(drives), ["hdd0", "hdd1"])
         self.assertEqual(drives["hdd0"]["materialize"], "difference")
+        self.assertEqual(drives["hdd1"]["materialize"], "use")
 
     def test_the_guest_reads_the_suite_back_from_where_it_was_staged(self):
         # The staging is real on the guest's side of the glass: DOS
         # itself lists the file at the address testaferro reports.
-        import reliquary
-
-        rows = reliquary.exec(f"DIR {self.backend.location}",
-                              machine=self.backend._machine,
-                              context=self.backend._ctx, timeout=60)
+        rows = self.backend._session.exec(
+            f"DIR {self.backend.location}",
+            machine=self.backend._machine, timeout=60)
 
         self.assertIn("SUITE", "\n".join(rows).upper())
 

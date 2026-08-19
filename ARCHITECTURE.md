@@ -265,9 +265,10 @@ built and verified.
   exclusion. This entry never promised them one, and did not need to:
   what it forbids is the unit tier starting a guest, which stands
   whether or not anywhere else does. Note what joined the forbidden
-  list on the way: `execute_script()`, because a script's `machine`
-  header is a precondition the provider *establishes*, so running one
-  that expects a running machine starts a stopped one for real.
+  list on the way: `run_script()` (0.1.0a2's rename of
+  `execute_script()`), because a script's `machine` header is a
+  precondition the provider *establishes*, so running one that
+  expects a running machine starts a stopped one for real.
   *[Amended once the tier landed: this read "does not exist yet".]*
 
   *[Amended before arming: this read
