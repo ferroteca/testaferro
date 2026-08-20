@@ -24,6 +24,8 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   and the check turns what escapes it into a loud refusal instead of
   a silent false pass.
 
+## [0.1.0a1] - 2026-08-19
+
 - **remanence is a runtime dependency, pinned to `0.0.1a5`, and P11
   moves to three** (F16, D23). At-rest access to a guest's own drive
   images — staging the suite in and reading it back out — is not
