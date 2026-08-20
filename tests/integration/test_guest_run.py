@@ -226,6 +226,43 @@ class ScriptedGuestSessionTests(unittest.TestCase):
 
 @requires_guest
 @requires_suite
+class NamedStandardEnvironmentTests(unittest.TestCase):
+    """U9, against a real boot: `environment="freedos"` resolves
+    through the same seam every entry point shares
+    (`resolution.resolve_backend`/`resolve_guest_session`), reaching
+    the standard catalog's own document rather than only the
+    zero-configuration default's inference landing on the same disk
+    unnamed. `environments.select()` and the catalog it feeds are
+    already unit-tested (F19) — what only a real boot can show is
+    that the named path actually runs a guest, the same bar U4, U7
+    and U10 each cleared (P10).
+    """
+
+    def test_the_named_environment_resolves_and_boots_for_real(self):
+        from testaferro.resolution import resolve_backend
+
+        backend = resolve_backend(str(SUITE), environment="freedos")
+        backend.start_guest()
+        try:
+            outcomes = {(o.group, o.name): o for o in backend.run_all()}
+        finally:
+            backend.stop_guest()
+
+        self.assertTrue(outcomes[("Guest", "Runs")].passed)
+        self.assertFalse(outcomes[("Guest", "Fails")].passed)
+
+    def test_the_public_facade_names_it_the_same_way(self):
+        import testaferro
+
+        with testaferro.guest_session(
+                environment="freedos", files=[str(SUITE)]) as guest:
+            rows = guest.exec(
+                f"{guest.location}SUITE.EXE -sg Guest -sn Runs")
+            self.assertIn("OK", "\n".join(rows))
+
+
+@requires_guest
+@requires_suite
 class GuestCollectionTests(unittest.TestCase):
     """U4's own command, run for real: `pytest <suite>.EXE`.
 

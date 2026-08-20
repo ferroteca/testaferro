@@ -29,19 +29,20 @@ and honors today: root [`USE-CASES.md`](../USE-CASES.md) holds **U4**,
 the trial journey, armed once a guest actually ran it; **U7**,
 harness prep, armed once a real guest boot proved `setup=` — commands
 run in the guest before any test, once per session, a real failure
-ending the session cleanly; and **U10**, a scripted guest interaction,
-armed once `guest_session()` proved out against a real guest boot.
-Root [`ARCHITECTURE.md`](../ARCHITECTURE.md) holds thirteen
-principles: P1, P2, P4, P6 through P13, P16 and P17. **No principle is
-pledged any more** — what stays drafted is P3, P5, P14 and P15, so a
-P-citation now points either at a rule in force or at an argument,
-and never at something merely owed. **One use case is pledged**: U9,
-alongside its prerequisite F19 (D25), in
-[pledged/USE-CASES.md](pledged/USE-CASES.md) and
-[pledged/FEATURES.md](pledged/FEATURES.md). Every other use case is
-drafted in [proposed/USE-CASES.md](proposed/USE-CASES.md), so read a
-citation by where it points: an in-force entry binds, a pledged one
-is owed, and a drafted one names an argument.
+ending the session cleanly; **U9**, a standard environment named
+rather than left to inference, armed once `environment="freedos"`
+proved out against a real guest boot; and **U10**, a scripted guest
+interaction, armed once `guest_session()` proved out against a real
+guest boot. Root [`ARCHITECTURE.md`](../ARCHITECTURE.md) holds
+thirteen principles: P1, P2, P4, P6 through P13, P16 and P17. **No
+principle is pledged any more** — what stays drafted is P3, P5, P14
+and P15, so a P-citation now points either at a rule in force or at
+an argument, and never at something merely owed. **No use case is
+pledged either** — `pledged/` holds nothing, U9 having been its last
+occupant — so every other use case is drafted in
+[proposed/USE-CASES.md](proposed/USE-CASES.md), and a citation reads
+by where it points: an in-force entry binds, and a drafted one names
+an argument.
 
 **Costs can now be named as in-force costs on both halves**, which is
 the point of arming: a change that would erode zero configuration, add

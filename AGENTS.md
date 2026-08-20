@@ -447,16 +447,17 @@ both batched and `-k`-narrowed.
   [USE-CASES.md](USE-CASES.md) now exists, carrying **U4**, armed once
   a guest ran the journey it describes; **U7**, armed once a real
   guest boot proved `setup=`, its prerequisite F9 delivered and
-  retired with it; and **U10**, armed once a real guest boot proved
+  retired with it; **U9**, armed once a real guest boot proved
+  `environment="freedos"` resolves against the standard catalog rather
+  than only through the zero-configuration default's own inference,
+  its prerequisite F19 delivered and retired with it, severed from
+  U9's own plural growth (D25) — a second named environment still
+  waits on a second guest platform, unbuilt and blocked entirely on
+  reliquary; and **U10**, armed once a real guest boot proved
   `guest_session()`, its prerequisite F18 delivered and retired with
-  it in turn. **U9 is pledged now**, alongside its prerequisite F19 —
-  [planning/pledged/](planning/pledged/) holds them, pledged together
-  rather than the citation left resting on something merely proposed,
-  and severed from U9's own plural growth (D25): a second named
-  environment waits on a second guest platform, unbuilt and blocked
-  entirely on reliquary, and is not owed by this pledge. Every other
-  U- or P-number still open names either a rule in force or an
-  argument, never something merely owed.
+  it in turn. `planning/pledged/` now holds nothing. Every other U- or
+  P-number still open names either a rule in force or an argument,
+  never something merely owed.
   Four principles stay drafted: P3 and P5, each contradicted by a
   small piece of the code and each saying so at its own entry, and
   P14 and P15, which govern conduct rather than code. An entry may

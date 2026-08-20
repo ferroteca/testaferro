@@ -86,18 +86,18 @@ the same artifacts in different states. A thing in `proposed/` moves
 to `pledged/`, and **the commit that moves it is the record**. Each
 mirrored file appears in `pledged/` with its first promoted entry
 rather than standing empty, and leaves again when its last one
-does. **`pledged/FEATURES.md` holds F19 today**, its sixth stay —
-after F7 and F8, then F11 and F12, then F13 alone, then F9 and F18,
-then F3 alone, that fifth a same-day round trip, pledged and
-withdrawn once starting it found its batching needs a sixth
-framework-adapter callable, which P4 as written does not allow (D24).
-`ARCHITECTURE.md` did it once, holding P1 and P2 from D18 until F12
-built what they promised, and stands empty since. `USE-CASES.md` did
-it twice over — U4 from D13 until a guest ran the journey it
-describes, then U7 and U10 together — and **holds U9 now**, its third
-stay, pledged severed from its own plural growth and paired with F19
-as its proof (D25). Each leaves when its last entry arms or delivers,
-which is the machinery working rather than churn.
+does. **`pledged/FEATURES.md` held six stays** — F7 and F8, then F11
+and F12, then F13 alone, then F9 and F18, then F3 alone (that fifth a
+same-day round trip, pledged and withdrawn once starting it found its
+batching needs a sixth framework-adapter callable, which P4 as
+written does not allow, D24), then F19 alone, paired with U9 as what
+it proved (D25) — and stands empty since. `ARCHITECTURE.md` did it
+once, holding P1 and P2 from D18 until F12 built what they promised,
+and stands empty since too. `USE-CASES.md` did it three times over —
+U4 from D13 until a guest ran the journey it describes, then U7 and
+U10 together, then U9 alone, severed from its own plural growth — and
+stands empty since as well. Each leaves when its last entry arms or
+delivers, which is the machinery working rather than churn.
 
 **U7 and F9 were the same debt seen twice, and both are paid.**
 U7 was the journey and F9 the work that completed it — neither could
@@ -209,13 +209,21 @@ session sweeping away on exit whether the script's own assertions
 passed or one of them raised. F18 delivered and retired with it,
 leaving `_GuestLifecycle` — the provisioning `ReliquarySuiteBackend`
 and `GuestSession` now share rather than each carrying its own copy
-— behind as the code. **U9 is pledged now, alongside F19** (D25): the
-standard catalog's resolution already exists and is unit-tested, so
-what F19 owes is proof rather than mechanism — one integration case
-naming `"freedos"` explicitly against a real guest boot, the same bar
-U4, U7 and U10 each cleared. Several drafted entries describe code
-that already exists; that makes their route short, not automatic —
-the pledge is still an act, and delivery still has to be true.
+— behind as the code. **U9 armed next in turn, the same bar again.**
+It was pledged alongside its prerequisite F19 (D25), the standard
+catalog's resolution already existing and unit-tested, so what F19
+owed was proof rather than mechanism — one integration case naming
+`"freedos"` explicitly, through the same seam every entry point
+shares, against a real guest boot. That case now exists and passes:
+`environment="freedos"` resolves against the standard catalog rather
+than only through the zero-configuration default's own inference
+reaching the same disk unnamed, and boots for real through both
+`resolve_backend()` and `resolve_guest_session()`. F19 delivered and
+retired with it, leaving no code behind — the mechanism was already
+built, and this pledge's whole content was the proof. Several drafted
+entries describe code that already exists; that makes their route
+short, not automatic — the pledge is still an act, and delivery still
+has to be true.
 
 **What did not arm is worth naming, because the bar is what makes
 the root list mean anything.** P3 and P5 each describe the code, and

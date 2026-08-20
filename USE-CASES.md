@@ -126,6 +126,30 @@ back before any test runs, and a `setup=` command that signals failure
 reported once, in the same `GuestOutputError` shape every other guest
 exchange fails in, never as a traceback into Testaferro.
 
+- **U9 — A standard environment, by name.** Between nothing and a
+  declaration sits a name: `environment="freedos"` selects a standard
+  environment Testaferro itself curates — an authored machine
+  document and a once-downloaded cached image, today's
+  zero-configuration machine made nameable. Resolution runs project
+  declarations first, then the standard catalog (D10), and never the
+  user's reliquary home (D6): a test run depends only on state
+  Testaferro authored or the project checked in.
+
+  **Severed from its own plural growth** (D25): a second named
+  environment waits on a second guest platform (F5), which waits
+  entirely on reliquary (D2) and is neither owed nor delivered here.
+  This journey covers the singular case alone — one name, resolving
+  as documented — and stays true whether or not Testaferro ever grows
+  a second guest.
+
+`environment="freedos"` is proven against a real guest boot, through
+the seam every entry point shares
+(`resolution.resolve_backend()`/`resolve_guest_session()`): the name
+resolves against the standard catalog rather than only through the
+zero-configuration default's own inference reaching the same disk
+unnamed, and both `guest_suite()` and `guest_session()` name it and
+boot for real, the way every other proven journey here was proven.
+
 - **U10 — A scripted guest interaction, not shaped as a suite.** A
   guest-driven test is sometimes a linear script rather than a suite
   of named cases — boot the guest, run one setup step, drive an
@@ -169,15 +193,18 @@ exchange fails in, never as a traceback into Testaferro.
   to: the minimal shape is `exec()` alone, and widening it waits for
   a script that actually needs it.
 
-**U10 cites U1, U3 and U9, all still drafted**, for the same reason
-U7's citations of U3 and U8 stayed drafted: the map's rule against
+**U10 cites U1 and U3, still drafted, for the same reason U7's
+citations of U3 and U8 stayed drafted**: the map's rule against
 leaning on a proposal tests completion, and no clause above leans on
-U1, U3 or U9 for anything this journey itself claims — they are named
-only to say `guest_session()` takes the same placement and
-environment vocabulary `guest_suite()` does, not to lean on those
-journeys being met. `guest_session()` and `exec()` are both proven
-against a real guest boot: `files=` stages host paths onto the work
-drive before boot exactly as `guest_suite()` does, `guest.exec()`
+U1 or U3 for anything this journey itself claims — they are named
+only to say `guest_session()` takes the same placement vocabulary
+`guest_suite()` does, not to lean on those journeys being met. Its
+third citation, U9, no longer carries that caveat: U9 armed above, so
+`environment=` and `machine_config=` reaching the same declared or
+standard environment a suite would is a claim about working code now,
+not a citation of a proposal. `guest_session()` and `exec()` are both
+proven against a real guest boot: `files=` stages host paths onto
+the work drive before boot exactly as `guest_suite()` does, `guest.exec()`
 runs a command in the guest and reads its answer back — the rows
 `reliquary.Session.exec()` itself returns, never reshaped for a
 framework adapter that was never going to see them — and the `with`

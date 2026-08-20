@@ -46,12 +46,12 @@ alongside its prerequisite F9, and now in force there too, once a
 guest actually ran the prepared journey. U10 took the same route
 again: pledged alongside its prerequisite F18, and now in force there
 too, once `guest_session()` reached the same provisioning
-`guest_suite()` already had, proven against a real guest boot. **U9
-is pledged now**, alongside its prerequisite F19 (D25) — severed from
-its own plural growth, which stays here, unowed: a second named
-environment waits on F5's second guest platform, itself waiting
-entirely on reliquary. See
-[pledged/USE-CASES.md](../pledged/USE-CASES.md).
+`guest_suite()` already had, proven against a real guest boot. U9
+took the same route in turn: pledged alongside its prerequisite F19
+(D25), and now in force there too, once `environment="freedos"` was
+proven against a real guest boot — severed from its own plural
+growth, which stays here, unowed: a second named environment waits on
+F5's second guest platform, itself waiting entirely on reliquary.
 
 - **U1 — Unit tests that can only run on the target OS, surfaced as
   ordinary pytest items.** A developer maintains code whose unit
