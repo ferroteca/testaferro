@@ -146,6 +146,45 @@ class ParseRunTests(unittest.TestCase):
                          [True, False, True])
 
 
+class FailureCountTests(unittest.TestCase):
+    """The summary's own failure count, cross-checked against the
+    failure blocks actually parsed. The count is CppUTest's
+    (TestResult.cpp prints it), so a block the transport mangled
+    beyond the grammar's reach — a header wrapped on a space, say —
+    surfaces as a refusal instead of as a passing test. Failing
+    loud is the point: the alternative was a silent false pass.
+    """
+
+    def test_a_missing_failure_block_is_refused_not_passed(self):
+        # Summary says one failure; no block parsed. Before the
+        # check, this text reported every test as passing.
+        mangled = (
+            "TEST(Vring, Fails)\n"
+            "vring_test.cpp:42: error: Failure in\n"
+            "TEST(Vring, Fails)\n"
+            "        but was  <2 0x2>\n"
+            " - 1 ms\n"
+            "Errors (1 failures, 1 tests, 1 ran, 1 checks, 0 ignored, "
+            "0 filtered out, 1 ms)\n")
+        with self.assertRaisesRegex(ValueError, "1 failure"):
+            cpputest.parse_run(mangled)
+
+    def test_two_failure_blocks_in_one_test_match_the_stated_count(self):
+        # With non-fatal checks a single test reports several failure
+        # blocks; the count compares blocks, not failed tests.
+        text = (
+            "TEST(Vring, Fails)\n"
+            "vring_test.cpp:42: error: Failure in TEST(Vring, Fails)\n"
+            "        expected <1 0x1>\n"
+            "vring_test.cpp:43: error: Failure in TEST(Vring, Fails)\n"
+            "        expected <2 0x2>\n"
+            " - 1 ms\n"
+            "Errors (2 failures, 1 tests, 1 ran, 2 checks, 0 ignored, "
+            "0 filtered out, 1 ms)\n")
+        outcomes = cpputest.parse_run(text)
+        self.assertEqual([o.passed for o in outcomes], [False])
+
+
 class ListTests(unittest.TestCase):
     def test_parse_list_returns_test_ids(self):
         ids = cpputest.parse_list("Vring.Wraps Vring.Fails\r\n")

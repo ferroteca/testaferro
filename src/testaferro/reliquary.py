@@ -977,7 +977,47 @@ class ReliquarySuiteBackend(_GuestLifecycle, SuiteBackend):
             command += " " + " ".join(args)
         rows = self._session.exec(command, machine=self._machine,
                                   timeout=self._timeout)
-        return "\n".join(rows) + "\n"
+        return "\n".join(_logical_lines(rows)) + "\n"
+
+
+#: The DOS text console is 80 columns wide, and the console — not
+#: reliquary — is what wraps: a longer line lands on the screen as a
+#: full row plus a remainder row, split wherever column 80 fell.
+_DOS_CONSOLE_WIDTH = 80
+
+
+def _logical_lines(rows):
+    """Reconstruct logical output lines from captured screen rows.
+
+    The guest-OS aspect again, like the argv joining above: a DOS
+    console teletype hard-wraps at 80 columns, so one printed line
+    longer than that arrives as several rows, split mid-token — which
+    once made a CppUTest failure header unrecognizable and the
+    failure it announced read back as a pass. A row of exactly the
+    console width therefore continues on the row after it.
+
+    Two limits, both consequences of what the capture keeps
+    (`exec()` returns rows blank-dropped and right-trimmed):
+
+    - A wrap falling on a space right-trims the full row below 80
+      and the evidence is gone: that line stays split. The framework
+      grammar's failure-count check is what turns the consequence
+      into a refusal instead of a silent pass.
+    - A line of exactly 80 characters leaves its newline as a blank
+      row, which the capture drops, so it is indistinguishable from
+      a wrap and joins the line after it. The damage surfaces as a
+      missing test or summary — loud — rather than as a wrong result.
+    """
+    lines = []
+    current = ""
+    for row in rows:
+        current += row
+        if len(row) != _DOS_CONSOLE_WIDTH:
+            lines.append(current)
+            current = ""
+    if current:
+        lines.append(current)
+    return lines
 
 
 class GuestSession(_GuestLifecycle):

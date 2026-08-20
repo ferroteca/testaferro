@@ -6,6 +6,24 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [Unreleased]
 
+- **A failure the console wrapped no longer reads as a pass.** The
+  DOS console hard-wraps at 80 columns, and the capture drops blank
+  rows and right-trims the rest, so a CppUTest failure header longer
+  than one row came back split mid-token: the grammar's anchored
+  failure pattern never matched, and `parse_run()` reported the test
+  as passing — found in the wild by virtio-dos, where an
+  unconditional `FAIL()` in a guest test came back green. Two
+  changes, one per layer. The reliquary binding now reconstructs
+  logical lines from captured rows before the framework grammar sees
+  them — a row of exactly the console width continues on the next
+  row — which also heals a wrapped `-ln` enumeration. And the
+  CppUTest grammar now cross-checks the summary's own failure count
+  against the failure blocks it parsed, refusing the output when
+  they disagree: the reconstruction has stated limits (a wrap
+  landing on a space leaves no evidence in a right-trimmed capture),
+  and the check turns what escapes it into a loud refusal instead of
+  a silent false pass.
+
 - **remanence is a runtime dependency, pinned to `0.0.1a5`, and P11
   moves to three** (F16, D23). At-rest access to a guest's own drive
   images — staging the suite in and reading it back out — is not

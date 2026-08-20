@@ -48,6 +48,12 @@ _FAILED = re.compile(
     r"^(.*):(\d+): error: Failure in TEST\((\w+), (\w+)\)$", re.M)
 _LOCATION = re.compile(r"^(.*):(\d+): error:$")
 _SUMMARY = re.compile(r"^(?:OK|Errors) \(.*\)", re.M)
+# The failing summary's own failure count (TestResult.cpp prints
+# "Errors (%d failures, ...)"; the OK form carries no count and
+# means zero). Cross-checked against the failure blocks actually
+# parsed, so a block the transport mangled beyond the grammar's
+# reach refuses loudly instead of reading as a pass.
+_FAILURE_COUNT = re.compile(r"^Errors \((\d+) failures,", re.M)
 _LIST_ID = re.compile(r"(\w+)\.(\w+)$")
 # The per-test timing line CppUTest writes once a test is done. It is
 # what actually follows a failure's message, and the blank line
@@ -166,6 +172,15 @@ def parse_run(text):
         raise ValueError(
             "no CppUTest summary line ('OK (...)' or 'Errors (...)'), "
             "so the suite did not run to completion")
+    stated = _FAILURE_COUNT.search(text)
+    stated_count = int(stated.group(1)) if stated else 0
+    parsed_count = len(_FAILED.findall(text))
+    if parsed_count != stated_count:
+        raise ValueError(
+            f"the summary counts {stated_count} failure(s) but "
+            f"{parsed_count} failure block(s) parsed, so part of the "
+            "output did not survive the transport - refusing rather "
+            "than reporting a mangled failure as a pass")
     failures = _failures(text)
     outcomes = []
     for group, name in _RAN.findall(text):

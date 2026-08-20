@@ -1334,5 +1334,91 @@ class SessionLifecycleTests(_BindingFixture):
         stop.assert_called_once_with(clear_downloads=True)
 
 
+@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+class LogicalLinesTests(unittest.TestCase):
+    """The guest's 80-column console hard-wraps any longer line into
+    two screen rows, split wherever column 80 fell — mid-token
+    included — and the capture then drops blank rows and right-trims
+    the rest. `_logical_lines()` undoes the wrap where the rows still
+    carry the evidence: a row of exactly the console width continues
+    on the next row. What it cannot undo is stated here as tests,
+    because both limits shaped the grammar's failure-count check.
+    """
+
+    def test_joins_a_full_width_row_to_its_successor(self):
+        # 87 characters: the virtio-dos failure header that was
+        # silently reported as a pass. Column 80 falls mid-name.
+        header = ("src\\rng_test.cpp:97: error: Failure in "
+                  "TEST(Transport, PoolHoldsConsoleQueuesBesideRng)")
+        self.assertEqual(
+            binding._logical_lines([header[:80], header[80:]]),
+            [header])
+
+    def test_joins_across_multiple_full_rows(self):
+        line = "x" * 165
+        self.assertEqual(
+            binding._logical_lines([line[:80], line[80:160], line[160:]]),
+            [line])
+
+    def test_short_rows_pass_through(self):
+        rows = ["TEST(Vring, Wraps) - 0 ms",
+                "OK (2 tests, 1 ran, 1 checks, 0 ignored, "
+                "1 filtered out, 0 ms)"]
+        self.assertEqual(binding._logical_lines(rows), rows)
+
+    def test_a_wrap_on_a_space_is_not_healed(self):
+        # When column 80 lands on a space, the capture right-trims
+        # the first row below full width and the evidence of the wrap
+        # is gone: these rows are indistinguishable from two short
+        # lines, so they stay split. The grammar's failure-count
+        # check is what keeps this limit loud instead of silent.
+        first = "a" * 70   # was "a"*70 + " " * 10 on screen
+        second = "continuation"
+        self.assertEqual(binding._logical_lines([first, second]),
+                         [first, second])
+
+    def test_a_natural_full_width_line_joins_its_successor(self):
+        # A line of exactly 80 characters leaves a blank row behind
+        # it on a teletype console, and the capture drops blank rows
+        # — so it is indistinguishable from a wrap and joins. The
+        # damage is a swallowed next line, which the grammar reports
+        # as a missing test or summary rather than absorbing quietly.
+        rows = ["b" * 80, "next line"]
+        self.assertEqual(binding._logical_lines(rows),
+                         ["b" * 80 + "next line"])
+
+    def test_wrapped_failure_header_parses_as_a_failure(self):
+        # The original false pass, end to end: rows as the capture
+        # delivered them (header split mid-token, blank rows gone),
+        # through the transport's reconstruction, into the grammar.
+        header = ("src\\rng_test.cpp:97: error: Failure in "
+                  "TEST(Transport, PoolHoldsConsoleQueuesBesideRng)")
+        rows = [
+            "TEST(Transport, PoolHoldsConsoleQueuesBesideRng)",
+            header[:80],
+            header[80:],
+            "        expected <0 0x0>",
+            "        but was  <6 0x6>",
+            " - 1 ms",
+            "Errors (1 failures, 1 tests, 1 ran, 1 checks, 0 ignored, "
+            "0 filtered out, 1 ms)",
+        ]
+        text = "\n".join(binding._logical_lines(rows)) + "\n"
+        outcomes = cpputest.parse_run(text)
+        self.assertEqual(
+            [(o.group, o.name, o.passed) for o in outcomes],
+            [("Transport", "PoolHoldsConsoleQueuesBesideRng", False)])
+
+    def test_wrapped_enumeration_rejoins(self):
+        # The same wrap broke '-ln' enumeration first: one long line
+        # of space-separated ids, split mid-token at column 80.
+        line = ("Rng.TwoRequestsReturnDifferentRealRandomBytes "
+                "Rng.DriverIsInstalled "
+                "Transport.PoolHoldsConsoleQueuesBesideRng")
+        ids = cpputest.parse_list(
+            "\n".join(binding._logical_lines([line[:80], line[80:]])))
+        self.assertEqual([str(i) for i in ids], line.split())
+
+
 if __name__ == "__main__":
     unittest.main()
