@@ -86,20 +86,20 @@ the same artifacts in different states. A thing in `proposed/` moves
 to `pledged/`, and **the commit that moves it is the record**. Each
 mirrored file appears in `pledged/` with its first promoted entry
 rather than standing empty, and leaves again when its last one
-does. **`pledged/FEATURES.md` holds F3 today**, its fifth stay — after
-F7 and F8, then F11 and F12, then F13 alone, then F9 and F18, each
-round trip closing before the next opened. This one is unlike its
-predecessors: F3 moved alone, citing U5 rather than pledged alongside
-it — the general citation rule allows a pledged item to cite a use
-case still drafted, and nothing named F3 as U5's hard prerequisite the
-way F9 was U7's or F18 was U10's. `ARCHITECTURE.md` did it once,
+does. **`pledged/` holds nothing today.** `FEATURES.md` did the round
+trip five times over — F7 and F8, then F11 and F12, then F13 alone,
+then F9 and F18, then F3 alone — the last a same-day round trip,
+pledged and withdrawn once starting it found its batching needs a
+sixth framework-adapter callable, which P4 as written does not allow
+(D24). It is gone again now that F18 has delivered and retired, F9
+before it, F3 withdrawn last of all. `ARCHITECTURE.md` did it once,
 holding P1 and P2 from D18 until F12 built what they promised, and
-stands empty since. `USE-CASES.md` did it twice over — U4 from D13
-until a guest ran the journey it describes, then U7 and U10 together —
-and is gone again now that U10 has armed, U7 before it, and stays
-empty: no use case is pledged while F3 alone is. Each leaves when its
-last entry arms or delivers, which is the machinery working rather
-than churn.
+stands empty
+since. `USE-CASES.md` did it twice over — U4 from D13 until a guest
+ran the journey it describes, then U7 and U10 together — and is gone
+again now that U10 has armed, U7 before it. Each leaves when its last
+entry arms or delivers, which is the machinery working rather than
+churn.
 
 **U7 and F9 were the same debt seen twice, and both are paid.**
 U7 was the journey and F9 the work that completed it — neither could
@@ -211,14 +211,11 @@ session sweeping away on exit whether the script's own assertions
 passed or one of them raised. F18 delivered and retired with it,
 leaving `_GuestLifecycle` — the provisioning `ReliquarySuiteBackend`
 and `GuestSession` now share rather than each carrying its own copy
-— behind as the code. **No use case is pledged now, but a feature
-is**: F3, intra-suite sharding, sits alone in
-[pledged/FEATURES.md](pledged/FEATURES.md) — the shelf's first
-single-feature stay, citing U5 while U5 itself stays drafted in
-[proposed/USE-CASES.md](proposed/USE-CASES.md). Several drafted
-entries describe code that already exists; that makes their route
-short, not automatic — the pledge is still an act, and delivery still
-has to be true.
+— behind as the code. **No use case is pledged now**: `pledged/`
+holds nothing, both its `USE-CASES.md` and `FEATURES.md` gone with
+their last entries. Several drafted entries describe code that
+already exists; that makes their route short, not automatic — the
+pledge is still an act, and delivery still has to be true.
 
 **What did not arm is worth naming, because the bar is what makes
 the root list mean anything.** P3 and P5 each describe the code, and

@@ -111,6 +111,35 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D24 — F3's pledge is withdrawn: its batching needs a sixth framework callable, which P4 forbids
+
+**Decided** owner, 2026-08-19. **Supports** (none) — a withdrawal
+correcting a pledge made without checking it against P4, not an
+argument for or against any use case or principle.
+
+Starting F3 (intra-suite sharding) showed what the pledge did not
+check: CppUTest's own filter model makes safe batching possible only
+through a group-scoped filter argv — verified against CppUTest's
+actual source (`CommandLineArguments.cpp`, `TestFilter.cpp`,
+`Utest.cpp`), where a test runs only when it matches *any* group
+filter *and* *any* name filter, so repeating `-sg` for two different
+groups in one call over-selects the cross product rather than the
+wanted pairs, and one `-sg` per call is the only safe shape. Building
+that argv is CppUTest-specific knowledge, which P4 confines to the
+framework adapter alone — "`SuiteBackend` calls exactly those five"
+— so the sixth callable this needs contradicts it outright.
+
+Amending P4 to make room for an optional sixth callable was an
+available route and was not taken. The pledge is withdrawn instead:
+F3 returns to `proposed/FEATURES.md`, annotated rather than deleted,
+to be reconsidered later — pledged again once P4 is amended, or
+delivered some other shape — rather than landed against a principle
+in force.
+
+**Folded into:** `planning/pledged/FEATURES.md` (emptied again),
+`planning/proposed/FEATURES.md` (F3 annotated), `AGENTS.md`,
+`planning/README.md`.
+
 ### D23 — Testaferro computes every drive letter itself, permanently, and stages before materialization
 
 **Decided** owner, 2026-08-19. **Supports** P1 and P17, through the

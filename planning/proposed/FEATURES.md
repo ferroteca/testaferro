@@ -67,11 +67,6 @@ use case — F9 with U7, F18 with U10 — not retired, not split at the
 time, just moved. Both have since delivered and retired, arming U7
 and U10 with them.
 
-**F3 has left this file too, moved alone.** It cites U5 as what
-demands it, and U5 stays here, drafted — see
-[pledged/FEATURES.md](../pledged/FEATURES.md) for why the pair did
-not move together.
-
 ## F2 — Persistent machines and the lifecycle verbs
 
 Serves **U8**. A test machine that opts out of the sweep: its disks
@@ -92,6 +87,28 @@ Note the tension with **P5**: a machine surviving a session is state
 Testaferro created and did not sweep. Pledging this feature means
 saying exactly what remains, where, and how a user gets rid of it —
 U8 already demands it be enumerable and removable.
+
+## F3 — Intra-suite sharding
+
+Serves **U5**, and the parallelism item with real payoff. A middle
+backend operation between `run_all()` and `run_test()` — "run this
+subset in one boot": CppUTest filter argv can select several tests
+per invocation, so a worker holding part of a suite boots once
+rather than once per test. That makes `--dist load` efficient on a
+single suite (roughly N× wall clock for N workers) and softens
+`-k`-narrowed selections in serial runs too.
+
+Touches `ResultBroker`, the `Backend` seam, and the CppUTest argv
+builders — so it changes an enumerated interface (the `Backend` ABC)
+and takes the argued route regardless of its size.
+
+**Pledged and withdrawn the same day** (D24): CppUTest's own filter
+model makes safe batching possible only through a group-scoped filter
+argv, a sixth callable on the framework-adapter seam that contradicts
+P4's own count — "`SuiteBackend` calls exactly those five." Reconsider
+once P4 is amended to make room for one, or a shape is found that
+does not need it; either is a pledge of its own, not a resumption of
+this one.
 
 ## F5 — A second guest platform binding
 

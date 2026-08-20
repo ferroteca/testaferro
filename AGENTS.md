@@ -449,14 +449,11 @@ both batched and `-k`-narrowed.
   guest boot proved `setup=`, its prerequisite F9 delivered and
   retired with it; and **U10**, armed once a real guest boot proved
   `guest_session()`, its prerequisite F18 delivered and retired with
-  it in turn. **F3 is pledged now** —
-  [planning/pledged/](planning/pledged/) holds it alone, citing **U5**
-  (drafted) as what demands it rather than paired with it: unlike
-  U7+F9 and U10+F18, U5's own text names no hard requirement on F3,
-  and U5's full arming still owes F15's unbuilt cross-worker proof
-  besides. No U-number is pledged. Every U- or P-number still open
-  names either a rule in force or an argument, never something merely
-  owed.
+  it in turn. **No U- or F-number is pledged now** —
+  [planning/pledged/](planning/pledged/) holds nothing, each pair
+  having been pledged together rather than a citation left resting on
+  something merely proposed. Every U- or P-number still open names
+  either a rule in force or an argument, never something merely owed.
   Four principles stay drafted: P3 and P5, each contradicted by a
   small piece of the code and each saying so at its own entry, and
   P14 and P15, which govern conduct rather than code. An entry may

@@ -44,8 +44,8 @@ commit message still resolves to one thing.
   **one namespace** across the drafted list and the in-force one, a
   number kept when an entry moves between them. P1 through P18 are
   spent.
-- **The next D-number to issue is D24** — decisions, recorded in
-  [DECISIONS.md](DECISIONS.md). D1 through D23 are spent.
+- **The next D-number to issue is D25** — decisions, recorded in
+  [DECISIONS.md](DECISIONS.md). D1 through D24 are spent.
 - **The next F-number to issue is F19** — features, drafted in
   [proposed/FEATURES.md](proposed/FEATURES.md) or cut straight to a
   pledge. F1 through F18 are spent, and most have evaporated on
