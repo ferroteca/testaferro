@@ -6,6 +6,8 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [Unreleased]
 
+## [0.1.0a2] - 2026-08-20
+
 - **A failure the console wrapped no longer reads as a pass.** The
   DOS console hard-wraps at 80 columns, and the capture drops blank
   rows and right-trims the rest, so a CppUTest failure header longer
