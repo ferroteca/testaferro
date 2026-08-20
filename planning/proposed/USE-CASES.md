@@ -46,7 +46,12 @@ alongside its prerequisite F9, and now in force there too, once a
 guest actually ran the prepared journey. U10 took the same route
 again: pledged alongside its prerequisite F18, and now in force there
 too, once `guest_session()` reached the same provisioning
-`guest_suite()` already had, proven against a real guest boot.
+`guest_suite()` already had, proven against a real guest boot. **U9
+is pledged now**, alongside its prerequisite F19 (D25) — severed from
+its own plural growth, which stays here, unowed: a second named
+environment waits on F5's second guest platform, itself waiting
+entirely on reliquary. See
+[pledged/USE-CASES.md](../pledged/USE-CASES.md).
 
 - **U1 — Unit tests that can only run on the target OS, surfaced as
   ordinary pytest items.** A developer maintains code whose unit
@@ -118,16 +123,4 @@ too, once `guest_session()` reached the same provisioning
   trade, made by name: state carries across suites and cycles
   because carrying it is what was asked for, and what persists,
   where, is enumerable and removable (P5). *(Unbuilt: F2.)*
-
-- **U9 — A standard environment, by name.** Between nothing and a
-  declaration sits a name: `machine="freedos"` selects a standard
-  environment Testaferro itself curates — an authored machine
-  document and a once-downloaded cached image, today's
-  zero-configuration machine made plural and nameable as guests
-  grow. Resolution runs project declarations first, then the
-  standard catalog (D10), and never the user's reliquary home
-  (D6): a test run depends only on state Testaferro authored or
-  the project checked in. *(Resolution and the catalog are built:
-  `machine="freedos"` names the standard DOS environment. Plural
-  is what waits — a second entry arrives with a second guest.)*
 

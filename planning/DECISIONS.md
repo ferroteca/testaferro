@@ -111,6 +111,43 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D25 — U9 is pledged severed from its own plural growth, paired with F19
+
+**Decided** owner, 2026-08-19. **Supports** U9 (pledged by this
+entry).
+
+`machine="freedos"` resolution is already built and unit-tested
+(D10, `catalog.py` and its guard test) — cited as shipped behaviour
+by D10 and D18 without itself being pledged, on the same reading D13
+used to decline pledging U1, U2 and U3 alongside U4: proof owed, not
+work. What changes here is that the project commits to writing that
+proof. **F19** — one integration case naming `"freedos"` explicitly
+against a real guest boot — is pledged alongside U9 as its
+prerequisite, exactly as F9 was U7's and F18 was U10's.
+
+**U9 is pledged severed from its own text, not from a citation to
+another item.** Its drafted form promises the standard catalog "made
+plural... as guests grow"; plurality is not owed here — a second
+named environment waits on a second guest platform (F5), itself
+waiting entirely on reliquary (D2) — so the pledged entry drops that
+promise rather than carrying it unowed. The severed pledge is the
+singular case alone: one name, resolving as documented, proven by
+F19, true whether or not a second guest ever arrives.
+
+**Weighed and declined:** pledging U9 unsevered, plural growth and
+all, which would rest a pledge on F5 — proposed, shapeless, and
+blocked entirely on a provider release outside this project's
+control. Also declined: leaving U9 unpledged and simply adding F19's
+proof as housekeeping, on the reading D13 gave U1–U3 — the owner's
+call here was that committing the proof in the open, alongside the
+use case it closes, is worth the pledge even though the underlying
+mechanism is not itself owed.
+
+**Folded into:** [pledged/USE-CASES.md](pledged/USE-CASES.md),
+[pledged/FEATURES.md](pledged/FEATURES.md), the banners under
+[proposed/](proposed/), [README.md](README.md),
+[../AGENTS.md](../AGENTS.md).
+
 ### D24 — F3's pledge is withdrawn: its batching needs a sixth framework callable, which P4 forbids
 
 **Decided** owner, 2026-08-19. **Supports** (none) — a withdrawal

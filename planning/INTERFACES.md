@@ -35,9 +35,10 @@ Root [`ARCHITECTURE.md`](../ARCHITECTURE.md) holds thirteen
 principles: P1, P2, P4, P6 through P13, P16 and P17. **No principle is
 pledged any more** — what stays drafted is P3, P5, P14 and P15, so a
 P-citation now points either at a rule in force or at an argument,
-and never at something merely owed. **No use case is pledged any
-more either** — F9 and F18 have both delivered and retired, arming U7
-and U10 with them. Every other use case is
+and never at something merely owed. **One use case is pledged**: U9,
+alongside its prerequisite F19 (D25), in
+[pledged/USE-CASES.md](pledged/USE-CASES.md) and
+[pledged/FEATURES.md](pledged/FEATURES.md). Every other use case is
 drafted in [proposed/USE-CASES.md](proposed/USE-CASES.md), so read a
 citation by where it points: an in-force entry binds, a pledged one
 is owed, and a drafted one names an argument.
