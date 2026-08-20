@@ -7,34 +7,27 @@ entry point above it: the seam is what each entry point shares, so
 its rules are proved where they live.
 """
 
-import importlib.util
 from pathlib import Path
-import tempfile
-import unittest
 from unittest import mock
+
+import pytest
 
 from testaferro.backend import TestId
 
-from test_binfmt import new_format_exe_bytes, plain_dos_exe_bytes
-from test_facade import FakeBackend, OUTCOMES
-
-RELIQUARY_AVAILABLE = importlib.util.find_spec("reliquary") is not None
+from helpers import (FakeBackend, OUTCOMES, new_format_exe_bytes,
+                      plain_dos_exe_bytes, requires_reliquary)
 
 
-class _ResolutionCase(unittest.TestCase):
+class _ResolutionCase:
     """Declarations cleared, a DOS executable to hand, and the DOS
     binding's factory patched so nothing boots."""
 
-    def setUp(self):
-        from testaferro import environments
-
-        environments._clear_for_tests()
-        self.addCleanup(environments._clear_for_tests)
-        self.tempdir = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tempdir.cleanup)
+    @pytest.fixture(autouse=True)
+    def _setup(self, tmp_path, clean_environments):
+        self.tmp_path = tmp_path
 
     def _exe(self, content=None):
-        path = Path(self.tempdir.name) / "SUITE.EXE"
+        path = self.tmp_path / "SUITE.EXE"
         path.write_bytes(plain_dos_exe_bytes() if content is None
                          else content)
         return path
@@ -50,7 +43,7 @@ class _ResolutionCase(unittest.TestCase):
         return backend, factory
 
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+@requires_reliquary
 class BackendResolutionTests(_ResolutionCase):
     def test_the_executables_format_selects_the_binding(self):
         def enumerator():
@@ -61,12 +54,12 @@ class BackendResolutionTests(_ResolutionCase):
         backend, factory = self._resolved(exe, enumerator=enumerator)
 
         factory.assert_called_once_with(exe, enumerator=enumerator)
-        self.assertIsInstance(backend, FakeBackend)
+        assert isinstance(backend, FakeBackend)
 
     def test_declared_environment_supplies_its_configuration(self):
         import testaferro
 
-        image = Path(self.tempdir.name) / "msdos.img"
+        image = self.tmp_path / "msdos.img"
         image.write_bytes(b"msdos")
         machine_config = testaferro.config("msdos", boot_image=image)
         exe = self._exe()
@@ -86,9 +79,9 @@ class BackendResolutionTests(_ResolutionCase):
         _, factory = self._resolved(exe, environment="freedos")
 
         machine_config = factory.call_args.kwargs["machine_config"]
-        self.assertEqual(machine_config.platform, "dos")
-        self.assertEqual(dict(machine_config.fields), {"platform": "dos"})
-        self.assertIn("freedos", catalog.STANDARD)
+        assert machine_config.platform == "dos"
+        assert dict(machine_config.fields) == {"platform": "dos"}
+        assert "freedos" in catalog.STANDARD
 
     def test_a_declaration_wins_over_the_standard_name(self):
         import testaferro
@@ -105,9 +98,9 @@ class BackendResolutionTests(_ResolutionCase):
 
         exe = self._exe()
 
-        with self.assertRaisesRegex(
+        with pytest.raises(
                 ValueError,
-                r"unknown test environment 'msdos'.*standard: freedos"):
+                match=r"unknown test environment 'msdos'.*standard: freedos"):
             resolve_backend(exe, environment="msdos")
 
     def test_a_named_environment_rejects_a_second_template(self):
@@ -118,7 +111,7 @@ class BackendResolutionTests(_ResolutionCase):
         testaferro.config("freedos")
         exe = self._exe()
 
-        with self.assertRaisesRegex(TypeError, "cannot be combined"):
+        with pytest.raises(TypeError, match="cannot be combined"):
             resolve_backend(exe, environment="freedos",
                             machine_config=environments.EnvironmentSpec({}))
 
@@ -129,10 +122,9 @@ class BackendResolutionTests(_ResolutionCase):
         exe = self._exe()
 
         with mock.patch("testaferro.environments.load_config") as load:
-            self._resolved(exe, search_from=self.tempdir.name)
+            self._resolved(exe, search_from=str(self.tmp_path))
 
-        self.assertEqual(load.call_args.kwargs["search_from"],
-                         self.tempdir.name)
+        assert load.call_args.kwargs["search_from"] == str(self.tmp_path)
 
     def test_unsupported_format_is_rejected_before_any_guest(self):
         from testaferro.resolution import resolve_backend
@@ -143,8 +135,8 @@ class BackendResolutionTests(_ResolutionCase):
         header[5] = 1
         header[0x12:0x14] = (0x3E).to_bytes(2, "little")
 
-        with self.assertRaisesRegex(
-                ValueError, r"ELF x86-64.*no test environment here runs"):
+        with pytest.raises(
+                ValueError, match=r"ELF x86-64.*no test environment here runs"):
             resolve_backend(self._exe(bytes(header)))
 
     def test_pe_is_rejected_naming_format_and_architecture(self):
@@ -153,9 +145,9 @@ class BackendResolutionTests(_ResolutionCase):
         machine = (0x014C).to_bytes(2, "little")
         exe = self._exe(new_format_exe_bytes(b"PE\0\0" + machine))
 
-        with self.assertRaisesRegex(
+        with pytest.raises(
                 ValueError,
-                r"Windows x86 \(PE\).*no test environment here runs"):
+                match=r"Windows x86 \(PE\).*no test environment here runs"):
             resolve_backend(exe)
 
     def test_an_environment_the_provider_cannot_run_is_rejected(self):
@@ -169,22 +161,23 @@ class BackendResolutionTests(_ResolutionCase):
 
         testaferro.config("warp", platform="os2")
 
-        with self.assertRaisesRegex(
+        with pytest.raises(
                 ValueError,
-                r"test environment 'warp' declares platform 'os2', which "
-                r"the 'reliquary' provider does not run; it runs: dos"):
+                match=(r"test environment 'warp' declares platform 'os2', "
+                       r"which the 'reliquary' provider does not run; it "
+                       r"runs: dos")):
             resolve_backend(self._exe(), environment="warp")
 
     def test_a_wrong_option_names_what_the_environment_runs_on(self):
         from testaferro.resolution import resolve_backend
 
-        with self.assertRaisesRegex(
+        with pytest.raises(
                 TypeError,
-                "this environment runs 'dos' on 'reliquary'"):
+                match="this environment runs 'dos' on 'reliquary'"):
             resolve_backend(self._exe(), guest_image="OTHER.IMG")
 
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+@requires_reliquary
 class ProviderDispatchTests(_ResolutionCase):
     """Dispatch keys by provider, and the provider is declared.
 
@@ -223,9 +216,9 @@ class ProviderDispatchTests(_ResolutionCase):
     def test_an_unknown_provider_is_refused_naming_what_exists(self):
         from testaferro.resolution import resolve_backend
 
-        with self.assertRaisesRegex(
+        with pytest.raises(
                 ValueError,
-                r"unknown provider 'vagrant'; testaferro binds: reliquary"):
+                match=r"unknown provider 'vagrant'; testaferro binds: reliquary"):
             resolve_backend(self._exe(), provider="vagrant")
 
     def test_an_unknown_provider_is_never_imported(self):
@@ -233,13 +226,13 @@ class ProviderDispatchTests(_ResolutionCase):
         # providers is also the gate on what may become an import.
         from testaferro.resolution import resolve_backend
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             resolve_backend(self._exe(), provider="cache")
 
     def test_a_declared_environment_carries_its_own_provider(self):
         import testaferro
 
-        image = Path(self.tempdir.name) / "msdos.img"
+        image = self.tmp_path / "msdos.img"
         image.write_bytes(b"msdos")
         declared = testaferro.config("msdos", provider="reliquary",
                                      boot_image=image)
@@ -247,7 +240,7 @@ class ProviderDispatchTests(_ResolutionCase):
 
         _, factory = self._resolved(exe, environment="msdos")
 
-        self.assertEqual(declared.provider, "reliquary")
+        assert declared.provider == "reliquary"
         factory.assert_called_once_with(exe, machine_config=declared)
 
     def test_provider_and_a_named_environment_do_not_combine(self):
@@ -259,9 +252,9 @@ class ProviderDispatchTests(_ResolutionCase):
 
         testaferro.config("freedos")
 
-        with self.assertRaisesRegex(
+        with pytest.raises(
                 TypeError,
-                r"provider cannot be combined with a named environment"):
+                match=r"provider cannot be combined with a named environment"):
             resolve_backend(self._exe(), environment="freedos",
                             provider="reliquary")
 
@@ -271,11 +264,11 @@ class ProviderDispatchTests(_ResolutionCase):
 
         testaferro.config("msdos", provider="vagrant")
 
-        with self.assertRaisesRegex(ValueError, "unknown provider"):
+        with pytest.raises(ValueError, match="unknown provider"):
             resolve_backend(self._exe(), environment="msdos")
 
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+@requires_reliquary
 class GuestSessionResolutionTests(_ResolutionCase):
     """resolve_guest_session(): the same environment/provider seam as
     resolve_backend(), minus the executable it exists to classify
@@ -294,7 +287,7 @@ class GuestSessionResolutionTests(_ResolutionCase):
         session, factory = self._resolved()
 
         factory.assert_called_once_with()
-        self.assertEqual(session, "a guest session")
+        assert session == "a guest session"
 
     def test_files_and_other_options_pass_through_untouched(self):
         _, factory = self._resolved(files=["DRIVER.COM"], timeout=5)
@@ -304,7 +297,7 @@ class GuestSessionResolutionTests(_ResolutionCase):
     def test_declared_environment_supplies_its_configuration(self):
         import testaferro
 
-        image = Path(self.tempdir.name) / "msdos.img"
+        image = self.tmp_path / "msdos.img"
         image.write_bytes(b"msdos")
         machine_config = testaferro.config("msdos", boot_image=image)
 
@@ -318,15 +311,15 @@ class GuestSessionResolutionTests(_ResolutionCase):
         _, factory = self._resolved(environment="freedos")
 
         machine_config = factory.call_args.kwargs["machine_config"]
-        self.assertEqual(machine_config.platform, "dos")
-        self.assertIn("freedos", catalog.STANDARD)
+        assert machine_config.platform == "dos"
+        assert "freedos" in catalog.STANDARD
 
     def test_unknown_environment_names_both_sources(self):
         from testaferro.resolution import resolve_guest_session
 
-        with self.assertRaisesRegex(
+        with pytest.raises(
                 ValueError,
-                r"unknown test environment 'msdos'.*standard: freedos"):
+                match=r"unknown test environment 'msdos'.*standard: freedos"):
             resolve_guest_session(environment="msdos")
 
     def test_a_named_environment_rejects_a_second_template(self):
@@ -336,7 +329,7 @@ class GuestSessionResolutionTests(_ResolutionCase):
 
         testaferro.config("freedos")
 
-        with self.assertRaisesRegex(TypeError, "cannot be combined"):
+        with pytest.raises(TypeError, match="cannot be combined"):
             resolve_guest_session(
                 environment="freedos",
                 machine_config=environments.EnvironmentSpec({}))
@@ -347,9 +340,9 @@ class GuestSessionResolutionTests(_ResolutionCase):
 
         testaferro.config("freedos")
 
-        with self.assertRaisesRegex(
+        with pytest.raises(
                 TypeError,
-                r"provider cannot be combined with a named environment"):
+                match=r"provider cannot be combined with a named environment"):
             resolve_guest_session(environment="freedos", provider="reliquary")
 
     def test_an_environment_the_provider_cannot_run_is_rejected(self):
@@ -358,35 +351,31 @@ class GuestSessionResolutionTests(_ResolutionCase):
 
         testaferro.config("warp", platform="os2")
 
-        with self.assertRaisesRegex(
+        with pytest.raises(
                 ValueError,
-                r"test environment 'warp' declares platform 'os2', which "
-                r"the 'reliquary' provider does not run; it runs: dos"):
+                match=(r"test environment 'warp' declares platform 'os2', "
+                       r"which the 'reliquary' provider does not run; it "
+                       r"runs: dos")):
             resolve_guest_session(environment="warp")
 
     def test_an_unknown_provider_is_refused_naming_what_exists(self):
         from testaferro.resolution import resolve_guest_session
 
-        with self.assertRaisesRegex(
+        with pytest.raises(
                 ValueError,
-                r"unknown provider 'vagrant'; testaferro binds: reliquary"):
+                match=r"unknown provider 'vagrant'; testaferro binds: reliquary"):
             resolve_guest_session(provider="vagrant")
 
     def test_a_wrong_option_names_what_the_environment_runs_on(self):
         from testaferro.resolution import resolve_guest_session
 
-        with self.assertRaisesRegex(
+        with pytest.raises(
                 TypeError,
-                "this environment runs on 'reliquary'"):
+                match="this environment runs on 'reliquary'"):
             resolve_guest_session(guest_image="OTHER.IMG")
 
     def test_the_ini_search_starts_where_the_caller_says(self):
         with mock.patch("testaferro.environments.load_config") as load:
-            self._resolved(search_from=self.tempdir.name)
+            self._resolved(search_from=str(self.tmp_path))
 
-        self.assertEqual(load.call_args.kwargs["search_from"],
-                         self.tempdir.name)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert load.call_args.kwargs["search_from"] == str(self.tmp_path)

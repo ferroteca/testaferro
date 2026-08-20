@@ -39,36 +39,38 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-import unittest
 from pathlib import Path
+
+import pytest
 
 ASKED = bool(os.environ.get("TESTAFERRO_INTEGRATION"))
 
-requires_guest = unittest.skipUnless(
-    ASKED, "set TESTAFERRO_INTEGRATION=1 to build and read a real disk")
+requires_guest = pytest.mark.skipif(
+    not ASKED, reason="set TESTAFERRO_INTEGRATION=1 to build and read a real disk")
 
 
 @requires_guest
-class AtRestFixture(unittest.TestCase):
+class AtRestFixture:
     """A created, never-booted machine over the installed system."""
 
-    @classmethod
-    def setUpClass(cls):
+    @pytest.fixture(autouse=True)
+    def _setup(self, tmp_path):
         from testaferro import at_rest
         from testaferro import reliquary as binding
 
-        cls.at_rest = at_rest
-        cls.binding = binding
+        self.at_rest = at_rest
+        self.binding = binding
         # The install happens at most once for the whole run, and is
         # cached across runs — every case below layers over it.
-        cls.system = binding._cached_default_image()
+        self.system = binding._cached_default_image()
 
-    def setUp(self):
-        self.home = tempfile.mkdtemp(prefix="atrest-")
-        self.addCleanup(self._sweep)
+        self.tmp_path = tmp_path
+        self.home = str(tmp_path)
         self.blueprints = os.path.join(self.home, "blueprints")
         os.makedirs(self.blueprints)
         self.machine = None
+        yield
+        self._sweep()
 
     def _sweep(self):
         if self.machine is not None:
@@ -76,9 +78,6 @@ class AtRestFixture(unittest.TestCase):
                 self.session.destroy_machine(self.machine)
             except Exception:
                 pass
-        import shutil
-
-        shutil.rmtree(self.home, ignore_errors=True)
 
     def _create(self, drives=None, boot=("hdd0",)):
         """Author a thin blueprint and materialize it. No boot."""
@@ -153,7 +152,7 @@ class InstalledSystemTests(AtRestFixture):
                        for partition in medium.partitions()]
             kinds = [space.kind for space in volumes if space is not None]
 
-        self.assertEqual(kinds, ["FAT16"])
+        assert kinds == ["FAT16"]
 
     def test_a_created_machine_answers_before_it_has_ever_booted(self):
         # The window F4 stages in. If this ever stops being true the
@@ -162,14 +161,13 @@ class InstalledSystemTests(AtRestFixture):
 
         state = self.session.load_machine_state(machine)
 
-        self.assertEqual(state["phase"], "ready")
+        assert state["phase"] == "ready"
 
     def test_the_system_disk_defaults_without_reading_anything(self):
         machine = self._create()
 
-        self.assertEqual(
-            self.binding._default_location(self.drives, work_key="hdd0"),
-            "C:\\")
+        assert (self.binding._default_location(self.drives, work_key="hdd0")
+                == "C:\\")
 
     def test_the_resolution_finds_the_layered_image_and_its_volume(self):
         """What `_place` hands to the at-rest write.
@@ -184,10 +182,9 @@ class InstalledSystemTests(AtRestFixture):
         image, volume, path = self.binding._resolve_volume(
             "C:\\TESTS", machine, self.session, self.drives)
 
-        self.assertEqual((volume, path), (0, "TESTS"))
-        self.assertTrue(os.path.isfile(image))
-        self.assertNotEqual(os.path.abspath(image),
-                            os.path.abspath(self.system))
+        assert (volume, path) == (0, "TESTS")
+        assert os.path.isfile(image)
+        assert os.path.abspath(image) != os.path.abspath(self.system)
 
 
 class StagingTests(AtRestFixture):
@@ -201,10 +198,8 @@ class StagingTests(AtRestFixture):
 
         written = self._put(machine, source)
 
-        self.assertEqual(written,
-                         ["TESTS\\CASE.DAT", "TESTS\\SUITE.EXE"])
-        self.assertEqual(self._listing(machine),
-                         ["CASE.DAT", "SUITE.EXE"])
+        assert written == ["TESTS\\CASE.DAT", "TESTS\\SUITE.EXE"]
+        assert self._listing(machine) == ["CASE.DAT", "SUITE.EXE"]
 
     def test_the_location_directory_is_created_rather_than_required(self):
         # `C:\TESTS` does not exist on a fresh FreeDOS install, and
@@ -212,12 +207,12 @@ class StagingTests(AtRestFixture):
         # what lets a defaulted location name a directory nobody made.
         machine = self._create()
 
-        with self.assertRaises(self.at_rest.AtRestError):
+        with pytest.raises(self.at_rest.AtRestError):
             self._listing(machine)
 
         self._put(machine, self._staged("SUITE.EXE"))
 
-        self.assertEqual(self._listing(machine), ["SUITE.EXE"])
+        assert self._listing(machine) == ["SUITE.EXE"]
 
     def test_restaging_adds_without_removing_what_a_run_left(self):
         # A copy, never a mirror. It matters here because a second
@@ -227,8 +222,7 @@ class StagingTests(AtRestFixture):
         self._put(machine, self._staged("SUITE.EXE"))
         self._put(machine, self._staged("RESULTS.TXT"))
 
-        self.assertEqual(self._listing(machine),
-                         ["RESULTS.TXT", "SUITE.EXE"])
+        assert self._listing(machine) == ["RESULTS.TXT", "SUITE.EXE"]
 
     def test_what_was_staged_comes_back_byte_for_byte(self):
         # The retrieval `--testaferro-keep-guest-home` performs.
@@ -241,9 +235,8 @@ class StagingTests(AtRestFixture):
 
         self.at_rest.get_tree(image, path, back, volume=volume)
 
-        self.assertEqual(
-            Path(back, "SUITE.EXE").read_bytes(),
-            Path(source, "SUITE.EXE").read_bytes())
+        assert (Path(back, "SUITE.EXE").read_bytes()
+                == Path(source, "SUITE.EXE").read_bytes())
 
     def test_a_subdirectory_keeps_its_shape_through_both_directions(self):
         """The set keeps its shape under the location (F4).
@@ -260,8 +253,8 @@ class StagingTests(AtRestFixture):
 
         self._put(machine, source)
 
-        self.assertEqual(self._listing(machine),
-                         [os.path.join("DATA", "CASE.DAT"), "SUITE.EXE"])
+        assert (self._listing(machine)
+                == [os.path.join("DATA", "CASE.DAT"), "SUITE.EXE"])
 
     def test_a_name_a_dos_guest_could_not_type_is_refused(self):
         """8.3 is the dependency's rule, and it is enforced here.
@@ -275,10 +268,10 @@ class StagingTests(AtRestFixture):
         with open(os.path.join(source, "toolongname.exe"), "wb") as handle:
             handle.write(b"x")
 
-        with self.assertRaises(self.at_rest.AtRestError) as caught:
+        with pytest.raises(self.at_rest.AtRestError) as caught:
             self._put(machine, source)
 
-        self.assertIn("8.3", str(caught.exception))
+        assert "8.3" in str(caught.value)
 
 
 class DeclaredAddressTests(AtRestFixture):
@@ -290,11 +283,11 @@ class DeclaredAddressTests(AtRestFixture):
         # started anyway. The one drive it *does* have is named.
         machine = self._create()
 
-        with self.assertRaises(ValueError) as caught:
+        with pytest.raises(ValueError) as caught:
             self._put(machine, self._staged("SUITE.EXE"),
                       address="E:\\HARNESS")
 
-        self.assertIn("no E:", str(caught.exception))
+        assert "no E:" in str(caught.value)
 
     def test_a_declared_machines_own_letter_resolves(self):
         # The capability 0.1.0a2 took away and _letter_map gives back
@@ -306,9 +299,8 @@ class DeclaredAddressTests(AtRestFixture):
         written = self._put(machine, self._staged("SUITE.EXE"),
                             address="C:\\HARNESS")
 
-        self.assertEqual(written, ["HARNESS\\SUITE.EXE"])
-        self.assertEqual(self._listing(machine, address="C:\\HARNESS"),
-                         ["SUITE.EXE"])
+        assert written == ["HARNESS\\SUITE.EXE"]
+        assert self._listing(machine, address="C:\\HARNESS") == ["SUITE.EXE"]
 
 
 class UnreadableDriveTests(AtRestFixture):
@@ -333,7 +325,7 @@ class UnreadableDriveTests(AtRestFixture):
         """
         machine = self._create(drives=self._junk_disk())
 
-        with self.assertRaises(self.at_rest.AtRestError):
+        with pytest.raises(self.at_rest.AtRestError):
             self._put(machine, self._staged("SUITE.EXE"))
 
     def test_the_letter_map_ignores_whether_a_disk_can_be_read(self):
@@ -348,5 +340,5 @@ class UnreadableDriveTests(AtRestFixture):
                           "location": {"local": self._staged("SUITE.EXE")},
                           "materialize": "use"}
 
-        self.assertEqual(self.binding._letter_map(drives),
-                         {"C": "hdd0", "D": "hdd1"})
+        assert (self.binding._letter_map(drives)
+                == {"C": "hdd0", "D": "hdd1"})

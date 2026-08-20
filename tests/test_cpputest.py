@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """Unit tests for the interim CppUTest framework aspect."""
 
-import unittest
+import pytest
 
 from testaferro import cpputest
 
@@ -45,50 +45,49 @@ FAILING_RUN_FROM_A_SCREEN = (
     "0 filtered out, 1 ms)\n")
 
 
-class ParseTests(unittest.TestCase):
+class ParseTests:
     def test_parse_normalizes_results(self):
-        self.assertEqual(cpputest.parse(FAILING_RUN), {
+        assert cpputest.parse(FAILING_RUN) == {
             "ran": {"Vring.Wraps", "Vring.Fails", "Vring.Slow"},
             "failed": {"Vring.Fails"},
             "summary": ("Errors (1 failures, 3 tests, 3 ran, 4 checks, "
                         "1 ignored, 0 filtered out, 1 ms)"),
-        })
+        }
 
     def test_parse_requires_summary(self):
-        with self.assertRaisesRegex(ValueError, "no CppUTest summary"):
+        with pytest.raises(ValueError, match="no CppUTest summary"):
             cpputest.parse("TEST(Math, Adds)\n")
 
     def test_a_refusal_says_why_without_quoting_back_the_text(self):
         # The caller passed the text in and still holds it; whoever
         # obtained it is the one who can say where it came from, and
         # is the one who reports it. A grammar states its own reason.
-        with self.assertRaises(ValueError) as caught:
+        with pytest.raises(ValueError) as caught:
             cpputest.parse_run("Bad command or file name\n")
 
-        self.assertNotIn("Bad command or file name", str(caught.exception))
-        self.assertIn("summary line", str(caught.exception))
+        assert "Bad command or file name" not in str(caught.value)
+        assert "summary line" in str(caught.value)
 
     def test_a_list_refusal_names_the_token_it_choked_on(self):
-        with self.assertRaises(ValueError) as caught:
+        with pytest.raises(ValueError) as caught:
             cpputest.parse_list("Vring.Wraps NotAnId Vring.Fails")
 
-        self.assertIn("'NotAnId'", str(caught.exception))
+        assert "'NotAnId'" in str(caught.value)
 
 
-class ParseRunTests(unittest.TestCase):
+class ParseRunTests:
     def test_outcomes_carry_failure_location_and_message(self):
         outcomes = {(o.group, o.name): o
                     for o in cpputest.parse_run(FAILING_RUN)}
 
-        self.assertEqual(len(outcomes), 3)
-        self.assertTrue(outcomes[("Vring", "Wraps")].passed)
-        self.assertTrue(outcomes[("Vring", "Slow")].passed)
+        assert len(outcomes) == 3
+        assert outcomes[("Vring", "Wraps")].passed
+        assert outcomes[("Vring", "Slow")].passed
         failed = outcomes[("Vring", "Fails")]
-        self.assertFalse(failed.passed)
-        self.assertEqual(failed.file, "vring_test.cpp")
-        self.assertEqual(failed.line, 42)
-        self.assertEqual(failed.message,
-                         "expected <1 0x1>\nbut was  <2 0x2>")
+        assert not failed.passed
+        assert failed.file == "vring_test.cpp"
+        assert failed.line == 42
+        assert failed.message == "expected <1 0x1>\nbut was  <2 0x2>"
 
     def test_a_message_ends_where_the_next_thing_begins(self):
         # Without a blank line to stop at, the message used to run on
@@ -99,11 +98,11 @@ class ParseRunTests(unittest.TestCase):
                     for o in cpputest.parse_run(FAILING_RUN_FROM_A_SCREEN)}
 
         failed = outcomes[("Vring", "Fails")]
-        self.assertEqual(failed.file, "vring_test.cpp")
-        self.assertEqual(failed.line, 42)
-        self.assertNotIn("ms", failed.message)
-        self.assertNotIn("Errors (", failed.message)
-        self.assertNotIn("IGNORE_TEST", failed.message)
+        assert failed.file == "vring_test.cpp"
+        assert failed.line == 42
+        assert "ms" not in failed.message
+        assert "Errors (" not in failed.message
+        assert "IGNORE_TEST" not in failed.message
 
     def test_a_screen_rendered_indent_is_removed_but_alignment_is_not(self):
         # The tab CppUTest writes arrives as spaces, so the common
@@ -113,13 +112,13 @@ class ParseRunTests(unittest.TestCase):
                     for o in cpputest.parse_run(FAILING_RUN_FROM_A_SCREEN)}
 
         lines = outcomes[("Vring", "Fails")].message.splitlines()
-        self.assertEqual(lines[0], "expected <1 0x1>")
-        self.assertEqual(lines[1], "but was  <2 0x2>")
+        assert lines[0] == "expected <1 0x1>"
+        assert lines[1] == "but was  <2 0x2>"
         caret = lines[-1]
         difference = lines[-2]
-        self.assertEqual(caret.strip(), "^")
-        self.assertEqual(caret.index("^"),
-                         difference.index("2", difference.index("<")))
+        assert caret.strip() == "^"
+        assert caret.index("^") == difference.index(
+            "2", difference.index("<"))
 
     def test_failure_outside_test_file_uses_failure_site(self):
         # TestOutput.cpp prints a second location line (the actual
@@ -135,18 +134,17 @@ class ParseRunTests(unittest.TestCase):
                   "0 ignored, 0 filtered out, 0 ms)\n")
 
         outcome, = cpputest.parse_run(output)
-        self.assertFalse(outcome.passed)
-        self.assertEqual(outcome.file, "helpers.cpp")
-        self.assertEqual(outcome.line, 99)
-        self.assertEqual(outcome.message, "CHECK(x) failed")
+        assert not outcome.passed
+        assert outcome.file == "helpers.cpp"
+        assert outcome.line == 99
+        assert outcome.message == "CHECK(x) failed"
 
     def test_accepts_dos_crlf_line_endings(self):
         outcomes = cpputest.parse_run(FAILING_RUN.replace("\n", "\r\n"))
-        self.assertEqual([o.passed for o in outcomes],
-                         [True, False, True])
+        assert [o.passed for o in outcomes] == [True, False, True]
 
 
-class FailureCountTests(unittest.TestCase):
+class FailureCountTests:
     """The summary's own failure count, cross-checked against the
     failure blocks actually parsed. The count is CppUTest's
     (TestResult.cpp prints it), so a block the transport mangled
@@ -166,7 +164,7 @@ class FailureCountTests(unittest.TestCase):
             " - 1 ms\n"
             "Errors (1 failures, 1 tests, 1 ran, 1 checks, 0 ignored, "
             "0 filtered out, 1 ms)\n")
-        with self.assertRaisesRegex(ValueError, "1 failure"):
+        with pytest.raises(ValueError, match="1 failure"):
             cpputest.parse_run(mangled)
 
     def test_two_failure_blocks_in_one_test_match_the_stated_count(self):
@@ -182,27 +180,27 @@ class FailureCountTests(unittest.TestCase):
             "Errors (2 failures, 1 tests, 1 ran, 2 checks, 0 ignored, "
             "0 filtered out, 1 ms)\n")
         outcomes = cpputest.parse_run(text)
-        self.assertEqual([o.passed for o in outcomes], [False])
+        assert [o.passed for o in outcomes] == [False]
 
 
-class ListTests(unittest.TestCase):
+class ListTests:
     def test_parse_list_returns_test_ids(self):
         ids = cpputest.parse_list("Vring.Wraps Vring.Fails\r\n")
-        self.assertEqual([(i.group, i.name) for i in ids],
-                         [("Vring", "Wraps"), ("Vring", "Fails")])
-        self.assertEqual(str(ids[0]), "Vring.Wraps")
+        assert ([(i.group, i.name) for i in ids]
+                == [("Vring", "Wraps"), ("Vring", "Fails")])
+        assert str(ids[0]) == "Vring.Wraps"
 
     def test_parse_list_rejects_non_enumeration_output(self):
-        with self.assertRaisesRegex(ValueError, "not a CppUTest"):
+        with pytest.raises(ValueError, match="not a CppUTest"):
             cpputest.parse_list("Bad command or file name\n")
 
 
-class ArgvTests(unittest.TestCase):
+class ArgvTests:
     def test_argv_builders(self):
-        self.assertEqual(cpputest.list_argv(), ("-ln",))
-        self.assertEqual(cpputest.run_all_argv(), ("-v",))
-        self.assertEqual(cpputest.run_one_argv("Vring", "Wraps"),
-                         ("-v", "-sg", "Vring", "-sn", "Wraps"))
+        assert cpputest.list_argv() == ("-ln",)
+        assert cpputest.run_all_argv() == ("-v",)
+        assert (cpputest.run_one_argv("Vring", "Wraps")
+                == ("-v", "-sg", "Vring", "-sn", "Wraps"))
 
     def test_argv_is_tokens_and_not_a_command_line(self):
         """A string is a sequence too, which is what made the flaw
@@ -210,10 +208,6 @@ class ArgvTests(unittest.TestCase):
         what a builder returns, not merely what it equals."""
         for argv in (cpputest.list_argv(), cpputest.run_all_argv(),
                      cpputest.run_one_argv("Vring", "Wraps")):
-            self.assertNotIsInstance(argv, str)
+            assert not isinstance(argv, str)
             for token in argv:
-                self.assertNotIn(" ", token)
-
-
-if __name__ == "__main__":
-    unittest.main()
+                assert " " not in token

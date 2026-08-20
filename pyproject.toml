@@ -42,6 +42,25 @@ testaferro = "testaferro.plugin"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# Every case here is a *Tests class (PluginTests, PlacementTests, ...),
+# never a Test-prefixed one — AGENTS.md cites these names as the map
+# of what each case proves, so the suite's own convention is matched
+# rather than pytest's default (D26).
+#
+# tests/ and tests/integration/ carry no __init__.py (D26 keeps the
+# tree package-free, matching how it always imported), and two files
+# share a basename across those directories (test_at_rest.py). The
+# default "prepend" import mode resolves modules by basename alone
+# and collides on that; "importlib" mode resolves each by its full
+# path instead, so the collision does not arise. `pythonpath` restores
+# what "prepend" gave up — `tests/` on sys.path — which is what lets
+# `from helpers import ...` keep working across test modules.
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_classes = ["*Tests"]
+addopts = ["--import-mode=importlib"]
+pythonpath = ["tests"]
+
 # The FreeDOS recipe testaferro authors and installs from (P17). It is
 # data the package reads at run time, so it ships inside the package
 # rather than sitting beside it in the repository.

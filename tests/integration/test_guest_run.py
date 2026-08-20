@@ -26,23 +26,24 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import unittest
 from pathlib import Path
+
+import pytest
 
 HERE = Path(__file__).resolve().parent
 SUITE = HERE / "guest" / "SUITE.EXE"
 
 ASKED = bool(os.environ.get("TESTAFERRO_INTEGRATION"))
 
-requires_guest = unittest.skipUnless(
-    ASKED, "set TESTAFERRO_INTEGRATION=1 to boot a real guest")
-requires_suite = unittest.skipUnless(
-    SUITE.is_file(), f"{SUITE.name} is not built — see guest/makefile")
+requires_guest = pytest.mark.skipif(
+    not ASKED, reason="set TESTAFERRO_INTEGRATION=1 to boot a real guest")
+requires_suite = pytest.mark.skipif(
+    not SUITE.is_file(), reason=f"{SUITE.name} is not built — see guest/makefile")
 
 
 @requires_guest
 @requires_suite
-class GuestSessionTests(unittest.TestCase):
+class GuestSessionTests:
     """One guest session, several questions asked of it.
 
     A session per assertion would be honest and slow; a real consumer
@@ -50,45 +51,46 @@ class GuestSessionTests(unittest.TestCase):
     guest is torn down in tearDownClass however the cases go.
     """
 
-    @classmethod
-    def setUpClass(cls):
+    @pytest.fixture(autouse=True, scope="class")
+    def _setup(self, request):
         from testaferro import reliquary as binding
 
-        cls.backend = binding.suite_backend(str(SUITE))
-        cls.backend.start_guest()
+        backend = binding.suite_backend(str(SUITE))
+        backend.start_guest()
+        request.cls.backend = backend
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.backend.stop_guest()
+        yield
+
+        backend.stop_guest()
 
     def test_the_guest_enumerates_its_own_tests(self):
         ids = [str(test_id) for test_id in self.backend.list_tests()]
 
-        self.assertIn("Guest.Runs", ids)
-        self.assertIn("Guest.Fails", ids)
-        self.assertIn("Guest.RunsToo", ids)
+        assert "Guest.Runs" in ids
+        assert "Guest.Fails" in ids
+        assert "Guest.RunsToo" in ids
 
     def test_a_whole_run_comes_back_and_parses(self):
         outcomes = {(o.group, o.name): o for o in self.backend.run_all()}
 
-        self.assertTrue(outcomes[("Guest", "Runs")].passed)
-        self.assertTrue(outcomes[("Guest", "RunsToo")].passed)
-        self.assertFalse(outcomes[("Guest", "Fails")].passed)
+        assert outcomes[("Guest", "Runs")].passed
+        assert outcomes[("Guest", "RunsToo")].passed
+        assert not outcomes[("Guest", "Fails")].passed
 
     def test_a_failure_carries_the_guests_own_file_and_line(self):
         # The whole point of the courier: what comes back is where the
         # guest says it went wrong, not where Testaferro was standing.
         outcome = self.backend.run_test("Guest", "Fails")
 
-        self.assertFalse(outcome.passed)
-        self.assertIn("SUITE", outcome.file.upper())
-        self.assertGreater(outcome.line, 0)
-        self.assertTrue(outcome.message.strip())
+        assert not outcome.passed
+        assert "SUITE" in outcome.file.upper()
+        assert outcome.line > 0
+        assert outcome.message.strip()
 
     def test_one_test_can_be_run_on_its_own(self):
         outcome = self.backend.run_test("Guest", "Runs")
 
-        self.assertTrue(outcome.passed)
+        assert outcome.passed
 
     def test_the_suite_lands_on_a_vvfat_sibling_of_the_system_disk(self):
         """The letter this binding now computes rather than reads,
@@ -102,16 +104,16 @@ class GuestSessionTests(unittest.TestCase):
         this in the class has already run off that placement; this
         states it, against a real boot rather than a computation.
         """
-        self.assertEqual(self.backend.location, "D:\\")
+        assert self.backend.location == "D:\\"
 
         blueprint = Path(self.backend._home) / "blueprints"
         document = json.loads(
             (blueprint / "testaferro.rlqb").read_text(encoding="utf-8"))
         drives = document[0]["drives"]
 
-        self.assertEqual(sorted(drives), ["hdd0", "hdd1"])
-        self.assertEqual(drives["hdd0"]["materialize"], "difference")
-        self.assertEqual(drives["hdd1"]["materialize"], "use")
+        assert sorted(drives) == ["hdd0", "hdd1"]
+        assert drives["hdd0"]["materialize"] == "difference"
+        assert drives["hdd1"]["materialize"] == "use"
 
     def test_the_guest_reads_the_suite_back_from_where_it_was_staged(self):
         # The staging is real on the guest's side of the glass: DOS
@@ -120,12 +122,12 @@ class GuestSessionTests(unittest.TestCase):
             f"DIR {self.backend.location}",
             machine=self.backend._machine, timeout=60)
 
-        self.assertIn("SUITE", "\n".join(rows).upper())
+        assert "SUITE" in "\n".join(rows).upper()
 
 
 @requires_guest
 @requires_suite
-class SetupCommandTests(unittest.TestCase):
+class SetupCommandTests:
     """Harness prep (F9), against a real boot: `setup=` commands
     actually run in the guest, actually before any test, and a real
     failure actually surfaces as `GuestOutputError` rather than as
@@ -136,7 +138,8 @@ class SetupCommandTests(unittest.TestCase):
     itself, including the one that never finishes starting.
     """
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def _setup(self):
         from testaferro import reliquary as binding
         from testaferro.backend import GuestOutputError
 
@@ -144,7 +147,8 @@ class SetupCommandTests(unittest.TestCase):
         self.GuestOutputError = GuestOutputError
         self.backend = None
 
-    def tearDown(self):
+        yield
+
         if self.backend is not None:
             self.backend.stop_guest()
 
@@ -161,7 +165,7 @@ class SetupCommandTests(unittest.TestCase):
 
         rows = self.backend._session.exec(
             "TYPE D:\\SETUP.MRK", machine=self.backend._machine, timeout=60)
-        self.assertIn("ready", "\n".join(rows))
+        assert "ready" in "\n".join(rows)
 
     def test_a_failing_setup_command_ends_the_session_before_any_test_runs(self):
         # No new fixture needed: the suite already stages itself onto
@@ -173,15 +177,14 @@ class SetupCommandTests(unittest.TestCase):
         self.backend = self.binding.suite_backend(
             str(SUITE), setup=["D:\\SUITE.EXE -sg Guest -sn Fails"])
 
-        with self.assertRaises(self.GuestOutputError) as caught:
+        with pytest.raises(self.GuestOutputError) as caught:
             self.backend.start_guest()
 
-        self.assertIn("D:\\SUITE.EXE -sg Guest -sn Fails",
-                      str(caught.exception))
+        assert "D:\\SUITE.EXE -sg Guest -sn Fails" in str(caught.value)
         # ended, not left half up: stop_guest() already ran once
         # (inside start_guest()'s own failure handling), so tearDown's
         # second call has to be a no-op rather than an error.
-        self.assertIsNone(self.backend._home)
+        assert self.backend._home is None
 
     def test_a_suite_declaring_no_setup_still_boots_and_runs(self):
         # The one-liner path stays exactly as it was: no setup
@@ -191,12 +194,12 @@ class SetupCommandTests(unittest.TestCase):
 
         self.backend.start_guest()
 
-        self.assertTrue(self.backend.run_test("Guest", "Runs").passed)
+        assert self.backend.run_test("Guest", "Runs").passed
 
 
 @requires_guest
 @requires_suite
-class ScriptedGuestSessionTests(unittest.TestCase):
+class ScriptedGuestSessionTests:
     """U10, against a real boot: a scripted guest interaction reaches
     the same provisioning guest_suite() gives every suite, with no
     suite executable, no framework adapter, and nothing for one to
@@ -209,24 +212,24 @@ class ScriptedGuestSessionTests(unittest.TestCase):
 
         with binding.guest_session(files=[str(SUITE)]) as guest:
             rows = guest.exec(f"DIR {guest.location}")
-            self.assertIn("SUITE", "\n".join(rows).upper())
+            assert "SUITE" in "\n".join(rows).upper()
 
             rows = guest.exec(
                 f"{guest.location}SUITE.EXE -sg Guest -sn Runs")
-            self.assertIn("OK", "\n".join(rows))
+            assert "OK" in "\n".join(rows)
 
     def test_the_public_entry_point_opens_the_same_kind_of_session(self):
         import testaferro
 
         with testaferro.guest_session(files=[str(SUITE)]) as guest:
-            self.assertTrue(guest.location)
+            assert guest.location
             rows = guest.exec(f"DIR {guest.location}")
-            self.assertIn("SUITE", "\n".join(rows).upper())
+            assert "SUITE" in "\n".join(rows).upper()
 
 
 @requires_guest
 @requires_suite
-class NamedStandardEnvironmentTests(unittest.TestCase):
+class NamedStandardEnvironmentTests:
     """U9, against a real boot: `environment="freedos"` resolves
     through the same seam every entry point shares
     (`resolution.resolve_backend`/`resolve_guest_session`), reaching
@@ -248,8 +251,8 @@ class NamedStandardEnvironmentTests(unittest.TestCase):
         finally:
             backend.stop_guest()
 
-        self.assertTrue(outcomes[("Guest", "Runs")].passed)
-        self.assertFalse(outcomes[("Guest", "Fails")].passed)
+        assert outcomes[("Guest", "Runs")].passed
+        assert not outcomes[("Guest", "Fails")].passed
 
     def test_the_public_facade_names_it_the_same_way(self):
         import testaferro
@@ -258,12 +261,12 @@ class NamedStandardEnvironmentTests(unittest.TestCase):
                 environment="freedos", files=[str(SUITE)]) as guest:
             rows = guest.exec(
                 f"{guest.location}SUITE.EXE -sg Guest -sn Runs")
-            self.assertIn("OK", "\n".join(rows))
+            assert "OK" in "\n".join(rows)
 
 
 @requires_guest
 @requires_suite
-class GuestCollectionTests(unittest.TestCase):
+class GuestCollectionTests:
     """U4's own command, run for real: `pytest <suite>.EXE`.
 
     The plugin path rather than the seam — a real pytest process, the
@@ -278,12 +281,12 @@ class GuestCollectionTests(unittest.TestCase):
             capture_output=True, text=True, check=False, cwd=str(HERE))
         output = result.stdout + result.stderr
 
-        self.assertIn("SUITE.EXE::Guest-Runs", output, output)
-        self.assertIn("SUITE.EXE::Guest-Fails", output, output)
+        assert "SUITE.EXE::Guest-Runs" in output, output
+        assert "SUITE.EXE::Guest-Fails" in output, output
         # One deliberate failure, and the rest passing: a run that is
         # all green would not show the failure path works at all.
-        self.assertEqual(result.returncode, 1, output)
-        self.assertIn("1 failed", output)
+        assert result.returncode == 1, output
+        assert "1 failed" in output
 
     def test_a_project_ini_claims_the_suite_and_its_environment_boots(self):
         """U4's declaration clause, proved by a guest rather than a
@@ -317,10 +320,6 @@ class GuestCollectionTests(unittest.TestCase):
 
         # Claimed by the declaration's mask, with no file named on the
         # command line at all, and run in the environment it declared.
-        self.assertIn("SUITE.EXE::Guest-Runs", output, output)
-        self.assertIn("SUITE.EXE::Guest-Fails", output, output)
-        self.assertIn("1 failed", output)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert "SUITE.EXE::Guest-Runs" in output, output
+        assert "SUITE.EXE::Guest-Fails" in output, output
+        assert "1 failed" in output

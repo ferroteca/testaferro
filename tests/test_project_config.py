@@ -4,19 +4,16 @@
 
 import json
 import os
-import tempfile
-import unittest
+
+import pytest
 
 from testaferro import environments
 
 
-class ProjectConfigTests(unittest.TestCase):
-    def setUp(self):
-        environments._clear_for_tests()
-        self.addCleanup(environments._clear_for_tests)
-        self._temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self._temp.cleanup)
-        self.root = self._temp.name
+class ProjectConfigTests:
+    @pytest.fixture(autouse=True)
+    def _setup(self, tmp_path, clean_environments):
+        self.root = tmp_path
 
     def _write(self, relative, text):
         path = os.path.join(self.root, relative)
@@ -35,12 +32,12 @@ class ProjectConfigTests(unittest.TestCase):
 
         loaded = environments.load_config(ini)
 
-        self.assertEqual(loaded, os.path.abspath(ini))
+        assert loaded == os.path.abspath(ini)
         config = environments.configured()["msdos"]
-        self.assertEqual(config.platform, "dos")
-        self.assertEqual(config.memory, 32)
-        self.assertEqual(config.drives["floppy0"]["location"]["local"],
-                         os.path.abspath(image))
+        assert config.platform == "dos"
+        assert config.memory == 32
+        assert (config.drives["floppy0"]["location"]["local"]
+                == os.path.abspath(image))
 
     def test_search_walks_upward_from_start(self):
         self._write(
@@ -52,14 +49,14 @@ class ProjectConfigTests(unittest.TestCase):
 
         loaded = environments.load_config(search_from=nested)
 
-        self.assertEqual(os.path.basename(loaded), "testaferro.ini")
-        self.assertEqual(environments.configured()["freedos"].memory, 24)
+        assert os.path.basename(loaded) == "testaferro.ini"
+        assert environments.configured()["freedos"].memory == 24
 
     def test_fruitless_search_is_a_noop(self):
         loaded = environments.load_config(search_from=self.root)
 
-        self.assertIsNone(loaded)
-        self.assertEqual(environments.configured(), {})
+        assert loaded is None
+        assert environments.configured() == {}
 
     def test_machine_config_path_resolves_from_the_ini_directory(self):
         document = {
@@ -76,7 +73,7 @@ class ProjectConfigTests(unittest.TestCase):
 
         environments.load_config(ini)
 
-        self.assertEqual(environments.configured()["custom"].memory, 48)
+        assert environments.configured()["custom"].memory == 48
 
     def test_json_valued_blueprint_fields(self):
         ini = self._write(
@@ -88,8 +85,8 @@ class ProjectConfigTests(unittest.TestCase):
         environments.load_config(ini)
         config = environments.configured()["tuned"]
 
-        self.assertEqual(config.boot, ["hdd0"])
-        self.assertEqual(config.backend_settings["qemu"]["accel"], "tcg")
+        assert config.boot == ["hdd0"]
+        assert config.backend_settings["qemu"]["accel"] == "tcg"
 
     def test_media_section_value_becomes_a_document_spec(self):
         ini = self._write(
@@ -101,15 +98,14 @@ class ProjectConfigTests(unittest.TestCase):
         environments.load_config(ini)
         config = environments.configured()["freedos"]
 
-        self.assertEqual(config.media,
-                         ({"name": "boot", "location": "boot.img"},))
-        self.assertNotIn("media", config.fields)
+        assert config.media == ({"name": "boot", "location": "boot.img"},)
+        assert "media" not in config.fields
 
     def test_duplicate_name_with_configure_fails_closed(self):
         ini = self._write("testaferro.ini", "[freedos]\nmemory = 16\n")
         environments.configure("freedos", memory=32)
 
-        with self.assertRaisesRegex(ValueError, "already configured"):
+        with pytest.raises(ValueError, match="already configured"):
             environments.load_config(ini)
 
     def test_repeated_load_of_same_path_is_idempotent(self):
@@ -118,15 +114,15 @@ class ProjectConfigTests(unittest.TestCase):
         first = environments.load_config(ini)
         second = environments.load_config(ini)
 
-        self.assertEqual(first, second)
-        self.assertEqual(list(environments.configured()), ["freedos"])
+        assert first == second
+        assert list(environments.configured()) == ["freedos"]
 
     def test_second_distinct_load_is_rejected(self):
         first = self._write("a.ini", "[one]\nmemory = 16\n")
         second = self._write("b.ini", "[two]\nmemory = 32\n")
         environments.load_config(first)
 
-        with self.assertRaisesRegex(RuntimeError, "already loaded"):
+        with pytest.raises(RuntimeError, match="already loaded"):
             environments.load_config(second)
 
     def test_platform_stays_writable_as_a_blueprint_field(self):
@@ -141,8 +137,8 @@ class ProjectConfigTests(unittest.TestCase):
         environments.load_config(ini)
 
         config = environments.configured()["win98"]
-        self.assertEqual(config.platform, "win9x")
-        self.assertEqual(config.memory, 64)
+        assert config.platform == "win9x"
+        assert config.memory == 64
 
     def test_provider_has_an_ini_spelling_like_every_keyword(self):
         # The declarative twin of config(provider=...): one vocabulary,
@@ -156,9 +152,8 @@ class ProjectConfigTests(unittest.TestCase):
         environments.load_config(ini)
 
         config = environments.configured()["msdos"]
-        self.assertEqual(config.provider, "reliquary")
-        self.assertEqual(dict(config.fields),
-                         {"platform": "dos", "memory": 64})
+        assert config.provider == "reliquary"
+        assert dict(config.fields) == {"platform": "dos", "memory": 64}
 
     def test_placement_has_ini_spellings_like_every_keyword(self):
         # The declarative twin of config(files=/location=/program=),
@@ -174,10 +169,9 @@ class ProjectConfigTests(unittest.TestCase):
         environments.load_config(ini)
 
         config = environments.configured()["msdos"]
-        self.assertEqual(config.location, "D:\\TESTDIR")
-        self.assertEqual(config.program, "{location}\\RUNNER.EXE")
-        self.assertEqual(dict(config.fields),
-                         {"platform": "dos", "memory": 64})
+        assert config.location == "D:\\TESTDIR"
+        assert config.program == "{location}\\RUNNER.EXE"
+        assert dict(config.fields) == {"platform": "dos", "memory": 64}
 
     def test_staged_files_resolve_from_the_ini_directory(self):
         # `files` names host paths, so a relative one means beside the
@@ -192,8 +186,8 @@ class ProjectConfigTests(unittest.TestCase):
         environments.load_config(ini)
 
         config = environments.configured()["msdos"]
-        self.assertEqual(config.files,
-                         (os.path.abspath(first), os.path.abspath(second)))
+        assert config.files == (os.path.abspath(first),
+                                 os.path.abspath(second))
 
     def test_a_lone_staged_file_needs_no_comma(self):
         path = self._write("fixtures/CASE.DAT", "case")
@@ -204,8 +198,8 @@ class ProjectConfigTests(unittest.TestCase):
 
         environments.load_config(ini)
 
-        self.assertEqual(environments.configured()["msdos"].files,
-                         (os.path.abspath(path),))
+        assert (environments.configured()["msdos"].files
+                == (os.path.abspath(path),))
 
     def test_setup_has_an_ini_spelling_one_command_per_line(self):
         # The declarative twin of config(setup=[...]) (F9, P16): a
@@ -221,9 +215,8 @@ class ProjectConfigTests(unittest.TestCase):
         environments.load_config(ini)
 
         config = environments.configured()["msdos"]
-        self.assertEqual(config.setup,
-                         ("DRIVER.COM /install", "OTHER.COM /go"))
-        self.assertNotIn("setup", config.fields)
+        assert config.setup == ("DRIVER.COM /install", "OTHER.COM /go")
+        assert "setup" not in config.fields
 
     def test_a_lone_setup_command_needs_no_leading_newline(self):
         ini = self._write(
@@ -233,9 +226,5 @@ class ProjectConfigTests(unittest.TestCase):
 
         environments.load_config(ini)
 
-        self.assertEqual(environments.configured()["msdos"].setup,
-                         ("DRIVER.COM /install",))
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert (environments.configured()["msdos"].setup
+                == ("DRIVER.COM /install",))

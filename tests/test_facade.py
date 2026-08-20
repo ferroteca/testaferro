@@ -2,128 +2,80 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """Tests for the facade's batching broker and public pytest surface."""
 
-import importlib.util
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
-import unittest
+from unittest import mock
 
-from testaferro.backend import Backend, TestId, TestOutcome
+import pytest
+
+from testaferro.backend import TestId, TestOutcome
 from testaferro.facade import ResultBroker
 
-from test_binfmt import plain_dos_exe_bytes
+from helpers import (FakeBackend, OUTCOMES, plain_dos_exe_bytes,
+                      requires_pytest, requires_reliquary)
 
 
-class FakeBackend(Backend):
-    def __init__(self, outcomes):
-        self._outcomes = outcomes
-        self.calls = []
-
-    def start_guest(self):
-        self.calls.append(("start_guest",))
-
-    def stop_guest(self):
-        self.calls.append(("stop_guest",))
-
-    def list_tests(self):
-        return [TestId(o.group, o.name) for o in self._outcomes]
-
-    def run_test(self, group, name):
-        self.calls.append(("run_test", group, name))
-        for outcome in self._outcomes:
-            if (outcome.group, outcome.name) == (group, name):
-                return outcome
-        raise LookupError(f"target did not run test {group}.{name}")
-
-    def run_all(self):
-        self.calls.append(("run_all",))
-        return self._outcomes
-
-
-OUTCOMES = [
-    TestOutcome("Vring", "Wraps", passed=True),
-    TestOutcome("Vring", "Fails", passed=False,
-                file="vring_test.cpp", line=42, message="expected <1>"),
-]
-
-PYTEST_AVAILABLE = importlib.util.find_spec("pytest") is not None
-RELIQUARY_AVAILABLE = importlib.util.find_spec("reliquary") is not None
-
-
-@unittest.skipUnless(PYTEST_AVAILABLE, "pytest is not installed")
-class GuestSuiteTargetTests(unittest.TestCase):
+@requires_pytest
+class GuestSuiteTargetTests:
     """What guest_suite() does with the target it is handed. Resolving
     a path to a backend is the seam's own (test_resolution); what is
     tested here is the facade's half — that a path goes through it,
     that the call site is where the search starts, and that a prebuilt
     Backend takes no options."""
 
-    def setUp(self):
-        self.tempdir = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tempdir.cleanup)
-
-    def _exe(self, content):
-        path = Path(self.tempdir.name) / "SUITE.EXE"
+    def _exe(self, tmp_path, content):
+        path = tmp_path / "SUITE.EXE"
         path.write_bytes(content)
         return path
 
-    @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
-    def test_path_target_resolves_backend_from_executable(self):
-        from unittest import mock
-
+    @requires_reliquary
+    def test_path_target_resolves_backend_from_executable(self, tmp_path):
         import testaferro
 
         def enumerator():
             return [TestId("Vring", "Wraps")]
 
-        exe = self._exe(plain_dos_exe_bytes())
+        exe = self._exe(tmp_path, plain_dos_exe_bytes())
         with mock.patch("testaferro.reliquary.suite_backend",
                         return_value=FakeBackend(OUTCOMES)) as factory:
             suite = testaferro.guest_suite(exe, enumerator=enumerator)
         factory.assert_called_once_with(exe, enumerator=enumerator)
-        self.assertTrue(callable(suite))
+        assert callable(suite)
 
-    @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
-    def test_guest_suite_searches_for_ini_from_the_call_site(self):
-        from unittest import mock
-
+    @requires_reliquary
+    def test_guest_suite_searches_for_ini_from_the_call_site(
+            self, tmp_path, clean_environments):
         import testaferro
-        from testaferro import environments
-
-        environments._clear_for_tests()
-        self.addCleanup(environments._clear_for_tests)
 
         def enumerator():
             return [TestId("Vring", "Wraps")]
 
-        exe = self._exe(plain_dos_exe_bytes())
+        exe = self._exe(tmp_path, plain_dos_exe_bytes())
         with mock.patch("testaferro.environments.load_config") as load:
             with mock.patch("testaferro.reliquary.suite_backend",
                             return_value=FakeBackend(OUTCOMES)):
                 testaferro.guest_suite(exe, enumerator=enumerator)
         load.assert_called_once()
-        self.assertEqual(
-            Path(load.call_args.kwargs["search_from"]).resolve(),
-            Path(__file__).resolve().parent)
+        assert (Path(load.call_args.kwargs["search_from"]).resolve()
+                == Path(__file__).resolve().parent)
 
-    @unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
-    def test_a_host_side_enumerator_starts_no_guest(self):
+    @requires_reliquary
+    def test_a_host_side_enumerator_starts_no_guest(self, tmp_path):
         # The list comes from the host, so starting a guest here would
         # boot a machine and ask it nothing — the cost the twin exists
         # to avoid, and what the collection plugin already avoids.
-        from unittest import mock
-
         import testaferro
 
         backend = FakeBackend(OUTCOMES)
-        exe = self._exe(plain_dos_exe_bytes())
+        exe = self._exe(tmp_path, plain_dos_exe_bytes())
         with mock.patch("testaferro.reliquary.suite_backend",
                         return_value=backend):
             testaferro.guest_suite(
                 exe, enumerator=lambda: [TestId("Vring", "Wraps")])
 
-        self.assertEqual(backend.calls, [])
+        assert backend.calls == []
 
     def test_a_prebuilt_backend_still_gets_its_guest(self):
         # It may be what makes list_tests() work, and a prebuilt
@@ -133,20 +85,19 @@ class GuestSuiteTargetTests(unittest.TestCase):
         backend = FakeBackend(OUTCOMES)
         testaferro.guest_suite(backend)
 
-        self.assertEqual(backend.calls,
-                         [("start_guest",), ("stop_guest",)])
+        assert backend.calls == [("start_guest",), ("stop_guest",)]
 
     def test_backend_target_rejects_path_only_options(self):
         import testaferro
 
-        with self.assertRaisesRegex(TypeError, "executable path"):
+        with pytest.raises(TypeError, match="executable path"):
             testaferro.guest_suite(FakeBackend(OUTCOMES),
                                   boot_image="OTHER.IMG")
 
     def test_backend_target_rejects_an_environment_selector(self):
         import testaferro
 
-        with self.assertRaisesRegex(TypeError, "environment"):
+        with pytest.raises(TypeError, match="environment"):
             testaferro.guest_suite(FakeBackend(OUTCOMES),
                                   environment="freedos")
 
@@ -161,20 +112,19 @@ class GuestSuiteTargetTests(unittest.TestCase):
         call_line = inspect.currentframe().f_lineno + 1
         suite = testaferro.guest_suite(FakeBackend(OUTCOMES))
 
-        self.assertEqual(suite.__code__.co_filename, __file__)
-        self.assertEqual(suite.__code__.co_firstlineno, call_line)
+        assert suite.__code__.co_filename == __file__
+        assert suite.__code__.co_firstlineno == call_line
 
 
-
-class ResultBrokerTests(unittest.TestCase):
+class ResultBrokerTests:
     def test_full_selection_batches_one_run_all(self):
         backend = FakeBackend(OUTCOMES)
         ids = [TestId("Vring", "Wraps"), TestId("Vring", "Fails")]
         broker = ResultBroker(backend, ids)
 
-        self.assertTrue(broker.outcome(ids[0], ids).passed)
-        self.assertFalse(broker.outcome(ids[1], ids).passed)
-        self.assertEqual(backend.calls, [("run_all",)])
+        assert broker.outcome(ids[0], ids).passed
+        assert not broker.outcome(ids[1], ids).passed
+        assert backend.calls == [("run_all",)]
 
     def test_narrowed_selection_runs_tests_individually(self):
         backend = FakeBackend(OUTCOMES)
@@ -183,10 +133,10 @@ class ResultBrokerTests(unittest.TestCase):
         selected = [ids[1]]
 
         outcome = broker.outcome(ids[1], selected)
-        self.assertFalse(outcome.passed)
+        assert not outcome.passed
         # Memoized: a second lookup must not re-run the guest.
         broker.outcome(ids[1], selected)
-        self.assertEqual(backend.calls, [("run_test", "Vring", "Fails")])
+        assert backend.calls == [("run_test", "Vring", "Fails")]
 
     def test_test_id_components_are_preserved(self):
         outcome = TestOutcome("namespace.group", "case", passed=True)
@@ -194,22 +144,20 @@ class ResultBrokerTests(unittest.TestCase):
         test_id = TestId(outcome.group, outcome.name)
         broker = ResultBroker(backend, [test_id])
 
-        self.assertTrue(broker.outcome(test_id, []).passed)
-        self.assertEqual(
-            backend.calls,
-            [("run_test", "namespace.group", "case")])
+        assert broker.outcome(test_id, []).passed
+        assert backend.calls == [("run_test", "namespace.group", "case")]
 
     def test_missing_outcome_in_batch_raises_lookup_error(self):
         backend = FakeBackend(OUTCOMES[:1])
         ids = [TestId("Vring", "Wraps"), TestId("Vring", "Gone")]
         broker = ResultBroker(backend, ids)
 
-        with self.assertRaisesRegex(LookupError, "Vring.Gone"):
+        with pytest.raises(LookupError, match="Vring.Gone"):
             broker.outcome(ids[1], ids)
 
 
-@unittest.skipUnless(PYTEST_AVAILABLE, "pytest is not installed")
-class GuestSuiteTests(unittest.TestCase):
+@requires_pytest
+class GuestSuiteTests:
     def _run_pytest(self, *args):
         with tempfile.TemporaryDirectory(
                 dir=Path(__file__).parent) as directory:
@@ -266,34 +214,32 @@ class GuestSuiteTests(unittest.TestCase):
         # there), turning run-this-item into run-the-whole-file
         result, _ = self._run_pytest("--collect-only")
 
-        self.assertIn("test_guest_case[namespace.group-Passes]",
-                      result.stdout)
-        self.assertIn("test_guest_case[Group-Fails]", result.stdout)
+        assert "test_guest_case[namespace.group-Passes]" in result.stdout
+        assert "test_guest_case[Group-Fails]" in result.stdout
 
     def test_full_suite_batches_and_balances_guest_sessions(self):
         result, events = self._run_pytest()
 
-        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        self.assertIn(
-            "guest test failed: guest.cpp:42: expected <1>",
-            result.stdout)
-        self.assertEqual(events, [
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert ("guest test failed: guest.cpp:42: expected <1>"
+                in result.stdout)
+        assert events == [
             "start", "list", "stop", "start", "run_all", "stop",
-        ])
+        ]
 
     def test_narrowed_selection_preserves_id_and_balances_guests(self):
         result, events = self._run_pytest("-k", "Passes")
 
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("1 passed, 1 deselected", result.stdout)
-        self.assertEqual(events, [
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "1 passed, 1 deselected" in result.stdout
+        assert events == [
             "start", "list", "stop", "start",
             "run_test:namespace.group:Passes", "stop",
-        ])
+        ]
 
 
-@unittest.skipUnless(PYTEST_AVAILABLE, "pytest is not installed")
-class UnreadableGuestOutputTests(unittest.TestCase):
+@requires_pytest
+class UnreadableGuestOutputTests:
     """The facade's half of U4's promise (the plugin's is in
     test_plugin): when the guest answers unusably, the consumer reads
     the guest's screen rather than a traceback through their own
@@ -327,25 +273,21 @@ class UnreadableGuestOutputTests(unittest.TestCase):
                 capture_output=True, text=True, check=False)
 
     def _assert_reads_as_the_guests(self, output):
-        self.assertIn("guest output not understood", output)
-        self.assertIn("what the guest showed on its screen", output)
-        self.assertIn("Bad command or file name", output)
+        assert "guest output not understood" in output
+        assert "what the guest showed on its screen" in output
+        assert "Bad command or file name" in output
         for frame in ("cpputest.py", "suite.py", "facade.py",
                       "ValueError", "Traceback"):
-            self.assertNotIn(frame, output)
+            assert frame not in output
 
     def test_an_unreadable_enumeration_reports_the_guests_screen(self):
         result = self._run_pytest(enumerates=False)
 
         self._assert_reads_as_the_guests(result.stdout)
-        self.assertIn("ran the guest suite with: -ln", result.stdout)
+        assert "ran the guest suite with: -ln" in result.stdout
 
     def test_an_unreadable_run_reports_the_guests_screen(self):
         result = self._run_pytest(enumerates=True)
 
         self._assert_reads_as_the_guests(result.stdout)
-        self.assertIn("ran the guest suite with: -v", result.stdout)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert "ran the guest suite with: -v" in result.stdout

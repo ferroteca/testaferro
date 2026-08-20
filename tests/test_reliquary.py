@@ -11,21 +11,19 @@ side effect receives the session instance as its own first argument.
 """
 
 import contextlib
-import importlib.util
 import json
 import os
 import pathlib
 import subprocess
 import sys
-import tempfile
-import unittest
 from unittest import mock
+
+import pytest
 
 from testaferro import cache, cpputest
 
-from test_binfmt import new_format_exe_bytes, plain_dos_exe_bytes
-
-RELIQUARY_AVAILABLE = importlib.util.find_spec("reliquary") is not None
+from helpers import (RELIQUARY_AVAILABLE, new_format_exe_bytes,
+                     plain_dos_exe_bytes, requires_reliquary)
 
 if RELIQUARY_AVAILABLE:
     import reliquary as reliquary_dist
@@ -34,10 +32,9 @@ if RELIQUARY_AVAILABLE:
     from testaferro import reliquary as binding
     from testaferro.backend import GuestOutputError
 
-_no_install = None
 
-
-def setUpModule():
+@pytest.fixture(autouse=True, scope="module")
+def _no_install():
     """No case in this file may install a guest system (P10).
 
     Building the default image boots a machine and installs FreeDOS
@@ -50,20 +47,17 @@ def setUpModule():
     on the spot, and a case that wants a default image stubs
     `_cached_default_image` for itself.
     """
-    global _no_install
     if not RELIQUARY_AVAILABLE:
+        yield
         return
-    _no_install = mock.patch.object(
+    patch = mock.patch.object(
         binding, "_build_default_image",
         side_effect=AssertionError(
             "the unit tier may not install a guest system: stub "
             "_cached_default_image() in this test (P10)"))
-    _no_install.start()
-
-
-def tearDownModule():
-    if _no_install is not None:
-        _no_install.stop()
+    patch.start()
+    yield
+    patch.stop()
 
 
 EMPTY_RUN_OUTPUT = (
@@ -81,31 +75,31 @@ def _patched(*patches):
         yield entered[-1]
 
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
-class SuiteBackendDispatchTests(unittest.TestCase):
+@requires_reliquary
+class SuiteBackendDispatchTests:
     """The guard on suite_backend(); the per-format naming matrix
     lives with the classifier in test_binfmt."""
 
-    def setUp(self):
-        self.tempdir = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tempdir.cleanup)
+    @pytest.fixture(autouse=True)
+    def _setup(self, tmp_path):
+        self.tempdir = tmp_path
 
     def _exe(self, content):
-        path = pathlib.Path(self.tempdir.name) / "SUITE.EXE"
+        path = self.tempdir / "SUITE.EXE"
         path.write_bytes(content)
         return path
 
     def test_rejects_windows_pe_executable(self):
         exe = self._exe(new_format_exe_bytes(b"PE\0\0"))
 
-        with self.assertRaisesRegex(ValueError, r"Windows \(PE\)"):
+        with pytest.raises(ValueError, match=r"Windows \(PE\)"):
             binding.suite_backend(exe)
 
     def test_rejects_pe_x86_naming_the_architecture(self):
         machine = (0x014C).to_bytes(2, "little")
         exe = self._exe(new_format_exe_bytes(b"PE\0\0" + machine))
 
-        with self.assertRaisesRegex(ValueError, r"Windows x86 \(PE\)"):
+        with pytest.raises(ValueError, match=r"Windows x86 \(PE\)"):
             binding.suite_backend(exe)
 
     def test_accepts_headerless_image_like_a_com_program(self):
@@ -113,21 +107,20 @@ class SuiteBackendDispatchTests(unittest.TestCase):
         # prove, so it must pass through for the guest to judge
         exe = self._exe(b"\xb4\x09\xba\x00\x01\xcd\x21\xc3")
 
-        self.assertIsNotNone(binding.suite_backend(exe))
+        assert binding.suite_backend(exe) is not None
 
     def test_missing_executable_raises_at_dispatch(self):
-        with self.assertRaises(FileNotFoundError):
-            binding.suite_backend(
-                pathlib.Path(self.tempdir.name) / "MISSING.EXE")
+        with pytest.raises(FileNotFoundError):
+            binding.suite_backend(self.tempdir / "MISSING.EXE")
 
 
-class _BindingFixture(unittest.TestCase):
+class _BindingFixture:
     """Shared setup: a DOS exe, a custom image, and a private cache."""
 
-    def setUp(self):
-        self.tempdir = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tempdir.cleanup)
-        root = pathlib.Path(self.tempdir.name)
+    @pytest.fixture(autouse=True)
+    def _setup(self, tmp_path):
+        self.tempdir = tmp_path
+        root = self.tempdir
         self.exe = root / "SUITE.EXE"
         self.exe.write_bytes(plain_dos_exe_bytes())
         self.image = root / "custom.img"
@@ -135,7 +128,8 @@ class _BindingFixture(unittest.TestCase):
         cache_patch = mock.patch.object(
             cache, "cache_root", return_value=str(root / "cache"))
         cache_patch.start()
-        self.addCleanup(cache_patch.stop)
+        yield
+        cache_patch.stop()
 
     def _blueprint(self, home):
         """The machine spec Testaferro authored for one run home."""
@@ -216,7 +210,7 @@ class _BindingFixture(unittest.TestCase):
                               autospec=True, side_effect=exec_side_effect,
                               **exec_kwargs))
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+@requires_reliquary
 class ReliquarySuiteBackendTests(_BindingFixture):
     """Backend behavior within one guest session."""
 
@@ -227,20 +221,20 @@ class ReliquarySuiteBackendTests(_BindingFixture):
 
         [(home, image)] = self._guest_homes_seen(backend)
 
-        self.assertTrue(home.startswith(
-            os.path.join(cache.cache_root(), "guests")))
-        self.assertEqual(image, b"custom dos")
-        self.assertFalse(os.path.exists(home))
+        assert home.startswith(
+            os.path.join(cache.cache_root(), "guests"))
+        assert image == b"custom dos"
+        assert not os.path.exists(home)
 
     def test_each_guest_session_gets_its_own_home(self):
         backend = binding.suite_backend(self.exe, boot_image=self.image)
 
         homes = [self._guest_homes_seen(backend)[0][0] for _ in range(2)]
 
-        self.assertNotEqual(homes[0], homes[1])
+        assert homes[0] != homes[1]
 
     def test_machine_template_becomes_this_guests_blueprint(self):
-        source = pathlib.Path(self.tempdir.name) / "msdos.img"
+        source = self.tempdir / "msdos.img"
         source.write_bytes(b"template image")
         template = environments.EnvironmentSpec({
             "drives": {"floppy0": {"name": "msdos",
@@ -253,10 +247,10 @@ class ReliquarySuiteBackendTests(_BindingFixture):
                 drives = self._blueprint(backend._home)["drives"]
                 # The declaration passes through untouched; reliquary
                 # owns materialization, so it stays a template.
-                self.assertEqual(drives["floppy0"]["location"]["local"],
-                                 str(source))
-                self.assertEqual(template.drives["floppy0"]["location"],
-                                 {"local": str(source)})
+                assert (drives["floppy0"]["location"]["local"]
+                        == str(source))
+                assert (template.drives["floppy0"]["location"]
+                        == {"local": str(source)})
             finally:
                 backend.stop_guest()
 
@@ -281,17 +275,17 @@ class ReliquarySuiteBackendTests(_BindingFixture):
                 home = backend._home
                 drives = self._blueprint(home)["drives"]
                 work = drives["hdd0"]["location"]["local"]
-                self.assertEqual(work, os.path.join(home, "work"))
+                assert work == os.path.join(home, "work")
                 staged = pathlib.Path(work) / "SUITE.EXE"
-                self.assertEqual(staged.read_bytes(), self.exe.read_bytes())
+                assert staged.read_bytes() == self.exe.read_bytes()
                 # The appended drive is served whole, so the set is at
                 # its root rather than in a directory under it.
-                self.assertEqual(backend.location, "C:\\")
+                assert backend.location == "C:\\"
             finally:
                 backend.stop_guest()
 
     def test_files_are_staged_beside_the_suite(self):
-        fixture = pathlib.Path(self.tempdir.name) / "DATA.TXT"
+        fixture = self.tempdir / "DATA.TXT"
         fixture.write_bytes(b"fixture bytes")
         backend = binding.suite_backend(self.exe, boot_image=self.image,
                                         files=[str(fixture)])
@@ -300,17 +294,16 @@ class ReliquarySuiteBackendTests(_BindingFixture):
             backend.start_guest()
             try:
                 work = pathlib.Path(backend._home) / "work"
-                self.assertEqual((work / "SUITE.EXE").read_bytes(),
-                                 self.exe.read_bytes())
-                self.assertEqual((work / "DATA.TXT").read_bytes(),
-                                 b"fixture bytes")
+                assert ((work / "SUITE.EXE").read_bytes()
+                        == self.exe.read_bytes())
+                assert (work / "DATA.TXT").read_bytes() == b"fixture bytes"
             finally:
                 backend.stop_guest()
 
     def test_a_declared_directory_contributes_its_contents(self):
         # `files=["fixtures"]` lands the fixtures where a guest program
         # looks for them, not one directory deeper.
-        tree = pathlib.Path(self.tempdir.name) / "fixtures"
+        tree = self.tempdir / "fixtures"
         tree.mkdir()
         (tree / "CASE.DAT").write_bytes(b"case")
         backend = binding.suite_backend(self.exe, boot_image=self.image,
@@ -320,7 +313,7 @@ class ReliquarySuiteBackendTests(_BindingFixture):
             backend.start_guest()
             try:
                 work = pathlib.Path(backend._home) / "work"
-                self.assertEqual((work / "CASE.DAT").read_bytes(), b"case")
+                assert (work / "CASE.DAT").read_bytes() == b"case"
             finally:
                 backend.stop_guest()
 
@@ -340,29 +333,32 @@ class ReliquarySuiteBackendTests(_BindingFixture):
             finally:
                 backend.stop_guest()
 
-        self.assertNotEqual(pathlib.Path(booted), pathlib.Path(self.image))
-        self.assertEqual(pathlib.Path(booted).parent, pathlib.Path(home))
+        assert pathlib.Path(booted) != pathlib.Path(self.image)
+        assert pathlib.Path(booted).parent == pathlib.Path(home)
         # and it is a copy, not an empty placeholder
-        self.assertEqual(pathlib.Path(self.image).read_bytes(), b"custom dos")
+        assert pathlib.Path(self.image).read_bytes() == b"custom dos"
 
     def test_two_guest_sessions_do_not_share_a_writable_floppy(self):
         # One run, two suites: each gets its own copy, so neither can
         # hand the other a floppy it has changed.
         binding.start(boot_image=self.image)
-        self.addCleanup(binding.stop)
-        booted = []
+        try:
+            booted = []
 
-        for _ in range(2):
-            backend = binding.suite_backend(self.exe)
-            with self._fake_machine():
-                backend.start_guest()
-                try:
-                    booted.append(self._blueprint(backend._home)
-                                  ["drives"]["floppy0"]["location"]["local"])
-                finally:
-                    backend.stop_guest()
+            for _ in range(2):
+                backend = binding.suite_backend(self.exe)
+                with self._fake_machine():
+                    backend.start_guest()
+                    try:
+                        booted.append(self._blueprint(backend._home)
+                                      ["drives"]["floppy0"]["location"]
+                                      ["local"])
+                    finally:
+                        backend.stop_guest()
 
-        self.assertNotEqual(booted[0], booted[1])
+            assert booted[0] != booted[1]
+        finally:
+            binding.stop()
 
     def test_the_default_system_is_built_once_and_then_reused(self):
         # `_build_default_image()` performs a real FreeDOS install, so
@@ -384,9 +380,9 @@ class ReliquarySuiteBackendTests(_BindingFixture):
             first = binding._cached_default_image()
             second = binding._cached_default_image()
 
-        self.assertEqual(first, second)
+        assert first == second
         build.assert_called_once()
-        self.assertTrue(first.endswith(binding._FREEDOS_IMAGE_NAME))
+        assert first.endswith(binding._FREEDOS_IMAGE_NAME)
 
     def test_zero_configuration_layers_the_system_rather_than_using_it(self):
         # Every guest session shares one built image, so none of them
@@ -398,13 +394,13 @@ class ReliquarySuiteBackendTests(_BindingFixture):
             document, key = backend._blueprint("work")
 
         drives = document[0]["drives"]
-        self.assertEqual(drives["hdd0"]["materialize"], "difference")
-        self.assertEqual(drives["hdd0"]["location"], {"local": "SYSTEM.QCOW2"})
-        self.assertEqual(document[0]["boot"], ["hdd0"])
+        assert drives["hdd0"]["materialize"] == "difference"
+        assert drives["hdd0"]["location"] == {"local": "SYSTEM.QCOW2"}
+        assert document[0]["boot"] == ["hdd0"]
         # The slot, which authoring decides; what the guest calls it is
         # read off the created machine and belongs to integration.
-        self.assertEqual(key, "hdd1")
-        self.assertEqual(drives["hdd1"]["name"], binding._WORK_MEDIA_NAME)
+        assert key == "hdd1"
+        assert drives["hdd1"]["name"] == binding._WORK_MEDIA_NAME
 
     def test_runs_suite_through_reliquary(self):
         expected = tuple(EMPTY_RUN_OUTPUT.splitlines())
@@ -412,7 +408,7 @@ class ReliquarySuiteBackendTests(_BindingFixture):
             backend = binding.suite_backend(self.exe, boot_image=self.image)
             backend.start_guest()
             try:
-                self.assertEqual(backend.run_all(), [])
+                assert backend.run_all() == []
             finally:
                 backend.stop_guest()
         guest_exec.assert_called_once_with(
@@ -433,7 +429,7 @@ class ReliquarySuiteBackendTests(_BindingFixture):
                                             boot_image=self.image)
             backend.start_guest()
             try:
-                self.assertTrue(backend.run_test("Vring", "Wraps").passed)
+                assert backend.run_test("Vring", "Wraps").passed
             finally:
                 backend.stop_guest()
         guest_exec.assert_called_once_with(
@@ -445,19 +441,15 @@ class ReliquarySuiteBackendTests(_BindingFixture):
         # environment, so the call wins; absent both, the default.
         declared = environments.EnvironmentSpec({}, timeout=7)
 
-        self.assertEqual(
-            binding.suite_backend(self.exe, boot_image=self.image,
-                                  timeout=3)._timeout, 3)
-        self.assertEqual(
-            binding.suite_backend(self.exe,
-                                  machine_config=declared)._timeout, 7)
-        self.assertEqual(
-            binding.suite_backend(self.exe, machine_config=declared,
-                                  timeout=3)._timeout, 3)
-        self.assertEqual(
-            binding.suite_backend(self.exe,
-                                  boot_image=self.image)._timeout,
-            binding._DEFAULT_TIMEOUT)
+        assert binding.suite_backend(
+            self.exe, boot_image=self.image, timeout=3)._timeout == 3
+        assert binding.suite_backend(
+            self.exe, machine_config=declared)._timeout == 7
+        assert binding.suite_backend(
+            self.exe, machine_config=declared, timeout=3)._timeout == 3
+        assert (binding.suite_backend(
+                    self.exe, boot_image=self.image)._timeout
+                == binding._DEFAULT_TIMEOUT)
 
     def test_enumerator_forwards_to_suite_backend(self):
         with self._fake_machine() as guest_exec:
@@ -465,7 +457,7 @@ class ReliquarySuiteBackendTests(_BindingFixture):
                 self.exe,
                 enumerator=lambda: cpputest.parse_list("Vring.Wraps"))
             ids = backend.list_tests()
-        self.assertEqual([str(i) for i in ids], ["Vring.Wraps"])
+        assert [str(i) for i in ids] == ["Vring.Wraps"]
         guest_exec.assert_not_called()
 
 
@@ -477,13 +469,13 @@ class ReliquarySuiteBackendTests(_BindingFixture):
         with self._fake_machine() as guest_exec:
             backend.start_guest()
             try:
-                self.assertEqual(backend._machine, "testaferro-0")
+                assert backend._machine == "testaferro-0"
             finally:
                 backend.stop_guest()
         guest_exec.assert_not_called()
 
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+@requires_reliquary
 class SetupCommandTests(_BindingFixture):
     """Harness prep (F9): `setup=` commands run in the guest before
     any test, once per guest session."""
@@ -512,11 +504,11 @@ class SetupCommandTests(_BindingFixture):
         # check=True asks reliquary whether each setup command
         # succeeded; the suite's own run asks no such thing, matching
         # every other guest exchange this binding performs.
-        self.assertEqual(calls, [
+        assert calls == [
             ("DRIVER.COM /install", True),
             ("OTHER.COM /go", True),
             ("C:\\SUITE.EXE -v", False),
-        ])
+        ]
 
     def test_setup_runs_again_each_new_guest_session(self):
         # Once per guest session (D15), an enumeration boot included:
@@ -538,8 +530,7 @@ class SetupCommandTests(_BindingFixture):
             backend.start_guest()
             backend.stop_guest()
 
-        self.assertEqual(calls,
-                         ["DRIVER.COM /install", "DRIVER.COM /install"])
+        assert calls == ["DRIVER.COM /install", "DRIVER.COM /install"]
 
     def test_a_failing_setup_command_ends_the_session_and_names_it(self):
         # Failure is the provider's to detect (exec(check=True)); this
@@ -554,14 +545,14 @@ class SetupCommandTests(_BindingFixture):
                                         setup=["DRIVER.COM /install"])
 
         with self._fake_machine(exec_side_effect=fake_exec):
-            with self.assertRaises(GuestOutputError) as caught:
+            with pytest.raises(GuestOutputError) as caught:
                 backend.start_guest()
 
-        self.assertIn("DRIVER.COM /install", str(caught.exception))
-        self.assertEqual(caught.exception.argv, ("DRIVER.COM /install",))
+        assert "DRIVER.COM /install" in str(caught.value)
+        assert caught.value.argv == ("DRIVER.COM /install",)
         # the session was ended, not left half-started
-        self.assertIsNone(backend._home)
-        self.assertNotIn(backend, binding._running)
+        assert backend._home is None
+        assert backend not in binding._running
 
     def test_a_second_setup_command_never_runs_after_the_first_fails(self):
         calls = []
@@ -577,32 +568,30 @@ class SetupCommandTests(_BindingFixture):
             setup=["DRIVER.COM /install", "OTHER.COM /go"])
 
         with self._fake_machine(exec_side_effect=fake_exec):
-            with self.assertRaises(GuestOutputError):
+            with pytest.raises(GuestOutputError):
                 backend.start_guest()
 
-        self.assertEqual(calls, ["DRIVER.COM /install"])
+        assert calls == ["DRIVER.COM /install"]
 
     def test_the_nearest_speaker_sets_setup_commands(self):
         # The call speaks about this run and a declaration about the
         # environment, so the call wins; absent both, none at all.
         declared = environments.EnvironmentSpec({}, setup=["FROM.ENV /go"])
 
-        self.assertEqual(
-            binding.suite_backend(self.exe, boot_image=self.image,
-                                  setup=["FROM.CALL /go"])._setup,
-            ("FROM.CALL /go",))
-        self.assertEqual(
-            binding.suite_backend(self.exe,
-                                  machine_config=declared)._setup,
-            ("FROM.ENV /go",))
-        self.assertEqual(
-            binding.suite_backend(self.exe, machine_config=declared,
-                                  setup=["FROM.CALL /go"])._setup,
-            ("FROM.CALL /go",))
-        self.assertEqual(
-            binding.suite_backend(self.exe,
-                                  boot_image=self.image)._setup,
-            ())
+        assert (binding.suite_backend(
+                    self.exe, boot_image=self.image,
+                    setup=["FROM.CALL /go"])._setup
+                == ("FROM.CALL /go",))
+        assert (binding.suite_backend(
+                    self.exe, machine_config=declared)._setup
+                == ("FROM.ENV /go",))
+        assert (binding.suite_backend(
+                    self.exe, machine_config=declared,
+                    setup=["FROM.CALL /go"])._setup
+                == ("FROM.CALL /go",))
+        assert (binding.suite_backend(
+                    self.exe, boot_image=self.image)._setup
+                == ())
 
     def test_a_suite_declaring_no_setup_runs_exactly_as_before(self):
         expected = tuple(EMPTY_RUN_OUTPUT.splitlines())
@@ -610,7 +599,7 @@ class SetupCommandTests(_BindingFixture):
             backend = binding.suite_backend(self.exe, boot_image=self.image)
             backend.start_guest()
             try:
-                self.assertEqual(backend.run_all(), [])
+                assert backend.run_all() == []
             finally:
                 backend.stop_guest()
         guest_exec.assert_called_once_with(
@@ -618,7 +607,7 @@ class SetupCommandTests(_BindingFixture):
             machine="testaferro-0", timeout=mock.ANY)
 
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+@requires_reliquary
 class GuestSessionTests(_BindingFixture):
     """guest_session(): the same provisioning suite_backend() draws
     on, reached with no suite executable to stage or place, and no
@@ -632,10 +621,10 @@ class GuestSessionTests(_BindingFixture):
         with self._fake_machine():
             with session:
                 work = pathlib.Path(session._home) / "work"
-                self.assertEqual(list(work.iterdir()), [])
+                assert list(work.iterdir()) == []
 
     def test_files_are_staged_with_no_executable_beside_them(self):
-        fixture = pathlib.Path(self.tempdir.name) / "DRIVER.COM"
+        fixture = self.tempdir / "DRIVER.COM"
         fixture.write_bytes(b"driver bytes")
         session = binding.guest_session(boot_image=self.image,
                                         files=[str(fixture)])
@@ -643,10 +632,9 @@ class GuestSessionTests(_BindingFixture):
         with self._fake_machine():
             with session:
                 work = pathlib.Path(session._home) / "work"
-                self.assertEqual([path.name for path in work.iterdir()],
-                                 ["DRIVER.COM"])
-                self.assertEqual((work / "DRIVER.COM").read_bytes(),
-                                 b"driver bytes")
+                assert ([path.name for path in work.iterdir()]
+                        == ["DRIVER.COM"])
+                assert (work / "DRIVER.COM").read_bytes() == b"driver bytes"
 
     def test_zero_configuration_layers_the_default_system(self):
         # The same zero-configuration guest guest_suite() gives every
@@ -657,9 +645,9 @@ class GuestSessionTests(_BindingFixture):
             document, key = session._blueprint("work")
 
         drives = document[0]["drives"]
-        self.assertEqual(drives["hdd0"]["materialize"], "difference")
-        self.assertEqual(drives["hdd0"]["location"], {"local": "SYSTEM.QCOW2"})
-        self.assertEqual(key, "hdd1")
+        assert drives["hdd0"]["materialize"] == "difference"
+        assert drives["hdd0"]["location"] == {"local": "SYSTEM.QCOW2"}
+        assert key == "hdd1"
 
     def test_exec_returns_the_sessions_own_rows_unjoined(self):
         # Mirrors reliquary.Session.exec()'s own contract (F18): the
@@ -670,7 +658,7 @@ class GuestSessionTests(_BindingFixture):
             with binding.guest_session(boot_image=self.image) as guest:
                 result = guest.exec("DIR")
 
-        self.assertEqual(result, rows)
+        assert result == rows
         guest_exec.assert_called_once_with(
             mock.ANY, "DIR", machine="testaferro-0",
             timeout=binding._DEFAULT_TIMEOUT, check=False)
@@ -693,50 +681,50 @@ class GuestSessionTests(_BindingFixture):
 
         with self._fake_machine(exec_side_effect=fake_exec):
             with binding.guest_session(boot_image=self.image) as guest:
-                with self.assertRaises(reliquary_dist.RunFailure):
+                with pytest.raises(reliquary_dist.RunFailure):
                     guest.exec("DRIVER.COM /install", check=True)
 
     def test_exec_refuses_outside_a_guest_session(self):
         session = binding.guest_session(boot_image=self.image)
 
-        with self.assertRaisesRegex(RuntimeError, "no guest session"):
+        with pytest.raises(RuntimeError, match="no guest session"):
             session.exec("DIR")
 
     def test_the_session_sweeps_on_exit_even_after_an_exception(self):
         with self._fake_machine():
             session = binding.guest_session(boot_image=self.image)
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 with session:
                     home = session._home
                     raise ValueError("boom")
 
-        self.assertIsNone(session._home)
-        self.assertFalse(os.path.exists(home))
-        self.assertNotIn(session, binding._running)
+        assert session._home is None
+        assert not os.path.exists(home)
+        assert session not in binding._running
 
     def test_a_stopped_session_is_no_longer_tracked(self):
         with self._fake_machine():
             with binding.guest_session(boot_image=self.image) as guest:
-                self.assertIn(guest, binding._running)
+                assert guest in binding._running
 
-        self.assertNotIn(guest, binding._running)
+        assert guest not in binding._running
 
     def test_machine_config_platform_is_validated(self):
         declared = environments.EnvironmentSpec({"platform": "os2"})
 
-        with self.assertRaisesRegex(ValueError, "DOS machine"):
+        with pytest.raises(ValueError, match="DOS machine"):
             binding.guest_session(machine_config=declared)
 
     def test_boot_image_and_machine_config_cannot_be_combined(self):
         declared = environments.EnvironmentSpec({})
 
-        with self.assertRaisesRegex(TypeError, "cannot be combined"):
+        with pytest.raises(TypeError, match="cannot be combined"):
             binding.guest_session(boot_image=self.image,
                                   machine_config=declared)
 
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
-class WorkDrivePlacementTests(unittest.TestCase):
+@requires_reliquary
+class WorkDrivePlacementTests:
     """Slot choice — pure declaration arithmetic, so every case is
     worth stating.
 
@@ -747,37 +735,36 @@ class WorkDrivePlacementTests(unittest.TestCase):
     """
 
     def test_takes_the_first_disk_of_an_empty_machine(self):
-        self.assertEqual(binding._work_slot({}), "hdd0")
+        assert binding._work_slot({}) == "hdd0"
 
     def test_a_floppy_does_not_occupy_a_disk_slot(self):
-        self.assertEqual(binding._work_slot({"floppy0": {}}), "hdd0")
+        assert binding._work_slot({"floppy0": {}}) == "hdd0"
 
     def test_a_cdrom_does_not_occupy_a_disk_slot(self):
-        self.assertEqual(binding._work_slot({"cdrom0": {}}), "hdd0")
+        assert binding._work_slot({"cdrom0": {}}) == "hdd0"
 
     def test_follows_a_declared_system_disk(self):
-        self.assertEqual(binding._work_slot({"hdd0": {}}), "hdd1")
+        assert binding._work_slot({"hdd0": {}}) == "hdd1"
 
     def test_follows_several_declared_disks(self):
-        self.assertEqual(binding._work_slot({"hdd0": {}, "hdd1": {}}),
-                         "hdd2")
+        assert binding._work_slot({"hdd0": {}, "hdd1": {}}) == "hdd2"
 
     def test_fills_a_gap_rather_than_appending(self):
         # hdd1 declared, hdd0 free: the work drive lands first.
-        self.assertEqual(binding._work_slot({"hdd1": {}}), "hdd0")
+        assert binding._work_slot({"hdd1": {}}) == "hdd0"
 
     def test_undigited_disk_key_counts_as_slot_zero(self):
-        self.assertEqual(binding._work_slot({"hdd": {}}), "hdd1")
+        assert binding._work_slot({"hdd": {}}) == "hdd1"
 
     def test_a_full_machine_fails_closed_naming_the_reason(self):
         drives = {f"hdd{slot}": {} for slot in range(4)}
 
-        with self.assertRaisesRegex(ValueError, "free slot"):
+        with pytest.raises(ValueError, match="free slot"):
             binding._work_slot(drives)
 
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
-class PlacedLetterTests(unittest.TestCase):
+@requires_reliquary
+class PlacedLetterTests:
     """What the guest is told, and where it comes from.
 
     Pure declaration arithmetic now (0.1.0a2, D108): there is no
@@ -786,38 +773,34 @@ class PlacedLetterTests(unittest.TestCase):
     """
 
     def test_the_only_hard_disk_is_c(self):
-        self.assertEqual(binding._letter_map({"hdd0": {}}), {"C": "hdd0"})
+        assert binding._letter_map({"hdd0": {}}) == {"C": "hdd0"}
 
     def test_a_second_hard_disk_follows_the_first(self):
-        self.assertEqual(
-            binding._letter_map({"hdd0": {}, "hdd1": {}}),
-            {"C": "hdd0", "D": "hdd1"})
+        assert (binding._letter_map({"hdd0": {}, "hdd1": {}})
+                == {"C": "hdd0", "D": "hdd1"})
 
     def test_position_counts_rather_than_the_slot_number(self):
         # hdd0 and hdd2 declared, hdd1 free: hdd2 is still the
         # machine's *second* hard disk, so it is D — one letter per
         # hdd slot present, in order, never per number.
-        self.assertEqual(
-            binding._letter_map({"hdd0": {}, "hdd2": {}}),
-            {"C": "hdd0", "D": "hdd2"})
+        assert (binding._letter_map({"hdd0": {}, "hdd2": {}})
+                == {"C": "hdd0", "D": "hdd2"})
 
     def test_floppies_take_a_and_b_ahead_of_any_hard_disk(self):
-        self.assertEqual(
-            binding._letter_map(
-                {"floppy0": {}, "floppy1": {}, "hdd0": {}}),
-            {"A": "floppy0", "B": "floppy1", "C": "hdd0"})
+        assert (binding._letter_map(
+                    {"floppy0": {}, "floppy1": {}, "hdd0": {}})
+                == {"A": "floppy0", "B": "floppy1", "C": "hdd0"})
 
     def test_a_cdrom_takes_no_letter_at_all(self):
         # Testaferro never declares one for a runtime guest today
         # (only the install script attaches one, temporarily); this
         # pins that a stray cdrom key does not shift hard-disk
         # lettering the way one loaded as a driver could.
-        self.assertEqual(
-            binding._letter_map({"hdd0": {}, "cdrom0": {}}),
-            {"C": "hdd0"})
+        assert (binding._letter_map({"hdd0": {}, "cdrom0": {}})
+                == {"C": "hdd0"})
 
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+@requires_reliquary
 class DeclaredPlacementTests(_BindingFixture):
     """A declared address, through the real session flow.
 
@@ -849,7 +832,7 @@ class DeclaredPlacementTests(_BindingFixture):
                 mock.patch.object(binding, "_default_location") as default:
             backend.start_guest()
             try:
-                self.assertEqual(backend.location, "E:\\HARNESS")
+                assert backend.location == "E:\\HARNESS"
             finally:
                 backend.stop_guest()
 
@@ -858,7 +841,7 @@ class DeclaredPlacementTests(_BindingFixture):
         default.assert_not_called()
         # The letter is split off before the write: at rest there are
         # no letters, only a volume and a path inside it (D23).
-        self.assertEqual(put.call_args.args[2], "HARNESS")
+        assert put.call_args.args[2] == "HARNESS"
 
     def test_a_declared_location_that_refuses_does_not_fall_back(self):
         # The consumer named that address; smoothing it over with a
@@ -870,10 +853,10 @@ class DeclaredPlacementTests(_BindingFixture):
                                         location="E:\\HARNESS")
 
         with self._fake_machine(), self._staging(put_side_effect=refusal):
-            with self.assertRaises(at_rest.AtRestError) as caught:
+            with pytest.raises(at_rest.AtRestError) as caught:
                 backend.start_guest()
 
-        self.assertIn("'HARNESS' not found", str(caught.exception))
+        assert "'HARNESS' not found" in str(caught.value)
 
     def test_a_letter_the_machine_does_not_have_refuses(self):
         """The resolution's own refusal, not the write's.
@@ -887,10 +870,10 @@ class DeclaredPlacementTests(_BindingFixture):
                                         location="E:\\HARNESS")
 
         with self._fake_machine():
-            with self.assertRaises(ValueError) as caught:
+            with pytest.raises(ValueError) as caught:
                 backend.start_guest()
 
-        self.assertIn("no E:", str(caught.exception))
+        assert "no E:" in str(caught.value)
 
     def test_the_command_spells_the_address_that_was_staged_against(self):
         expected = tuple(EMPTY_RUN_OUTPUT.splitlines())
@@ -905,18 +888,18 @@ class DeclaredPlacementTests(_BindingFixture):
             finally:
                 backend.stop_guest()
 
-        self.assertTrue(
-            guest_exec.call_args.args[1].startswith("E:\\HARNESS\\SUITE.EXE"))
+        assert guest_exec.call_args.args[1].startswith(
+            "E:\\HARNESS\\SUITE.EXE")
 
     def test_the_location_refuses_before_a_guest_session(self):
         backend = binding.suite_backend(self.exe, boot_image=self.image)
 
-        with self.assertRaisesRegex(RuntimeError, "has not been placed"):
+        with pytest.raises(RuntimeError, match="has not been placed"):
             backend.location
 
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
-class PlacementTests(unittest.TestCase):
+@requires_reliquary
+class PlacementTests:
     """Where a run lands when nobody said (F4): Testaferro's own work
     drive, always, at whatever letter `_letter_map` computes for it.
     """
@@ -924,26 +907,23 @@ class PlacementTests(unittest.TestCase):
     def test_the_zero_configuration_guest_defaults_to_its_work_drive(self):
         # hdd0 is the system disk, hdd1 the work drive — a second hard
         # disk, so D:, matching a real boot exactly (see _letter_map).
-        self.assertEqual(
-            binding._default_location(
-                {"hdd0": {}, "hdd1": {}}, work_key="hdd1"),
-            "D:\\")
+        assert (binding._default_location(
+                    {"hdd0": {}, "hdd1": {}}, work_key="hdd1")
+                == "D:\\")
 
     def test_a_lone_work_drive_defaults_to_c(self):
         # No system disk declared at all: the work drive is the
         # machine's only hard disk, so C:.
-        self.assertEqual(
-            binding._default_location({"hdd1": {}}, work_key="hdd1"),
-            "C:\\")
+        assert (binding._default_location({"hdd1": {}}, work_key="hdd1")
+                == "C:\\")
 
     def test_the_program_defaults_to_the_staged_executable(self):
-        self.assertEqual(
-            binding._resolve_program(None, "D:\\TESTS", "SUITE.EXE"),
-            "D:\\TESTS\\SUITE.EXE")
+        assert (binding._resolve_program(None, "D:\\TESTS", "SUITE.EXE")
+                == "D:\\TESTS\\SUITE.EXE")
 
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
-class VolumeResolutionTests(unittest.TestCase):
+@requires_reliquary
+class VolumeResolutionTests:
     """A guest address to the image and volume it names (F16, D23).
 
     At rest there are no drive letters, so an address has to be
@@ -962,29 +942,27 @@ class VolumeResolutionTests(unittest.TestCase):
     def test_the_system_disk_resolves(self):
         session = self._session(hdd0="sys.qcow2")
 
-        self.assertEqual(
-            binding._resolve_volume("C:\\TESTS", "m", session,
-                                    {"hdd0": {}}),
-            ("sys.qcow2", 0, "TESTS"))
+        assert (binding._resolve_volume("C:\\TESTS", "m", session,
+                                        {"hdd0": {}})
+                == ("sys.qcow2", 0, "TESTS"))
 
     def test_a_letter_the_machine_does_not_have_refuses(self):
         session = self._session(hdd0="sys.qcow2")
 
-        with self.assertRaises(ValueError) as caught:
+        with pytest.raises(ValueError) as caught:
             binding._resolve_volume("D:\\TESTS", "m", session,
                                     {"hdd0": {}})
 
-        self.assertIn("no D:", str(caught.exception))
+        assert "no D:" in str(caught.value)
 
     def test_a_boot_floppy_resolves(self):
         # A:'s letter is DOS's own fixed rule: assigned by controller
         # position, never by content.
         session = self._session(floppy0="boot.img")
 
-        self.assertEqual(
-            binding._resolve_volume("A:\\TESTS", "m", session,
-                                    {"floppy0": {}}),
-            ("boot.img", 0, "TESTS"))
+        assert (binding._resolve_volume("A:\\TESTS", "m", session,
+                                        {"floppy0": {}})
+                == ("boot.img", 0, "TESTS"))
 
     def test_a_declared_hard_disk_resolves_too(self):
         # The capability 0.1.0a2 took away and _letter_map gives back:
@@ -993,42 +971,38 @@ class VolumeResolutionTests(unittest.TestCase):
         # now covers both. hdd1 is the *second* hard disk here, so D:.
         session = self._session(hdd0="sys.qcow2", hdd1="data.qcow2")
 
-        self.assertEqual(
-            binding._resolve_volume("D:\\HARNESS", "m", session,
-                                    {"hdd0": {}, "hdd1": {}}),
-            ("data.qcow2", 0, "HARNESS"))
+        assert (binding._resolve_volume("D:\\HARNESS", "m", session,
+                                        {"hdd0": {}, "hdd1": {}})
+                == ("data.qcow2", 0, "HARNESS"))
 
     def test_an_address_without_a_letter_is_refused(self):
-        with self.assertRaises(at_rest.AtRestError):
+        with pytest.raises(at_rest.AtRestError):
             binding._resolve_volume("HARNESS", "m", None, {"hdd0": {}})
 
     def test_a_root_location_does_not_double_its_separator(self):
-        self.assertEqual(
-            binding._resolve_program(None, "C:\\", "SUITE.EXE"),
-            "C:\\SUITE.EXE")
+        assert (binding._resolve_program(None, "C:\\", "SUITE.EXE")
+                == "C:\\SUITE.EXE")
 
     def test_a_declared_program_substitutes_the_location(self):
-        self.assertEqual(
-            binding._resolve_program("{location}\\RUNNER.EXE", "D:\\TESTS",
-                                     "SUITE.EXE"),
-            "D:\\TESTS\\RUNNER.EXE")
+        assert (binding._resolve_program(
+                    "{location}\\RUNNER.EXE", "D:\\TESTS", "SUITE.EXE")
+                == "D:\\TESTS\\RUNNER.EXE")
 
     def test_a_declared_program_may_name_no_placeholder_at_all(self):
-        self.assertEqual(
-            binding._resolve_program("C:\\TOOLS\\RUN.EXE", "D:\\TESTS",
-                                     "SUITE.EXE"),
-            "C:\\TOOLS\\RUN.EXE")
+        assert (binding._resolve_program(
+                    "C:\\TOOLS\\RUN.EXE", "D:\\TESTS", "SUITE.EXE")
+                == "C:\\TOOLS\\RUN.EXE")
 
     def test_an_unknown_placeholder_is_refused_naming_the_known_one(self):
-        with self.assertRaises(ValueError) as caught:
+        with pytest.raises(ValueError) as caught:
             binding._resolve_program("{drive}\\RUN.EXE", "D:\\TESTS",
                                      "SUITE.EXE")
 
-        self.assertIn("{drive}", str(caught.exception))
-        self.assertIn("{location}", str(caught.exception))
+        assert "{drive}" in str(caught.value)
+        assert "{location}" in str(caught.value)
 
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+@requires_reliquary
 class BlueprintAcceptanceTests(_BindingFixture):
     """Documents Testaferro authors are ones **reliquary accepts**.
 
@@ -1056,7 +1030,7 @@ class BlueprintAcceptanceTests(_BindingFixture):
 
     def _dry_plan(self, document):
         """Reliquary's own plan for a document Testaferro authored."""
-        home = os.path.join(self.tempdir.name, "acceptance")
+        home = os.path.join(self.tempdir, "acceptance")
         blueprints = os.path.join(home, "blueprints")
         os.makedirs(blueprints, exist_ok=True)
         path = os.path.join(blueprints, binding._BLUEPRINT_NAME + ".rlqb")
@@ -1065,11 +1039,11 @@ class BlueprintAcceptanceTests(_BindingFixture):
         session = binding._open_session(home, blueprints)
         outcome = session.create_machine(binding._BLUEPRINT_NAME,
                                          dry_run=True)
-        self.assertEqual(outcome.operation, "create-machine")
+        assert outcome.operation == "create-machine"
         return outcome.plan
 
     def _placeholder(self, name, content=b"stand-in for a built image"):
-        path = os.path.join(self.tempdir.name, name)
+        path = os.path.join(self.tempdir, name)
         with open(path, "wb") as handle:
             handle.write(content)
         return path
@@ -1078,13 +1052,13 @@ class BlueprintAcceptanceTests(_BindingFixture):
         for entry in plan["drives"]:
             if entry["key"] == key:
                 return entry
-        self.fail(f"the plan places no drive {key}: {plan['drives']}")
+        pytest.fail(f"the plan places no drive {key}: {plan['drives']}")
 
     def test_zero_configuration_document_is_one_reliquary_accepts(self):
         # The case that could not be unit-tested before: a layered
         # system disk, validated without materializing one.
         system = self._placeholder("SYSTEM.QCOW2")
-        work = os.path.join(self.tempdir.name, "work")
+        work = os.path.join(self.tempdir, "work")
         os.makedirs(work, exist_ok=True)
         backend = binding.suite_backend(self.exe)
         with mock.patch.object(binding, "_cached_default_image",
@@ -1093,23 +1067,23 @@ class BlueprintAcceptanceTests(_BindingFixture):
 
         plan = self._dry_plan(document)
 
-        self.assertEqual(plan["platform"], "dos")
-        self.assertEqual(plan["boot"], ["hdd0"])
+        assert plan["platform"] == "dos"
+        assert plan["boot"] == ["hdd0"]
         system_disk = self._drive(plan, "hdd0")
-        self.assertEqual(system_disk["materialize"], "difference")
-        self.assertEqual(system_disk["base"], system)
+        assert system_disk["materialize"] == "difference"
+        assert system_disk["base"] == system
         # The work drive is the one Testaferro appended, at the slot
         # `_work_slot` chose, served from the staged directory itself.
         staged = self._drive(plan, key)
-        self.assertEqual((staged["medium"], staged["slot"]), ("hdd", 1))
-        self.assertEqual(staged["materialize"], "use")
-        self.assertEqual(staged["path"], work)
+        assert (staged["medium"], staged["slot"]) == ("hdd", 1)
+        assert staged["materialize"] == "use"
+        assert staged["path"] == work
 
     def test_a_declared_environment_is_carried_through_intact(self):
         # A tester's own machine spec reaches reliquary as written —
         # `platform` among it, which is the provider's word (P2).
         system = self._placeholder("DECLARED.QCOW2")
-        work = os.path.join(self.tempdir.name, "declared-work")
+        work = os.path.join(self.tempdir, "declared-work")
         os.makedirs(work, exist_ok=True)
         template = environments.EnvironmentSpec({
             "memory": "64M",
@@ -1121,9 +1095,9 @@ class BlueprintAcceptanceTests(_BindingFixture):
         document, key = backend._blueprint(work)
         plan = self._dry_plan(document)
 
-        self.assertEqual(plan["memory"], 64)
-        self.assertEqual(plan["boot"], ["hdd0"])
-        self.assertEqual(self._drive(plan, key)["path"], work)
+        assert plan["memory"] == 64
+        assert plan["boot"] == ["hdd0"]
+        assert self._drive(plan, key)["path"] == work
 
     def test_a_document_naming_absent_media_is_refused_before_anything_runs(self):
         # The preflight earns its place only if it refuses: the boot
@@ -1131,16 +1105,16 @@ class BlueprintAcceptanceTests(_BindingFixture):
         # found — not in a guest that will not boot.
         backend = binding.suite_backend(self.exe)
         document, _ = backend._blueprint(
-            os.path.join(self.tempdir.name, "work"),
-            os.path.join(self.tempdir.name, "NOT-STAGED.IMG"))
+            os.path.join(self.tempdir, "work"),
+            os.path.join(self.tempdir, "NOT-STAGED.IMG"))
 
-        with self.assertRaises(reliquary_dist.PreflightError) as caught:
+        with pytest.raises(reliquary_dist.PreflightError) as caught:
             self._dry_plan(document)
 
-        self.assertIn("NOT-STAGED.IMG", str(caught.exception))
+        assert "NOT-STAGED.IMG" in str(caught.value)
 
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+@requires_reliquary
 class BlueprintAuthoringTests(_BindingFixture):
     """The document Testaferro composes, without materializing it."""
 
@@ -1156,15 +1130,14 @@ class BlueprintAuthoringTests(_BindingFixture):
 
         machine, media, key = self._document(backend, "/guest/boot.img")
 
-        self.assertEqual(machine["type"], "machine")
-        self.assertEqual(machine["platform"], "dos")
-        self.assertEqual(machine["boot"], ["floppy0"])
+        assert machine["type"] == "machine"
+        assert machine["platform"] == "dos"
+        assert machine["boot"] == ["floppy0"]
         # The staged copy, not the tester's own file (P5).
-        self.assertEqual(machine["drives"]["floppy0"]["location"],
-                         {"local": "/guest/boot.img"})
-        self.assertEqual(machine["drives"]["hdd0"]["location"],
-                         {"local": "/work"})
-        self.assertEqual((media, key), ([], "hdd0"))
+        assert (machine["drives"]["floppy0"]["location"]
+                == {"local": "/guest/boot.img"})
+        assert machine["drives"]["hdd0"]["location"] == {"local": "/work"}
+        assert (media, key) == ([], "hdd0")
 
     def test_a_declared_environment_keeps_its_own_boot_arrangement(self):
         template = environments.EnvironmentSpec({
@@ -1177,12 +1150,12 @@ class BlueprintAuthoringTests(_BindingFixture):
         machine, _, key = self._document(backend)
 
         # No boot floppy is invented, and the work drive steps aside.
-        self.assertNotIn("floppy0", machine["drives"])
-        self.assertEqual(machine["boot"], ["hdd0"])
-        self.assertEqual(machine["memory"], "64M")
-        self.assertEqual(machine["drives"]["hdd1"]["location"],
-                         {"local": "/work"})
-        self.assertEqual(key, "hdd1")
+        assert "floppy0" not in machine["drives"]
+        assert machine["boot"] == ["hdd0"]
+        assert machine["memory"] == "64M"
+        assert (machine["drives"]["hdd1"]["location"]
+                == {"local": "/work"})
+        assert key == "hdd1"
 
     def test_media_declared_beside_the_machine_is_carried_through(self):
         spec = {"type": "media", "name": "extra", "location": "x.img"}
@@ -1192,17 +1165,18 @@ class BlueprintAuthoringTests(_BindingFixture):
 
         _, media, _ = self._document(backend)
 
-        self.assertEqual(media, [spec])
+        assert media == [spec]
 
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
+@requires_reliquary
 class SessionLifecycleTests(_BindingFixture):
     """testaferro.start()/stop(): one image choice shared by many
     suites, swept away together."""
 
-    def setUp(self):
-        super().setUp()
-        self.addCleanup(binding.stop)
+    @pytest.fixture(autouse=True)
+    def _stop_binding(self):
+        yield
+        binding.stop()
 
     def _run_suite(self, backend):
         return self._guest_homes_seen(backend)[0]
@@ -1213,9 +1187,8 @@ class SessionLifecycleTests(_BindingFixture):
             first = self._run_suite(binding.suite_backend(self.exe))
             second = self._run_suite(binding.suite_backend(self.exe))
         cached.assert_not_called()
-        self.assertEqual((first[1], second[1]),
-                         (b"custom dos", b"custom dos"))
-        self.assertNotEqual(first[0], second[0])
+        assert (first[1], second[1]) == (b"custom dos", b"custom dos")
+        assert first[0] != second[0]
 
     def test_start_does_not_stage_or_download_by_itself(self):
         with mock.patch.object(binding, "_cached_default_image") as cached:
@@ -1231,30 +1204,36 @@ class SessionLifecycleTests(_BindingFixture):
         # materializes through a guest install.
         cached = pathlib.Path(cache.cache_root()) / binding._FREEDOS_IMAGE_NAME
         cached.parent.mkdir(parents=True, exist_ok=True)
-        if not cached.exists():
+        created = not cached.exists()
+        if created:
             cached.write_bytes(b"not a real system")
-            self.addCleanup(cached.unlink)
-        binding.start(boot_image=self.image)
-        home, image = self._run_suite(binding.suite_backend(self.exe))
-        self.assertEqual(image, b"custom dos")
+        try:
+            binding.start(boot_image=self.image)
+            home, image = self._run_suite(binding.suite_backend(self.exe))
+            assert image == b"custom dos"
 
-        binding.stop()
-        self.assertFalse(os.path.exists(os.path.dirname(home)))
-        self.assertTrue(cached.exists())
+            binding.stop()
+            assert not os.path.exists(os.path.dirname(home))
+            assert cached.exists()
+        finally:
+            if created:
+                cached.unlink()
 
     def test_kept_guest_homes_survive_the_sweep_and_are_named(self):
         # The exploration option: looking at what the guest was given
         # is the whole point, so the directory has to still be there.
         cache.keep_guest_homes(True)
-        self.addCleanup(cache.keep_guest_homes, False)
-        self.addCleanup(cache._kept.clear)
-        binding.start(boot_image=self.image)
-        home, _ = self._run_suite(binding.suite_backend(self.exe))
+        try:
+            binding.start(boot_image=self.image)
+            home, _ = self._run_suite(binding.suite_backend(self.exe))
 
-        binding.stop()
+            binding.stop()
 
-        self.assertTrue(os.path.exists(home))
-        self.assertIn(home, cache.kept_guest_homes())
+            assert os.path.exists(home)
+            assert home in cache.kept_guest_homes()
+        finally:
+            cache._kept.clear()
+            cache.keep_guest_homes(False)
 
     def test_stop_clear_downloads_removes_the_built_system(self):
         # What it drops is now an install rather than a download, so
@@ -1264,16 +1243,16 @@ class SessionLifecycleTests(_BindingFixture):
         cached.write_bytes(b"not a real system")
 
         binding.stop(clear_downloads=True)
-        self.assertFalse(cached.exists())
+        assert not cached.exists()
 
     def test_suite_boot_image_overrides_the_runs_image(self):
-        other = pathlib.Path(self.tempdir.name) / "other.img"
+        other = self.tempdir / "other.img"
         other.write_bytes(b"other dos")
         binding.start(boot_image=self.image)
 
         _, image = self._run_suite(
             binding.suite_backend(self.exe, boot_image=other))
-        self.assertEqual(image, b"other dos")
+        assert image == b"other dos"
 
     def test_stop_stops_a_machine_the_caller_left_running(self):
         # A machine outlives the call that booted it, so a run
@@ -1287,31 +1266,31 @@ class SessionLifecycleTests(_BindingFixture):
             home = backend._home
             binding.stop()
 
-        self.assertIsNone(backend._home)
-        self.assertFalse(os.path.exists(home))
-        self.assertNotIn(backend, binding._running)
+        assert backend._home is None
+        assert not os.path.exists(home)
+        assert backend not in binding._running
 
     def test_a_stopped_guest_is_no_longer_tracked(self):
         backend = binding.suite_backend(self.exe, boot_image=self.image)
 
         with self._fake_machine():
             backend.start_guest()
-            self.assertIn(backend, binding._running)
+            assert backend in binding._running
             backend.stop_guest()
 
-        self.assertNotIn(backend, binding._running)
+        assert backend not in binding._running
 
     def test_start_twice_raises_and_stop_is_reentrant(self):
         binding.start()
-        with self.assertRaisesRegex(RuntimeError, "already"):
+        with pytest.raises(RuntimeError, match="already"):
             binding.start()
         binding.stop()
         binding.stop()
 
     def test_forgotten_stop_is_swept_at_interpreter_exit(self):
         env = dict(os.environ,
-                   LOCALAPPDATA=self.tempdir.name,      # Windows
-                   XDG_CACHE_HOME=self.tempdir.name)    # elsewhere
+                   LOCALAPPDATA=str(self.tempdir),      # Windows
+                   XDG_CACHE_HOME=str(self.tempdir))    # elsewhere
         result = subprocess.run(
             [sys.executable, "-c",
              "import testaferro\n"
@@ -1321,8 +1300,8 @@ class SessionLifecycleTests(_BindingFixture):
             env=env, capture_output=True, text=True, check=True)
         run_dir = result.stdout.strip().splitlines()[-1]
 
-        self.assertTrue(run_dir)
-        self.assertFalse(os.path.exists(run_dir))
+        assert run_dir
+        assert not os.path.exists(run_dir)
 
     def test_package_level_start_stop_delegate(self):
         import testaferro
@@ -1334,8 +1313,8 @@ class SessionLifecycleTests(_BindingFixture):
         stop.assert_called_once_with(clear_downloads=True)
 
 
-@unittest.skipUnless(RELIQUARY_AVAILABLE, "reliquary is not installed")
-class LogicalLinesTests(unittest.TestCase):
+@requires_reliquary
+class LogicalLinesTests:
     """The guest's 80-column console hard-wraps any longer line into
     two screen rows, split wherever column 80 fell — mid-token
     included — and the capture then drops blank rows and right-trims
@@ -1350,21 +1329,19 @@ class LogicalLinesTests(unittest.TestCase):
         # silently reported as a pass. Column 80 falls mid-name.
         header = ("src\\rng_test.cpp:97: error: Failure in "
                   "TEST(Transport, PoolHoldsConsoleQueuesBesideRng)")
-        self.assertEqual(
-            binding._logical_lines([header[:80], header[80:]]),
-            [header])
+        assert (binding._logical_lines([header[:80], header[80:]])
+                == [header])
 
     def test_joins_across_multiple_full_rows(self):
         line = "x" * 165
-        self.assertEqual(
-            binding._logical_lines([line[:80], line[80:160], line[160:]]),
-            [line])
+        assert (binding._logical_lines([line[:80], line[80:160], line[160:]])
+                == [line])
 
     def test_short_rows_pass_through(self):
         rows = ["TEST(Vring, Wraps) - 0 ms",
                 "OK (2 tests, 1 ran, 1 checks, 0 ignored, "
                 "1 filtered out, 0 ms)"]
-        self.assertEqual(binding._logical_lines(rows), rows)
+        assert binding._logical_lines(rows) == rows
 
     def test_a_wrap_on_a_space_is_not_healed(self):
         # When column 80 lands on a space, the capture right-trims
@@ -1374,8 +1351,7 @@ class LogicalLinesTests(unittest.TestCase):
         # check is what keeps this limit loud instead of silent.
         first = "a" * 70   # was "a"*70 + " " * 10 on screen
         second = "continuation"
-        self.assertEqual(binding._logical_lines([first, second]),
-                         [first, second])
+        assert binding._logical_lines([first, second]) == [first, second]
 
     def test_a_natural_full_width_line_joins_its_successor(self):
         # A line of exactly 80 characters leaves a blank row behind
@@ -1384,8 +1360,7 @@ class LogicalLinesTests(unittest.TestCase):
         # damage is a swallowed next line, which the grammar reports
         # as a missing test or summary rather than absorbing quietly.
         rows = ["b" * 80, "next line"]
-        self.assertEqual(binding._logical_lines(rows),
-                         ["b" * 80 + "next line"])
+        assert binding._logical_lines(rows) == ["b" * 80 + "next line"]
 
     def test_wrapped_failure_header_parses_as_a_failure(self):
         # The original false pass, end to end: rows as the capture
@@ -1405,9 +1380,8 @@ class LogicalLinesTests(unittest.TestCase):
         ]
         text = "\n".join(binding._logical_lines(rows)) + "\n"
         outcomes = cpputest.parse_run(text)
-        self.assertEqual(
-            [(o.group, o.name, o.passed) for o in outcomes],
-            [("Transport", "PoolHoldsConsoleQueuesBesideRng", False)])
+        assert ([(o.group, o.name, o.passed) for o in outcomes]
+                == [("Transport", "PoolHoldsConsoleQueuesBesideRng", False)])
 
     def test_wrapped_enumeration_rejoins(self):
         # The same wrap broke '-ln' enumeration first: one long line
@@ -1417,8 +1391,4 @@ class LogicalLinesTests(unittest.TestCase):
                 "Transport.PoolHoldsConsoleQueuesBesideRng")
         ids = cpputest.parse_list(
             "\n".join(binding._logical_lines([line[:80], line[80:]])))
-        self.assertEqual([str(i) for i in ids], line.split())
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert [str(i) for i in ids] == line.split()

@@ -18,13 +18,12 @@ at calls says why.
 
 from __future__ import annotations
 
-import importlib.util
 import os
-import tempfile
-import unittest
 from unittest import mock
 
-REMANENCE_AVAILABLE = importlib.util.find_spec("remanence") is not None
+import pytest
+
+from helpers import REMANENCE_AVAILABLE, requires_remanence
 
 if REMANENCE_AVAILABLE:
     from testaferro import at_rest
@@ -140,38 +139,38 @@ def _fake(spaces, *, on_discover=None):
     return namespace, opened, medium
 
 
-@unittest.skipUnless(REMANENCE_AVAILABLE, "remanence is not installed")
-class SplitAddressTests(unittest.TestCase):
+@requires_remanence
+class SplitAddressTests:
     """A guest address is split, never resolved (D23)."""
 
     def test_letter_and_path(self):
-        self.assertEqual(at_rest.split_address("D:\\TESTS"), ("D", "TESTS"))
+        assert at_rest.split_address("D:\\TESTS") == ("D", "TESTS")
 
     def test_root_has_no_path(self):
-        self.assertEqual(at_rest.split_address("A:\\"), ("A", ""))
+        assert at_rest.split_address("A:\\") == ("A", "")
 
     def test_letter_is_upper_and_separators_are_dos(self):
-        self.assertEqual(at_rest.split_address("d:/tests/deep"),
-                         ("D", "tests\\deep"))
+        assert (at_rest.split_address("d:/tests/deep")
+                == ("D", "tests\\deep"))
 
-    def test_a_path_without_a_letter_is_refused(self):
-        for address in ("TESTS", "", ":", "1:\\TESTS", "\\TESTS"):
-            with self.subTest(address=address):
-                with self.assertRaises(at_rest.AtRestError) as caught:
-                    at_rest.split_address(address)
-                self.assertIn("guest address", str(caught.exception))
+    @pytest.mark.parametrize(
+        "address", ["TESTS", "", ":", "1:\\TESTS", "\\TESTS"])
+    def test_a_path_without_a_letter_is_refused(self, address):
+        with pytest.raises(at_rest.AtRestError) as caught:
+            at_rest.split_address(address)
+        assert "guest address" in str(caught.value)
 
 
-@unittest.skipUnless(REMANENCE_AVAILABLE, "remanence is not installed")
-class PutTreeTests(unittest.TestCase):
+@requires_remanence
+class PutTreeTests:
 
-    def setUp(self):
-        self.source = tempfile.TemporaryDirectory()
-        self.addCleanup(self.source.cleanup)
+    @pytest.fixture(autouse=True)
+    def _setup(self, tmp_path):
+        self.source = tmp_path
         self.space = _Space()
 
     def _write(self, relative, data=b"x"):
-        path = os.path.join(self.source.name, *relative.split("/"))
+        path = os.path.join(self.source, *relative.split("/"))
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "wb") as handle:
             handle.write(data)
@@ -181,37 +180,35 @@ class PutTreeTests(unittest.TestCase):
         self._write("SUB/INNER.TXT", b"in")
         namespace, _opened, medium = _fake([self.space])
         with mock.patch.object(at_rest, "remanence", namespace):
-            written = at_rest.put_tree(self.source.name, "disk.qcow2",
-                                       "TESTS")
-        self.assertEqual(written,
-                         ["TESTS\\SUB\\INNER.TXT", "TESTS\\SUITE.EXE"])
-        self.assertEqual(self.space.files["TESTS\\SUITE.EXE"], b"MZ")
-        self.assertEqual(self.space.files["TESTS\\SUB\\INNER.TXT"], b"in")
-        self.assertEqual(medium.commits, 1)
+            written = at_rest.put_tree(self.source, "disk.qcow2", "TESTS")
+        assert written == ["TESTS\\SUB\\INNER.TXT", "TESTS\\SUITE.EXE"]
+        assert self.space.files["TESTS\\SUITE.EXE"] == b"MZ"
+        assert self.space.files["TESTS\\SUB\\INNER.TXT"] == b"in"
+        assert medium.commits == 1
 
     def test_the_root_takes_the_contents_directly(self):
         self._write("SUITE.EXE")
         namespace, _opened, _medium = _fake([self.space])
         with mock.patch.object(at_rest, "remanence", namespace):
-            written = at_rest.put_tree(self.source.name, "disk.qcow2", "")
-        self.assertEqual(written, ["SUITE.EXE"])
+            written = at_rest.put_tree(self.source, "disk.qcow2", "")
+        assert written == ["SUITE.EXE"]
 
     def test_the_image_is_opened_writable_and_declared(self):
         self._write("SUITE.EXE")
         namespace, opened, _medium = _fake([self.space])
         with mock.patch.object(at_rest, "remanence", namespace):
-            at_rest.put_tree(self.source.name, "disk.qcow2", "TESTS")
-        self.assertTrue(opened["writable"])
-        self.assertEqual(opened["device"], at_rest.DEVICE_TYPE)
-        self.assertTrue(opened["closed"])
+            at_rest.put_tree(self.source, "disk.qcow2", "TESTS")
+        assert opened["writable"]
+        assert opened["device"] == at_rest.DEVICE_TYPE
+        assert opened["closed"]
 
     def test_a_missing_source_is_refused_before_the_image_is_opened(self):
         namespace, opened, _medium = _fake([self.space])
         with mock.patch.object(at_rest, "remanence", namespace):
-            with self.assertRaises(at_rest.AtRestError):
-                at_rest.put_tree(os.path.join(self.source.name, "nope"),
+            with pytest.raises(at_rest.AtRestError):
+                at_rest.put_tree(os.path.join(self.source, "nope"),
                                  "disk.qcow2", "TESTS")
-        self.assertNotIn("path", opened)
+        assert "path" not in opened
 
     def test_a_dependency_refusal_arrives_in_this_module_s_vocabulary(self):
         """The seam: a caller never imports remanence to catch this."""
@@ -223,9 +220,9 @@ class PutTreeTests(unittest.TestCase):
 
         self.space.write_file = refuse
         with mock.patch.object(at_rest, "remanence", namespace):
-            with self.assertRaises(at_rest.AtRestError) as caught:
-                at_rest.put_tree(self.source.name, "disk.qcow2", "TESTS")
-        self.assertIn("base name", str(caught.exception))
+            with pytest.raises(at_rest.AtRestError) as caught:
+                at_rest.put_tree(self.source, "disk.qcow2", "TESTS")
+        assert "base name" in str(caught.value)
 
     def test_the_session_closes_when_the_write_refuses(self):
         self._write("SUITE.EXE")
@@ -236,80 +233,75 @@ class PutTreeTests(unittest.TestCase):
 
         self.space.write_file = refuse
         with mock.patch.object(at_rest, "remanence", namespace):
-            with self.assertRaises(at_rest.AtRestError):
-                at_rest.put_tree(self.source.name, "disk.qcow2", "TESTS")
-        self.assertTrue(opened["closed"])
-        self.assertEqual(medium.commits, 0)
+            with pytest.raises(at_rest.AtRestError):
+                at_rest.put_tree(self.source, "disk.qcow2", "TESTS")
+        assert opened["closed"]
+        assert medium.commits == 0
 
 
-@unittest.skipUnless(REMANENCE_AVAILABLE, "remanence is not installed")
-class GetTreeTests(unittest.TestCase):
+@requires_remanence
+class GetTreeTests:
 
-    def setUp(self):
-        self.destination = tempfile.TemporaryDirectory()
-        self.addCleanup(self.destination.cleanup)
+    @pytest.fixture(autouse=True)
+    def _setup(self, tmp_path):
+        self.destination = tmp_path
 
     def test_a_tree_comes_back_whole(self):
         space = _Space({"TESTS\\SUITE.EXE": b"MZ",
                         "TESTS\\SUB\\INNER.TXT": b"in",
                         "ELSEWHERE.TXT": b"no"})
-        target = os.path.join(self.destination.name, "retrieved")
+        target = os.path.join(self.destination, "retrieved")
         namespace, opened, _medium = _fake([space])
         with mock.patch.object(at_rest, "remanence", namespace):
             written = at_rest.get_tree("disk.qcow2", "TESTS", target)
-        self.assertEqual(
-            sorted(os.path.relpath(path, target) for path in written),
-            [os.path.join("SUB", "INNER.TXT"), "SUITE.EXE"])
+        assert (sorted(os.path.relpath(path, target) for path in written)
+                == [os.path.join("SUB", "INNER.TXT"), "SUITE.EXE"])
         with open(os.path.join(target, "SUITE.EXE"), "rb") as handle:
-            self.assertEqual(handle.read(), b"MZ")
-        self.assertFalse(opened["writable"])
+            assert handle.read() == b"MZ"
+        assert not opened["writable"]
 
     def test_a_file_destination_is_refused(self):
         space = _Space({"TESTS\\SUITE.EXE": b"MZ"})
-        target = os.path.join(self.destination.name, "a-file")
+        target = os.path.join(self.destination, "a-file")
         with open(target, "wb") as handle:
             handle.write(b"")
         namespace, _opened, _medium = _fake([space])
         with mock.patch.object(at_rest, "remanence", namespace):
-            with self.assertRaises(at_rest.AtRestError):
+            with pytest.raises(at_rest.AtRestError):
                 at_rest.get_tree("disk.qcow2", "TESTS", target)
 
 
-@unittest.skipUnless(REMANENCE_AVAILABLE, "remanence is not installed")
-class VolumeChoiceTests(unittest.TestCase):
+@requires_remanence
+class VolumeChoiceTests:
     """Volumes are counted over the partitions that bear one."""
 
-    def setUp(self):
-        self.source = tempfile.TemporaryDirectory()
-        self.addCleanup(self.source.cleanup)
-        with open(os.path.join(self.source.name, "SUITE.EXE"), "wb") as h:
+    @pytest.fixture(autouse=True)
+    def _setup(self, tmp_path):
+        self.source = tmp_path
+        with open(os.path.join(self.source, "SUITE.EXE"), "wb") as h:
             h.write(b"MZ")
 
     def test_the_second_volume_is_addressable(self):
         first, second = _Space(), _Space()
         namespace, _opened, _medium = _fake([first, second])
         with mock.patch.object(at_rest, "remanence", namespace):
-            at_rest.put_tree(self.source.name, "disk.qcow2", "TESTS",
+            at_rest.put_tree(self.source, "disk.qcow2", "TESTS",
                              volume=1)
-        self.assertIn("TESTS\\SUITE.EXE", second.files)
-        self.assertEqual(first.files, {})
+        assert "TESTS\\SUITE.EXE" in second.files
+        assert first.files == {}
 
     def test_a_disk_with_no_filesystem_is_refused(self):
         namespace, _opened, _medium = _fake([])
         with mock.patch.object(at_rest, "remanence", namespace):
-            with self.assertRaises(at_rest.AtRestError) as caught:
-                at_rest.put_tree(self.source.name, "disk.qcow2", "TESTS")
-        self.assertIn("no filesystem", str(caught.exception))
+            with pytest.raises(at_rest.AtRestError) as caught:
+                at_rest.put_tree(self.source, "disk.qcow2", "TESTS")
+        assert "no filesystem" in str(caught.value)
 
     def test_a_volume_beyond_the_disk_is_refused_with_the_count(self):
         namespace, _opened, _medium = _fake([_Space()])
         with mock.patch.object(at_rest, "remanence", namespace):
-            with self.assertRaises(at_rest.AtRestError) as caught:
-                at_rest.put_tree(self.source.name, "disk.qcow2", "TESTS",
+            with pytest.raises(at_rest.AtRestError) as caught:
+                at_rest.put_tree(self.source, "disk.qcow2", "TESTS",
                                  volume=3)
-        self.assertIn("1 volume(s)", str(caught.exception))
-        self.assertIn("volume 3", str(caught.exception))
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert "1 volume(s)" in str(caught.value)
+        assert "volume 3" in str(caught.value)

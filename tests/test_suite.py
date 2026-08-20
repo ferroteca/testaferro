@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """Unit tests for SuiteBackend, the runner x framework composition."""
 
-import unittest
+import pytest
 
 from testaferro import cpputest
 from testaferro.backend import GuestOutputError, TestId, TestOutcome
@@ -73,7 +73,7 @@ class ScriptedFramework:
         return outcomes
 
 
-class SuiteBackendTests(unittest.TestCase):
+class SuiteBackendTests:
     def test_any_adapter_drives_the_framework_seam(self):
         # The composition names no framework: whatever it was handed
         # builds the argv and reads the output back, and CppUTest's
@@ -86,17 +86,17 @@ class SuiteBackendTests(unittest.TestCase):
         backend = SuiteBackend("SUITE.EXE", run=run,
                                framework=ScriptedFramework())
 
-        self.assertEqual([str(i) for i in backend.list_tests()],
-                         ["Vring.Wraps", "Vring.Fails"])
-        self.assertEqual(
-            [(o.group, o.name, o.passed) for o in backend.run_all()],
-            [("Vring", "Wraps", True), ("Vring", "Fails", False)])
-        self.assertTrue(backend.run_test("Vring", "Wraps").passed)
-        self.assertEqual(run.calls, [
+        assert ([str(i) for i in backend.list_tests()]
+                == ["Vring.Wraps", "Vring.Fails"])
+        assert (
+            [(o.group, o.name, o.passed) for o in backend.run_all()]
+            == [("Vring", "Wraps", True), ("Vring", "Fails", False)])
+        assert backend.run_test("Vring", "Wraps").passed
+        assert run.calls == [
             ("SUITE.EXE", ("--enumerate",)),
             ("SUITE.EXE", ("--run-all",)),
             ("SUITE.EXE", ("--run", "Vring/Wraps")),
-        ])
+        ]
 
     def test_operations_compose_runner_and_framework(self):
         run = ScriptedRunner({
@@ -107,32 +107,31 @@ class SuiteBackendTests(unittest.TestCase):
         backend = SuiteBackend("SUITE.EXE", run=run, framework=cpputest)
 
         ids = backend.list_tests()
-        self.assertEqual([str(i) for i in ids],
-                         ["Vring.Wraps", "Vring.Fails"])
+        assert [str(i) for i in ids] == ["Vring.Wraps", "Vring.Fails"]
 
         outcomes = backend.run_all()
-        self.assertEqual([(o.group, o.name, o.passed) for o in outcomes],
-                         [("Vring", "Wraps", True),
-                          ("Vring", "Fails", False)])
+        assert ([(o.group, o.name, o.passed) for o in outcomes]
+                == [("Vring", "Wraps", True),
+                    ("Vring", "Fails", False)])
 
         outcome = backend.run_test("Vring", "Wraps")
-        self.assertTrue(outcome.passed)
+        assert outcome.passed
         # Written out rather than rebuilt from the argv builders: the
         # seam's contract is that argv reaches the runner as the
         # tokens the framework named, and an expectation composed the
         # way the code composes cannot see a wrong composition.
-        self.assertEqual(run.calls, [
+        assert run.calls == [
             ("SUITE.EXE", ("-ln",)),
             ("SUITE.EXE", ("-v",)),
             ("SUITE.EXE", ("-v", "-sg", "Vring", "-sn", "Wraps")),
-        ])
+        ]
 
     def test_run_test_raises_when_target_did_not_run_it(self):
         run = ScriptedRunner(
             {("-v", "-sg", "Vring", "-sn", "Gone"): EMPTY_RUN_OUTPUT})
         backend = SuiteBackend("SUITE.EXE", run=run, framework=cpputest)
 
-        with self.assertRaisesRegex(LookupError, "Vring.Gone"):
+        with pytest.raises(LookupError, match="Vring.Gone"):
             backend.run_test("Vring", "Gone")
 
     def test_an_unreadable_answer_carries_the_whole_exchange(self):
@@ -142,23 +141,22 @@ class SuiteBackendTests(unittest.TestCase):
         run = ScriptedRunner({("-ln",): "Bad command or file name\r\n"})
         backend = SuiteBackend("SUITE.EXE", run=run, framework=cpputest)
 
-        with self.assertRaises(GuestOutputError) as caught:
+        with pytest.raises(GuestOutputError) as caught:
             backend.list_tests()
 
-        self.assertEqual(caught.exception.argv, ("-ln",))
-        self.assertEqual(caught.exception.output,
-                         "Bad command or file name\r\n")
-        self.assertIn("CppUTest", caught.exception.reason)
+        assert caught.value.argv == ("-ln",)
+        assert caught.value.output == "Bad command or file name\r\n"
+        assert "CppUTest" in caught.value.reason
 
     def test_a_run_that_never_finished_carries_it_too(self):
         run = ScriptedRunner({("-v",): "Bad command or file name\r\n"})
         backend = SuiteBackend("SUITE.EXE", run=run, framework=cpputest)
 
-        with self.assertRaises(GuestOutputError) as caught:
+        with pytest.raises(GuestOutputError) as caught:
             backend.run_all()
 
-        self.assertEqual(caught.exception.argv, ("-v",))
-        self.assertIn("summary line", caught.exception.reason)
+        assert caught.value.argv == ("-v",)
+        assert "summary line" in caught.value.reason
 
     def test_the_report_leads_with_why_and_marks_the_guests_words(self):
         error = GuestOutputError("no summary line", ("-v",),
@@ -168,18 +166,18 @@ class SuiteBackendTests(unittest.TestCase):
 
         # The first line is what pytest's short summary quotes, so it
         # has to be the one worth reading alone.
-        self.assertEqual(report.splitlines()[0],
-                         "guest output not understood: no summary line")
-        self.assertIn("ran the guest suite with: -v", report)
-        self.assertIn("what the guest showed on its screen", report)
-        self.assertIn("    Bad command or file name", report)
+        assert (report.splitlines()[0]
+                == "guest output not understood: no summary line")
+        assert "ran the guest suite with: -v" in report
+        assert "what the guest showed on its screen" in report
+        assert "    Bad command or file name" in report
         # A stray CR would overprint the report on a terminal.
-        self.assertNotIn("\r", report)
+        assert "\r" not in report
 
     def test_an_empty_screen_says_so_rather_than_showing_nothing(self):
         error = GuestOutputError("no summary line", ("-v",), "\r\n\r\n")
 
-        self.assertIn("(the screen was empty)", guest_output_text(error))
+        assert "(the screen was empty)" in guest_output_text(error)
 
     def test_enumerator_overrides_guest_enumeration(self):
         # e.g. a host-built twin executable enumerating faster than a
@@ -189,10 +187,5 @@ class SuiteBackendTests(unittest.TestCase):
             "SUITE.EXE", run=run, framework=cpputest,
             enumerator=lambda: cpputest.parse_list("Vring.Wraps"))
 
-        self.assertEqual([str(i) for i in backend.list_tests()],
-                         ["Vring.Wraps"])
-        self.assertEqual(run.calls, [])
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert [str(i) for i in backend.list_tests()] == ["Vring.Wraps"]
+        assert run.calls == []

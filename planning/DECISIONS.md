@@ -111,6 +111,39 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D26 — the test suite adopts pytest, reversing the unittest-only rule
+
+**Decided** owner, 2026-08-20. **Supports** (none) — a tooling
+choice about how the project verifies itself, not a claim owed to a
+user.
+
+AGENTS.md stated, undated and citing no D-number, that tests are
+stdlib `unittest` "so the constraint is not spent on a second
+runner" — reading `pytest` as a second test-running mechanism
+alongside `unittest`, when the runtime dependency (P11) is already
+spent on it regardless: `pytest` is what Testaferro *is a plugin
+for*, required whether or not it also runs this suite. Weighed
+against that reading now: the suite's own idiom — `TestCase`,
+`assertEqual`, `subTest`, `setUp`/`addCleanup` — is stdlib's
+vocabulary for a project whose entire subject is pytest's, so every
+contributor already fluent in what this project ships arrives at its
+own tests speaking a second dialect. `pytest` collects `TestCase`
+classes unmodified, which was weighed and declined as the fix: it
+buys a nicer invocation (`pytest` in place of `python -m unittest
+discover`) without touching the actual defect, since the suite would
+still be written in the borrowed idiom. The suite is rewritten
+instead — plain functions, `assert`, fixtures in place of
+`setUp`/`tearDown`, `parametrize` in place of `subTest` loops — so
+that reading a test and reading the plugin under test cost the same
+fluency.
+
+`tests/integration/` keeps its own gate: `TESTAFERRO_INTEGRATION`
+unset skips the tier, now via `pytest.mark.skipif` in place of
+`unittest.skipUnless`, unchanged in substance.
+
+**Folded into:** [../AGENTS.md](../AGENTS.md), `tests/` (full
+rewrite).
+
 ### D25 — U9 is pledged severed from its own plural growth, paired with F19
 
 **Decided** owner, 2026-08-19. **Supports** U9 (pledged by this

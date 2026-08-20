@@ -10,18 +10,15 @@ replaced from the tree's own conftest — the fake is installed in
 tests by the cost rule (P10): no hypervisor, and no reliquary either.
 """
 
-import importlib.util
 import os
 from pathlib import Path
 import stat
 import subprocess
 import sys
-import tempfile
-import unittest
 
-from test_binfmt import new_format_exe_bytes, plain_dos_exe_bytes
+import pytest
 
-PYTEST_AVAILABLE = importlib.util.find_spec("pytest") is not None
+from helpers import new_format_exe_bytes, plain_dos_exe_bytes, requires_pytest
 
 # Stands in for the provider binding, recording what it was asked for.
 CONFTEST = '''
@@ -131,7 +128,7 @@ testaferro.reliquary = fake
 '''
 
 
-class _PytestTreeCase(unittest.TestCase):
+class _PytestTreeCase:
     """A throwaway project tree, with pytest run against it for real.
 
     A collection plugin's whole subject is what pytest does with a
@@ -141,10 +138,9 @@ class _PytestTreeCase(unittest.TestCase):
     imports it — so no guest starts and no reliquary loads (P10).
     """
 
-    def setUp(self):
-        self.tempdir = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tempdir.cleanup)
-        self.root = Path(self.tempdir.name)
+    @pytest.fixture(autouse=True)
+    def _setup(self, tmp_path):
+        self.root = tmp_path
         self.events = self.root / "events.txt"
         # pytest.ini makes this tree its own rootdir, so a
         # testaferro.ini written beside it is the one found.
@@ -181,10 +177,10 @@ class _PytestTreeCase(unittest.TestCase):
         return self.events.read_text(encoding="utf-8").splitlines()
 
 
-@unittest.skipUnless(PYTEST_AVAILABLE, "pytest is not installed")
+@requires_pytest
 class PluginTests(_PytestTreeCase):
-    def setUp(self):
-        super().setUp()
+    @pytest.fixture(autouse=True)
+    def _setup_conftest(self, _setup):
         self.write("conftest.py",
                    CONFTEST.format(events=str(self.events),
                                    homes=str(self.homes)))
@@ -196,8 +192,8 @@ class PluginTests(_PytestTreeCase):
 
         result = self.pytest("SUITE.EXE", "--collect-only")
 
-        self.assertIn("SUITE.EXE::Vring-Wraps", result.stdout)
-        self.assertIn("SUITE.EXE::Vring-Fails", result.stdout)
+        assert "SUITE.EXE::Vring-Wraps" in result.stdout
+        assert "SUITE.EXE::Vring-Fails" in result.stdout
 
     def test_a_scan_claims_nothing_that_was_not_opted_in(self):
         # Installation is activation, so this is the guarantee that
@@ -206,8 +202,8 @@ class PluginTests(_PytestTreeCase):
 
         result = self.pytest()
 
-        self.assertNotIn("Vring", result.stdout)
-        self.assertEqual(self.recorded(), [])
+        assert "Vring" not in result.stdout
+        assert self.recorded() == []
 
     def test_a_scan_claims_what_a_pytest_ini_mask_opts_in(self):
         self.write("pytest.ini", "[pytest]\ntestaferro-suites = *.EXE\n")
@@ -215,7 +211,7 @@ class PluginTests(_PytestTreeCase):
 
         result = self.pytest("--collect-only")
 
-        self.assertIn("SUITE.EXE::Vring-Wraps", result.stdout)
+        assert "SUITE.EXE::Vring-Wraps" in result.stdout
 
     def test_a_scan_claims_what_a_command_line_mask_opts_in(self):
         # The mask has a command-line spelling as well as an ini one,
@@ -225,7 +221,7 @@ class PluginTests(_PytestTreeCase):
         result = self.pytest("--collect-only",
                              "--testaferro-suites=*.EXE")
 
-        self.assertIn("SUITE.EXE::Vring-Wraps", result.stdout)
+        assert "SUITE.EXE::Vring-Wraps" in result.stdout
 
     def test_command_line_masks_add_to_the_ini_rather_than_replace(self):
         # A mask names files rather than choosing between them.
@@ -236,8 +232,8 @@ class PluginTests(_PytestTreeCase):
         result = self.pytest("--collect-only",
                              "--testaferro-suites=*.COM")
 
-        self.assertIn("SUITE.EXE::Vring-Wraps", result.stdout)
-        self.assertIn("OTHER.COM::Vring-Wraps", result.stdout)
+        assert "SUITE.EXE::Vring-Wraps" in result.stdout
+        assert "OTHER.COM::Vring-Wraps" in result.stdout
 
     def test_the_timeout_option_reaches_the_binding(self):
         self.suite()
@@ -245,7 +241,7 @@ class PluginTests(_PytestTreeCase):
         self.pytest("SUITE.EXE", "--collect-only",
                     "--testaferro-timeout=5")
 
-        self.assertIn("resolve:timeout", self.recorded())
+        assert "resolve:timeout" in self.recorded()
 
     def test_the_setup_option_reaches_the_binding(self):
         self.suite()
@@ -253,7 +249,7 @@ class PluginTests(_PytestTreeCase):
         self.pytest("SUITE.EXE", "--collect-only",
                     "--testaferro-setup=DRIVER.COM /install")
 
-        self.assertIn("resolve:setup", self.recorded())
+        assert "resolve:setup" in self.recorded()
 
     def test_a_non_numeric_timeout_is_refused(self):
         self.suite()
@@ -261,9 +257,8 @@ class PluginTests(_PytestTreeCase):
         result = self.pytest("SUITE.EXE", "--collect-only",
                              "--testaferro-timeout=soon")
 
-        self.assertIn("takes a number of seconds",
-                      result.stdout + result.stderr)
-        self.assertNotIn("Vring", result.stdout)
+        assert "takes a number of seconds" in result.stdout + result.stderr
+        assert "Vring" not in result.stdout
 
     def test_the_provider_option_is_read_and_not_passed_onward(self):
         # The third spelling of `provider` (P16). It selects the
@@ -274,8 +269,8 @@ class PluginTests(_PytestTreeCase):
         self.pytest("SUITE.EXE", "--collect-only",
                     "--testaferro-provider=reliquary")
 
-        self.assertIn("resolve:", self.recorded())
-        self.assertNotIn("provider", self.recorded())
+        assert "resolve:" in self.recorded()
+        assert "provider" not in self.recorded()
 
     def test_an_unknown_provider_is_refused_from_the_command_line(self):
         self.suite()
@@ -283,9 +278,8 @@ class PluginTests(_PytestTreeCase):
         result = self.pytest("SUITE.EXE", "--collect-only",
                              "--testaferro-provider=vagrant")
 
-        self.assertIn("unknown provider 'vagrant'",
-                      result.stdout + result.stderr)
-        self.assertNotIn("Vring", result.stdout)
+        assert "unknown provider 'vagrant'" in result.stdout + result.stderr
+        assert "Vring" not in result.stdout
 
     def test_the_provider_has_a_pytest_ini_spelling_too(self):
         self.write("pytest.ini",
@@ -294,8 +288,7 @@ class PluginTests(_PytestTreeCase):
 
         result = self.pytest("SUITE.EXE", "--collect-only")
 
-        self.assertIn("unknown provider 'vagrant'",
-                      result.stdout + result.stderr)
+        assert "unknown provider 'vagrant'" in result.stdout + result.stderr
 
     def test_a_scan_claims_what_a_declaration_opts_in(self):
         self.write("testaferro.ini",
@@ -304,9 +297,9 @@ class PluginTests(_PytestTreeCase):
 
         result = self.pytest("--collect-only")
 
-        self.assertIn("SUITE.EXE::Vring-Wraps", result.stdout)
+        assert "SUITE.EXE::Vring-Wraps" in result.stdout
         # and it runs in the environment that claimed it
-        self.assertIn("resolve:machine_config", self.recorded())
+        assert "resolve:machine_config" in self.recorded()
 
     def test_a_headerless_image_is_never_claimed_from_a_scan(self):
         # Raw .com-style code proves nothing about being a program at
@@ -317,8 +310,8 @@ class PluginTests(_PytestTreeCase):
         scanned = self.pytest("--collect-only")
         named = self.pytest("SUITE.COM", "--collect-only")
 
-        self.assertNotIn("Vring", scanned.stdout)
-        self.assertIn("SUITE.COM::Vring-Wraps", named.stdout)
+        assert "Vring" not in scanned.stdout
+        assert "SUITE.COM::Vring-Wraps" in named.stdout
 
     def test_a_named_file_that_is_not_a_program_is_left_alone(self):
         # binfmt's "dos" for a headerless file means *nothing proves
@@ -331,10 +324,10 @@ class PluginTests(_PytestTreeCase):
         module = self.pytest("test_host.py")
         text = self.pytest("notes.txt", "--collect-only")
 
-        self.assertIn("1 passed", module.stdout)
-        self.assertNotIn("Vring", module.stdout)
-        self.assertNotIn("Vring", text.stdout)
-        self.assertEqual(self.recorded(), [])
+        assert "1 passed" in module.stdout
+        assert "Vring" not in module.stdout
+        assert "Vring" not in text.stdout
+        assert self.recorded() == []
 
     def test_a_host_format_is_claimed_only_by_declaration(self):
         machine = (0x014C).to_bytes(2, "little")
@@ -345,8 +338,8 @@ class PluginTests(_PytestTreeCase):
         declared = self.pytest("HOST.EXE", "--collect-only",
                                "--testaferro-environment=freedos")
 
-        self.assertNotIn("Vring", unclaimed.stdout)
-        self.assertIn("HOST.EXE::Vring-Wraps", declared.stdout)
+        assert "Vring" not in unclaimed.stdout
+        assert "HOST.EXE::Vring-Wraps" in declared.stdout
 
     def test_two_environments_claiming_one_file_is_an_error(self):
         self.write("testaferro.ini",
@@ -356,8 +349,8 @@ class PluginTests(_PytestTreeCase):
 
         result = self.pytest("--collect-only")
 
-        self.assertIn("claimed by more than one test environment",
-                      result.stdout + result.stderr)
+        assert ("claimed by more than one test environment"
+                in result.stdout + result.stderr)
 
     # --- running ------------------------------------------------
 
@@ -366,27 +359,27 @@ class PluginTests(_PytestTreeCase):
 
         result = self.pytest("SUITE.EXE")
 
-        self.assertEqual(result.returncode, 1, result.stdout)
-        self.assertIn("1 failed, 1 passed", result.stdout)
-        self.assertIn("guest test failed: vring_test.cpp:42: "
-                      "expected <1>", result.stdout)
+        assert result.returncode == 1, result.stdout
+        assert "1 failed, 1 passed" in result.stdout
+        assert ("guest test failed: vring_test.cpp:42: "
+                "expected <1>" in result.stdout)
         # the guest's report, not a traceback into Testaferro
-        self.assertNotIn("Traceback", result.stdout)
-        self.assertNotIn("in runtest", result.stdout)
-        self.assertEqual(self.recorded(), [
+        assert "Traceback" not in result.stdout
+        assert "in runtest" not in result.stdout
+        assert self.recorded() == [
             "resolve:", "start", "list", "stop",
             "start", "run_all", "stop",
-        ])
+        ]
 
     def test_a_narrowed_selection_runs_only_what_was_selected(self):
         self.suite()
 
         result = self.pytest("SUITE.EXE::Vring-Wraps")
 
-        self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertIn("1 passed", result.stdout)
-        self.assertIn("run_test:Vring:Wraps", self.recorded())
-        self.assertNotIn("run_all", self.recorded())
+        assert result.returncode == 0, result.stdout
+        assert "1 passed" in result.stdout
+        assert "run_test:Vring:Wraps" in self.recorded()
+        assert "run_all" not in self.recorded()
 
     def test_exitfirst_stops_the_session_at_a_guest_failure(self):
         # `-x` is pytest's own and needs no help from Testaferro —
@@ -401,11 +394,11 @@ class PluginTests(_PytestTreeCase):
 
         result = self.pytest("-x")
 
-        self.assertEqual(result.returncode, 1, result.stdout)
-        self.assertIn("stopping after 1 failures", result.stdout)
+        assert result.returncode == 1, result.stdout
+        assert "stopping after 1 failures" in result.stdout
         # both suites were enumerated; only one was ever run
-        self.assertEqual(self.recorded().count("list"), 2)
-        self.assertEqual(self.recorded().count("run_all"), 1)
+        assert self.recorded().count("list") == 2
+        assert self.recorded().count("run_all") == 1
 
     def test_last_failed_reruns_only_the_guest_test_that_failed(self):
         # `--lf` keys on node ids, so it works exactly because the
@@ -413,7 +406,7 @@ class PluginTests(_PytestTreeCase):
         self.suite()
 
         first = self.pytest("SUITE.EXE", cache=True)
-        self.assertIn("1 failed, 1 passed", first.stdout)
+        assert "1 failed, 1 passed" in first.stdout
         before = len(self.recorded())
 
         again = self.pytest("SUITE.EXE", "--lf", cache=True)
@@ -422,19 +415,19 @@ class PluginTests(_PytestTreeCase):
         # guest test that failed, by its node id. Whether it passes on
         # the rerun is the fake's business — this stand-in always
         # passes a single run_test — and not what is under test.
-        self.assertIn("1 deselected", again.stdout)
+        assert "1 deselected" in again.stdout
         rerun = self.recorded()[before:]
         # narrowed to one item, so the broker asks for that one test
         # rather than batching the suite it did not select
-        self.assertIn("run_test:Vring:Fails", rerun)
-        self.assertNotIn("run_all", rerun)
+        assert "run_test:Vring:Fails" in rerun
+        assert "run_all" not in rerun
 
     def test_a_guest_home_is_swept_unless_asked_for(self):
         self.suite()
 
         self.pytest("SUITE.EXE")
 
-        self.assertEqual(list(self.homes.iterdir()), [])
+        assert list(self.homes.iterdir()) == []
 
     def test_the_keep_option_keeps_what_the_guest_was_given(self):
         self.suite()
@@ -442,10 +435,10 @@ class PluginTests(_PytestTreeCase):
         result = self.pytest("SUITE.EXE", "--testaferro-keep-guest-home")
 
         kept = list(self.homes.iterdir())
-        self.assertTrue(kept)
-        self.assertIn("guest homes kept", result.stdout)
+        assert kept
+        assert "guest homes kept" in result.stdout
         for home in kept:
-            self.assertIn(home.name, result.stdout)
+            assert home.name in result.stdout
 
     # --- enumeration --------------------------------------------
 
@@ -454,8 +447,8 @@ class PluginTests(_PytestTreeCase):
 
         result = self.pytest("SUITE.EXE", "--collect-only")
 
-        self.assertIn("may be short", result.stdout)
-        self.assertIn("GuestEnumerationWarning", result.stdout)
+        assert "may be short" in result.stdout
+        assert "GuestEnumerationWarning" in result.stdout
 
     def test_a_host_built_twin_enumerates_without_booting_a_guest(self):
         self.suite()
@@ -464,12 +457,11 @@ class PluginTests(_PytestTreeCase):
         result = self.pytest("SUITE.EXE", "--collect-only",
                              f"--testaferro-enumerator={twin.name}")
 
-        self.assertIn("SUITE.EXE::Vring-Wraps", result.stdout)
-        self.assertNotIn("may be short", result.stdout)
+        assert "SUITE.EXE::Vring-Wraps" in result.stdout
+        assert "may be short" not in result.stdout
         # the twin's whole case: enumerated, with no guest started
         # around it, so no guest booted to be asked
-        self.assertEqual(self.recorded(),
-                         ["resolve:enumerator", "enumerate"])
+        assert self.recorded() == ["resolve:enumerator", "enumerate"]
 
     def test_a_missing_twin_falls_back_to_the_guest(self):
         self.suite()
@@ -478,8 +470,8 @@ class PluginTests(_PytestTreeCase):
             "SUITE.EXE", "--collect-only",
             "--testaferro-enumerator=build/{stem}-host.exe")
 
-        self.assertIn("SUITE.EXE::Vring-Wraps", result.stdout)
-        self.assertIn("list", self.recorded())
+        assert "SUITE.EXE::Vring-Wraps" in result.stdout
+        assert "list" in self.recorded()
 
     def _twin(self, listing):
         """A host-built twin: an executable answering the framework's
@@ -491,7 +483,7 @@ class PluginTests(_PytestTreeCase):
         return twin
 
 
-@unittest.skipUnless(PYTEST_AVAILABLE, "pytest is not installed")
+@requires_pytest
 class UnreadableGuestOutputTests(_PytestTreeCase):
     """What a trial looks like when the guest answers unusably (U4).
 
@@ -508,14 +500,14 @@ class UnreadableGuestOutputTests(_PytestTreeCase):
         self.suite()
 
     def _assert_reads_as_the_guests(self, output):
-        self.assertIn("guest output not understood", output)
-        self.assertIn("what the guest showed on its screen", output)
-        self.assertIn("Bad command or file name", output)
+        assert "guest output not understood" in output
+        assert "what the guest showed on its screen" in output
+        assert "Bad command or file name" in output
         # The whole point: nothing of Testaferro's own machinery in
         # what the developer is asked to read.
         for frame in ("cpputest.py", "suite.py", "plugin.py",
                       "ValueError", "Traceback"):
-            self.assertNotIn(frame, output)
+            assert frame not in output
 
     def test_an_unreadable_enumeration_reports_the_guests_screen(self):
         self._binding(enumerates=False)
@@ -523,7 +515,7 @@ class UnreadableGuestOutputTests(_PytestTreeCase):
         result = self.pytest("SUITE.EXE")
 
         self._assert_reads_as_the_guests(result.stdout)
-        self.assertIn("ran the guest suite with: -ln", result.stdout)
+        assert "ran the guest suite with: -ln" in result.stdout
 
     def test_an_unreadable_run_reports_the_guests_screen(self):
         # Enumeration works here, so the guest is only found wanting
@@ -533,7 +525,7 @@ class UnreadableGuestOutputTests(_PytestTreeCase):
         result = self.pytest("SUITE.EXE", "-W", "ignore::UserWarning")
 
         self._assert_reads_as_the_guests(result.stdout)
-        self.assertIn("ran the guest suite with: -v", result.stdout)
+        assert "ran the guest suite with: -v" in result.stdout
 
     def test_the_reason_survives_into_the_short_summary(self):
         # pytest quotes only a report's first line there, which is why
@@ -544,9 +536,9 @@ class UnreadableGuestOutputTests(_PytestTreeCase):
 
         summary = [line for line in result.stdout.splitlines()
                    if line.startswith("FAILED ")]
-        self.assertTrue(summary, result.stdout)
+        assert summary, result.stdout
         for line in summary:
-            self.assertIn("guest output not understood", line)
+            assert "guest output not understood" in line
 
     def test_a_twin_that_prints_nonsense_names_the_twin(self):
         # The host-built twin is a host program, so there is no guest
@@ -557,8 +549,8 @@ class UnreadableGuestOutputTests(_PytestTreeCase):
         result = self.pytest(
             "SUITE.EXE", "--testaferro-enumerator=" + self._twin_name())
 
-        self.assertIn("did not print a test list", result.stdout)
-        self.assertNotIn("Traceback", result.stdout)
+        assert "did not print a test list" in result.stdout
+        assert "Traceback" not in result.stdout
 
     def _twin(self, listing):
         if os.name == "nt":
@@ -569,7 +561,3 @@ class UnreadableGuestOutputTests(_PytestTreeCase):
 
     def _twin_name(self):
         return "twin.cmd" if os.name == "nt" else "twin.sh"
-
-
-if __name__ == "__main__":
-    unittest.main()

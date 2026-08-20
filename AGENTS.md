@@ -561,9 +561,13 @@ principle governs.
 - As a reusable library, Testaferro never names specific consuming
   projects in source, tests, README.md, or repository guidance (P12). Refer
   to consumers and runners only in general instructional terms.
-- Tests are stdlib `unittest` under `tests/`, integration included:
+- Tests are `pytest` under `tests/`, integration included:
   `tests/integration/` is skipped unless `TESTAFERRO_INTEGRATION` is
-  set, so the constraint is not spent on a second runner.
+  set (D26). The runtime dependency is already spent on `pytest` — it
+  is the host surface this project is a plugin for (P11) — so writing
+  the suite in its own idiom costs nothing further and stops the
+  suite from speaking a second, borrowed dialect for what the plugin
+  itself ships.
 - Licensing is GPL-3.0-only, REUSE-style. The full policy — the
   relicensing reservation, the dependency licence tiers, and the
   standing of every project Testaferro references — is the
@@ -865,8 +869,8 @@ Run checks through uv, which uses the locked environment.
 
 ```powershell
 uv run python -m compileall -q src/testaferro tests
-uv run python -m unittest discover -s tests -v
-uv run --python 3.12 python -m unittest discover -s tests
+uv run pytest tests -v
+uv run --python 3.12 pytest tests
 uv build
 ```
 
@@ -888,7 +892,7 @@ boots a guest, so it is asked for rather than discovered:
 
 ```powershell
 $env:TESTAFERRO_INTEGRATION = "1"
-uv run python -m unittest discover -s tests/integration -v
+uv run pytest tests/integration -v
 ```
 
 **A pin move is one of the changes that warrants it**, whatever it
