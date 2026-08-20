@@ -95,6 +95,9 @@ too, once `guest_session()` reached the same provisioning
   state. That is the isolation Testaferro can claim, and the limit is
   worth naming — a distinct backend process and port per machine is
   reliquary's guarantee, relied on here rather than re-checked (P1).
+  *(F3, the sharding payoff, is pledged — see
+  [pledged/FEATURES.md](../pledged/FEATURES.md). The cross-worker
+  isolation journey above is still unbuilt, F15's to prove.)*
 
 - **U6 — A different guest test framework.** The guest unit-test
   framework is Testaferro's pluggable aspect. A developer whose
