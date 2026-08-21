@@ -13,10 +13,12 @@ back is a `Backend`; everything above it (pytest items, batching,
 reporting) is the entry point's own business.
 
 **Dispatch keys by provider, and the provider is declared** (P1, P2,
-D11). An environment names one or takes the default, reliquary being
-the only binding built; that name selects the sibling module of the
-same name, because a binding is named for the provider it binds
-(D16). A name outside `_PROVIDERS` is refused rather than imported.
+D11). An environment names one or takes the default — reliquary, of
+the two bindings built — and that name selects the sibling module of
+the same name, because a binding is named for the provider it binds
+(D16), with declared hyphens spelled as underscores exactly as
+declaration keys are. A name outside `_PROVIDERS` is refused rather
+than imported.
 
 `platform` is nothing a consumer says (P2): it reaches here as a
 blueprint field on the selected environment, or as what the
@@ -55,10 +57,21 @@ from . import binfmt
 # them. A binding is named for its provider (D16), so a name here is
 # also the sibling module that implements it — imported only once
 # resolution has selected it, and never derived from anything a
-# consumer typed that is not in this set.
-_PROVIDERS = frozenset({"reliquary"})
+# consumer typed that is not in this set. `dosbox-x` is not a Python
+# identifier, so `_module()` spells its hyphen as an underscore, the
+# same normalization hyphenated declaration keys already get.
+_PROVIDERS = frozenset({"reliquary", "dosbox-x"})
 # What runs a guest when no environment named anything (P1, D11).
+# Two providers serve `dos` now, and the default deliberately stays
+# one of them: inference never becomes a choice, so zero
+# configuration keeps meaning exactly one thing (P8).
 _DEFAULT_PROVIDER = "reliquary"
+
+
+def _module(provider):
+    """The sibling binding module a provider name selects (D16)."""
+    return importlib.import_module(
+        "." + provider.replace("-", "_"), __package__)
 
 
 def resolve_backend(target, environment=None, provider=None,
@@ -108,7 +121,7 @@ def resolve_backend(target, environment=None, provider=None,
         raise ValueError(
             f"unknown provider {selected_provider!r}; testaferro binds: "
             + ", ".join(sorted(_PROVIDERS)))
-    binding = importlib.import_module("." + selected_provider, __package__)
+    binding = _module(selected_provider)
     if selected_platform not in binding.PLATFORMS:
         # The platform is a blueprint field the tester wrote, or what
         # the format inferred — never an option anyone typed — so the
@@ -169,7 +182,7 @@ def resolve_guest_session(environment=None, provider=None,
         raise ValueError(
             f"unknown provider {selected_provider!r}; testaferro binds: "
             + ", ".join(sorted(_PROVIDERS)))
-    binding = importlib.import_module("." + selected_provider, __package__)
+    binding = _module(selected_provider)
     if selected_platform is not None and selected_platform not in binding.PLATFORMS:
         raise ValueError(
             f"test environment {name!r} declares platform "

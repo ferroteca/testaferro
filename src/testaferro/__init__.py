@@ -84,9 +84,9 @@ def guest_session(environment=None, provider=None, **options):
     declared with testaferro.config() or testaferro.ini (searched
     upward from this call site), or one of the standard environments
     Testaferro curates. `provider` names what runs the guest for an
-    environment declared inline here — "reliquary" today, the default
-    and the only one built — and a named environment carries its own,
-    so the two do not combine. `files` is host paths staged onto the
+    environment declared inline here — "reliquary", the default and
+    the one binding serving guest sessions — and a named environment
+    carries its own, so the two do not combine. `files` is host paths staged onto the
     work drive before boot, the same placement vocabulary
     `guest_suite()` takes (U1); `machine_config` reaches the same
     declared or standard machine a suite would (U3, U9). Any further

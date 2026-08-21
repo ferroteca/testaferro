@@ -111,6 +111,106 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D27 — DOSBox-X is the second provider, batch-shaped, and refuses guest sessions
+
+**Decided** owner, 2026-08-21, by directing F20's delivery.
+**Supports** P1 (in force, amended by this entry), P8, P10, U10.
+This is the event D1, D11 and D16 each deferred to rather than
+refused — "only if a second actual runner appears", "waiting on a
+second concrete provider", "the day a second binding exists" — so
+what those entries postponed is adjudicated here.
+
+F20 named three questions to answer before the work, and each got
+its answer from the work itself:
+
+- **The measurement holds, dramatically.** One DOSBox-X invocation
+  runs the whole integration suite — mount, run, redirect, exit — in
+  about 0.3 seconds against about fifteen for a single boot on the
+  default provider; the binding's five integration cases take 1.3
+  seconds together against about two minutes for the boot-model six.
+  The tier's cost curve changes shape exactly as argued, and P10 is
+  unmoved by it: fast is not cheap in its sense — DOSBox-X starting
+  a DOS is a guest starting — so the cases sit in the integration
+  tier no matter what they cost.
+- **U10's open question cuts the feature in one piece, not two: the
+  binding refuses guest sessions, in its own voice.** The batch
+  model holds no guest state between invocations, and a scripted
+  interaction exists to build on exactly that state; relaunching per
+  command would discard it silently, which is worse than saying no.
+  So `dosbox_x.guest_session()` raises naming the reason and the
+  provider that serves the entry point, and P1 gains the rule the
+  architecture did not contemplate before there was an instance of
+  it: **a provider serves the entry points its model can honor, and
+  refuses the rest in its own voice** — the refusal is the binding's
+  answer, like `PLATFORMS`, and resolution keeps no capability
+  table. Giving DOSBox-X an interactive channel was weighed and
+  declined: it would spend every simplification the batch shape buys
+  (no readiness protocol, no screen transport, nothing at rest) to
+  serve an entry point the default provider already serves well.
+- **The licence is verified, and the prior-art entry is new in
+  kind.** GPL-2.0-or-later (source headers carry the "or any later
+  version" grant; `COPYING` is GPLv2; verified 2026-08-21 upstream
+  and against the installed 2026.08.02). Tier 2 by the process
+  boundary — and unlike QEMU, which is reliquary's to invoke and
+  deliberately unnamed here (P2, D16), Testaferro invokes DOSBox-X
+  itself, so the arm's-length analysis lives in this repository and
+  the name is Testaferro's to speak: it is a provider, not something
+  under one. Not a P11 dependency; never bundled into any artifact.
+
+**The run stays reliquary's, as a decided shape.** P1's stop-short —
+`start()`/`stop()` reaching the binding by name — said it was "the
+first place to look the day a second binding lands". Looked: a *run*
+is one staged boot-image choice and one sweep area, which only the
+machine-booting model has. A DOSBox-X guest stages no image, and its
+home is swept by its own `stop_guest()`; there is no run state for
+it to join, so generalizing the run now would be abstraction with
+nothing to hold. The entry is amended to say so rather than left
+reading as a divergence.
+
+**The seam is derived, not designed, and it is small.** What
+`_GuestLifecycle` holds that is genuinely reliquary's turned out to
+be nearly all of it — blueprints, sessions, the letter map,
+readiness, at-rest writes. What belongs above it is the placement
+vocabulary: the nearest-speaker override rule, host-side gathering
+of the staged set, and `program=` resolution against a settled
+location, now `testaferro.placement`, holding exactly what the two
+concrete bindings do identically and nothing either does
+differently. That is the interface D1 and D11 said would be derived
+from concretes when there were two.
+
+**Naming**: a binding is named for the provider it binds (D16), and
+`dosbox-x` is not a Python identifier, so the declared spelling
+keeps its hyphen and resolution selects the module with the same
+underscore normalization hyphenated declaration keys already get —
+`provider="dosbox-x"`, module `dosbox_x.py`.
+
+**Weighed and declined**, beyond the interactive channel above: a
+`providers/` package (D16 priced it at nothing "the day a second
+binding exists"; two sibling modules do not need a level, and the
+name-selects-module dispatch rule stays one sentence without one — a
+third binding may reopen this); a `dosbox` standard catalog entry
+(DOSBox-X brings its own DOS, so there is nothing to author — P17's
+degenerate case — and naming an environment that declares nothing
+buys nothing over declaring `provider=` until someone asks for the
+name); and a machine-document channel for DOSBox-X's own conf (a
+dosbox-x declaration carries Testaferro's own words only, and a
+declaration carrying another provider's blueprint fields is refused
+naming them rather than silently stripped — passing authored conf
+sections through, P3's shape for this provider, is its own argued
+feature the day a suite needs one). `boot_image=` is likewise not a
+dosbox-x option: nothing boots, and resolution's existing
+wrong-option refusal names the environment and provider.
+
+**Folded into:** `src/testaferro/dosbox_x.py`,
+`src/testaferro/placement.py`, `src/testaferro/reliquary.py`,
+`src/testaferro/resolution.py`, [../ARCHITECTURE.md](../ARCHITECTURE.md)
+(P1), [../AGENTS.md](../AGENTS.md), [../README.md](../README.md),
+[../CHANGELOG.md](../CHANGELOG.md), `tests/test_dosbox_x.py`,
+`tests/test_placement.py`, `tests/test_resolution.py`,
+`tests/integration/test_dosbox_x.py`,
+[proposed/FEATURES.md](proposed/FEATURES.md) (F20 retired by
+delivery), [SEQUENCES.md](SEQUENCES.md).
+
 ### D26 — the test suite adopts pytest, reversing the unittest-only rule
 
 **Decided** owner, 2026-08-20. **Supports** (none) — a tooling

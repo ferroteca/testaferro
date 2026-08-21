@@ -917,10 +917,6 @@ class PlacementTests:
         assert (binding._default_location({"hdd1": {}}, work_key="hdd1")
                 == "C:\\")
 
-    def test_the_program_defaults_to_the_staged_executable(self):
-        assert (binding._resolve_program(None, "D:\\TESTS", "SUITE.EXE")
-                == "D:\\TESTS\\SUITE.EXE")
-
 
 @requires_reliquary
 class VolumeResolutionTests:
@@ -978,28 +974,6 @@ class VolumeResolutionTests:
     def test_an_address_without_a_letter_is_refused(self):
         with pytest.raises(at_rest.AtRestError):
             binding._resolve_volume("HARNESS", "m", None, {"hdd0": {}})
-
-    def test_a_root_location_does_not_double_its_separator(self):
-        assert (binding._resolve_program(None, "C:\\", "SUITE.EXE")
-                == "C:\\SUITE.EXE")
-
-    def test_a_declared_program_substitutes_the_location(self):
-        assert (binding._resolve_program(
-                    "{location}\\RUNNER.EXE", "D:\\TESTS", "SUITE.EXE")
-                == "D:\\TESTS\\RUNNER.EXE")
-
-    def test_a_declared_program_may_name_no_placeholder_at_all(self):
-        assert (binding._resolve_program(
-                    "C:\\TOOLS\\RUN.EXE", "D:\\TESTS", "SUITE.EXE")
-                == "C:\\TOOLS\\RUN.EXE")
-
-    def test_an_unknown_placeholder_is_refused_naming_the_known_one(self):
-        with pytest.raises(ValueError) as caught:
-            binding._resolve_program("{drive}\\RUN.EXE", "D:\\TESTS",
-                                     "SUITE.EXE")
-
-        assert "{drive}" in str(caught.value)
-        assert "{location}" in str(caught.value)
 
 
 @requires_reliquary

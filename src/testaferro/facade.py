@@ -81,7 +81,7 @@ def guest_suite(target, framework=None, enumerator=None,
     environments Testaferro curates, such as "freedos". Naming none
     lets the executable's own format select one. `provider` names what
     runs the guest for an environment declared inline here —
-    "reliquary" today, the default and the only one built — and a
+    "reliquary", the default, or "dosbox-x" — and a
     named environment carries its own, so the two do not combine. Any
     further keyword is environment-specific and validated by the
     selected binding: today, `boot_image=` or `machine_config=` for

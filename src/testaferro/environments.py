@@ -14,7 +14,7 @@ passing through rather than a word Testaferro speaks (P3).
 
 ``provider`` runs the other way: it is the one guest-related word
 Testaferro *does* speak, naming what actually runs the suite
-(``reliquary`` today, the default and the only one built), and the
+(``reliquary``, the default, or ``dosbox-x``), and the
 environment is the one place it is named (P1, P2, D11). So it never
 reaches the blueprint — reliquary's document has no field for who is
 reading it.
@@ -191,7 +191,7 @@ def configure(name, machine_config=None, template=None, boot_image=None,
     pass through untouched for reliquary to validate (P3).
 
     ``provider`` names what actually runs this environment's guests —
-    ``reliquary`` today, the default and the only one built (P1, D11).
+    ``reliquary``, the default, or ``dosbox-x`` (P1, D11).
     It, ``timeout`` and ``suites`` are Testaferro's own rather than
     blueprint fields, so they may be said beside a complete template
     as well as beside constructed fields.

@@ -14,10 +14,13 @@ auto-loads and claims suite executables, and the embedding facade,
 which is its programmatic layer. Both resolve through the same seam.
 Built and working under its unit tier — though no guest has run since
 the migration to the blueprint model, so end-to-end proof is owed
-(see "Unit and integration" below). Reliquary is the only supported
-execution provider (P1, in force), and the provider is a choice a
-tester **declares**: `provider=` has all three spellings, dispatch is
-keyed by it, and reliquary is the default and the one binding built.
+(see "Unit and integration" below). Two execution providers are
+bound — reliquary, the default, and DOSBox-X (P1, in force) — and the
+provider is a choice a tester **declares**: `provider=` has all three
+spellings, dispatch is keyed by it, and the default stays reliquary
+so that two providers serving `dos` never turn inference into a
+choice (P8). The DOSBox-X binding is batch-shaped and refuses
+`guest_session()` naming the reason (D27).
 Testaferro's pluggable aspect is the guest unit-test framework
 (U6).
 
@@ -147,6 +150,14 @@ docstring):
   it, naming the character or the length that broke — nothing here
   re-checks it, and nothing anywhere mangles a name into something
   typeable.
+- [src/testaferro/placement.py](src/testaferro/placement.py) — test
+  placement, shared across the provider bindings: the nearest-speaker
+  override rule, host-side gathering of the staged set, and
+  `program=` resolution against a settled location. **Derived from
+  the two concrete bindings, not designed ahead of them** (D1, D11,
+  D27): it holds exactly what `dosbox_x.py` arrived doing the same
+  way `reliquary.py` already did, and nothing either does
+  differently — what a *location* means stays each binding's own.
 - [src/testaferro/reliquary.py](src/testaferro/reliquary.py) — the reliquary
   provider binding, for DOS guests (D16). Named for the provider it
   binds, because that is the layer Testaferro talks to: every call in
@@ -323,6 +334,35 @@ docstring):
   `guest_session()` is `suite_backend()`'s sibling factory, the same
   validation (a non-DOS `machine_config=`, `boot_image=` and
   `machine_config=` together) and no executable to classify.
+- [src/testaferro/dosbox_x.py](src/testaferro/dosbox_x.py) — the DOSBox-X
+  provider binding, for DOS guests, **batch-shaped by design** (F20,
+  D27). Named for the provider it binds (D16), with the one spelling
+  Python forces: a tester declares `provider="dosbox-x"` and the
+  hyphen becomes an underscore, exactly as hyphenated declaration
+  keys do. Each `Backend` operation is one DOSBox-X invocation — a
+  generated conf mounts the staged work directory in `[autoexec]`,
+  runs the argv with output redirected to a file on it, and exits;
+  the host reads the file. Three consequences, each a simplification:
+  the screen transport disappears (the redirected file is CppUTest's
+  own bytes, which double-checks the grammar against CppUTest rather
+  than against reliquary's screen — P9), readiness does not apply
+  (`[autoexec]` runs after DOS is up by construction), and nothing is
+  written at rest (the mounted host directory *is* the work drive, so
+  `at_rest`, remanence and the letter map stay reliquary's business).
+  The guest reads the staged set at `C:\`, DOSBox-X's own DOS needing
+  no system drive. `guest_session()` is **refused here, with the
+  reason** (U10, D27): no guest state survives between invocations,
+  and a scripted interaction exists to build on exactly that state —
+  relaunching per command would discard it silently, which is worse
+  than saying no. `setup=` commands become `[autoexec]` lines ahead
+  of the program, so they run in every invocation — the batch
+  spelling of once per guest session, each invocation being its own
+  guest — and a failing one has no `check=True` channel here; what it
+  broke surfaces in the suite's own output. DOSBox-X itself is found
+  on PATH or at the conventional Windows install locations, is **not
+  a dependency** (P11 — a separate process, tier 2; see the prior-art
+  section), and its absence refuses `start_guest()` before any
+  directory exists.
 - [src/testaferro/resolution.py](src/testaferro/resolution.py) — the
   backend-resolution seam: `resolve_backend()` is the single place
   where an executable plus options becomes a `Backend`, and every
@@ -331,9 +371,11 @@ docstring):
   here, so they answer the same way whoever asked. **Dispatch keys by
   provider** (P1, D11): the environment names one or takes
   `_DEFAULT_PROVIDER`, and the name selects the sibling module of the
-  same name, a binding being named for the provider it binds (D16).
-  `_PROVIDERS` is the gate on that — a name outside it is refused
-  rather than turned into an import. `platform` reaches resolution
+  same name, a binding being named for the provider it binds (D16) —
+  declared hyphens spelled as underscores, `dosbox-x` selecting
+  `dosbox_x.py`, the normalization hyphenated declaration keys
+  already get. `_PROVIDERS` is the gate on that — a name outside it
+  is refused rather than turned into an import. `platform` reaches resolution
   only as a field on the selected environment or as what the format
   inferred, and no longer picks anything: it is checked against the
   binding's own `PLATFORMS`, because which guests a provider serves is
@@ -807,6 +849,28 @@ permits object-code distribution under one's own licence with the
 notices intact, and the whole question stays fixture-sized so long as
 Open Watcom never touches `src/testaferro/`.
 
+### DOSBox-X — the second execution provider's emulator
+
+**GPL-2.0-or-later, verified 2026-08-21** against the upstream
+repository (joncampbell123/dosbox-x): the source headers carry the
+"either version 2 of the License, or (at your option) any later
+version" grant, `COPYING` is the GPLv2 text, and the installed copy
+this was proved against (2026.08.02) ships the same. **Tier 2 by the
+process boundary**, and the boundary is different from reliquary's
+QEMU in one way that matters: Testaferro invokes DOSBox-X *itself* —
+`src/testaferro/dosbox_x.py` runs the executable as a separate process,
+never linking, importing, or vendoring anything of it — so the
+arm's-length analysis lives here rather than one project down. That
+is why DOSBox-X, unlike QEMU, is a name this project speaks: it is
+the provider, not something under one (P2, D16). It is **not a P11
+dependency** — nothing installs it, `pip` never sees it, and the
+binding refuses cleanly when it is absent. **Never bundle the
+emulator, or any DOSBox-X file, into either build artifact** — a
+wheel or sdist carrying GPL-2.0-or-later material would demote the
+tier exactly as bundling FreeDOS media would. Doctrine holds
+alongside the licence: its behaviour is driven through its documented
+conf and command-line surface, and its code is never read.
+
 ### pytest — host surface
 
 MIT, tier 1. The facade's host surface (P11), imported lazily.
@@ -1088,6 +1152,18 @@ and singly, replays a failure with the guest's own file and line,
 `pytest SUITE.EXE` collects and runs for real, and a `testaferro.ini`
 beside a project claims the suite and boots the environment it
 declares with nothing named on the command line. Under two minutes.
+
+**The DOSBox-X binding's cases sit in the same tier, and fast is not
+cheap in P10's sense** — `tests/integration/test_dosbox_x.py` runs
+the same suite through real DOSBox-X invocations in about a second
+altogether, and stays integration anyway: DOSBox-X starting a DOS is
+a guest starting, however little it costs, and the emulator is an
+uncontrolled external besides. The cases skip when DOSBox-X is not
+installed — it is not a dependency (P11), so its absence is a skipped
+proof, never a failed suite. The measurement F20 asked for, answered:
+one invocation runs the whole suite in roughly 0.3 seconds against
+roughly fifteen for a single reliquary boot, so guest coverage priced
+out of the boot model is cheap here.
 
 Three defects fell out of building it, which is what it was for. A
 grammar that ended a failure message on a blank line the transport

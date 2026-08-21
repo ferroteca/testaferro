@@ -51,17 +51,22 @@ built and verified.
 ## The principles
 
 - **P1 — The execution provider is a declared choice, and reliquary
-  is the only supported one.** A **provider** is whatever actually
-  runs a guest suite — reliquary today, with vagrant, dosbox and wine
-  the shape of the others. They occupy one layer — a test environment
+  is the default.** A **provider** is whatever actually runs a guest
+  suite — reliquary and DOSBox-X today, with vagrant and wine the
+  shape of the others. They occupy one layer — a test environment
   uses one *or* another, and the environment names which (D11);
   Testaferro carries that provider's own configuration to it, for the
   provider to validate (P3). *[Amended from "guest-machine provider"
   and pledged by D18: not every provider boots a machine — wine and
   dosbox run a program without one — so the layer is named for what
   it does, which is also why a suite names an environment rather than
-  a machine (P2).]* The axis is Testaferro's own: a future provider is
-  a new binding here, never capability pushed upstream.
+  a machine (P2). The DOSBox-X binding is exactly that shape, built
+  (D27).]* The axis is Testaferro's own: a future provider is
+  a new binding here, never capability pushed upstream. Two providers
+  serve `dos` now, and the default deliberately stays one of them:
+  inference never becomes a choice, so zero configuration keeps
+  meaning exactly one thing (P8), and DOSBox-X is reached by
+  declaring it.
 
   **What resolution asks of a binding is two names.**
   `suite_backend()` returns a `Backend` for one executable, and
@@ -69,22 +74,36 @@ built and verified.
   than tabulated upstream of it, because what a provider runs is its
   own answer to give. What D1 refused stays refused: no structural
   runner contract, no conformance kit, no mirrored configuration
-  hierarchy, and no abstraction built ahead of a second concrete
-  provider; a prebuilt `Backend` remains the escape hatch, and the
+  hierarchy, and no abstraction beyond what the two concrete bindings
+  share — the placement vocabulary, derived from them once there were
+  two (D27); a prebuilt `Backend` remains the escape hatch, and the
   seam a provider implements.
 
+  **A provider serves the entry points its model can honor, and
+  refuses the rest in its own voice.** The two models are not equally
+  shaped: reliquary's guest stays up with an operation per exchange,
+  while a DOSBox-X guest is one invocation that starts, runs and
+  exits — so no guest state survives between commands, and
+  `guest_session()` is refused there naming that reason (U10, D27)
+  rather than served badly by relaunching per command and silently
+  discarding the very state a session exists to hold. The refusal is
+  the binding's answer, like `PLATFORMS`: resolution dispatches and
+  does not keep a capability table.
+
   **Where the axis stops short, it says so.** `testaferro.start()`
-  and `stop()` reach `src/testaferro/reliquary.py` by name, so a *run* —
-  one staged image and one sweep area — is one provider's today. That
-  is not a divergence while one provider exists: generalizing it now
-  is precisely the abstraction-ahead-of-need D1 refused. It is the
-  first place to look the day a second binding lands.
+  and `stop()` reach `src/testaferro/reliquary.py` by name, and that is
+  now a decided shape rather than a first-binding stop-short (D27): a
+  *run* is one staged boot-image choice and one sweep area, which
+  only the machine-booting model has — a DOSBox-X guest stages no
+  image and its home is swept by its own `stop_guest()`, so there is
+  no run state for it to join. The day a provider arrives that has
+  some, this is the place to look again.
 
   **The split governs verification as much as implementation**: a
   property of the guest machine is the provider's to guarantee and to
   test, so doubting one produces an upstream bug report — never a
   local audit of its internals, and never a defensive workaround
-  here. (D1, D11, D18.)
+  here. (D1, D11, D18, D27.)
 
   *[Amended before arming, twice. "Passes that provider's own
   configuration through untouched" restated P3's absolute in passing —
@@ -93,6 +112,12 @@ built and verified.
   document after all. The citation stays; the restatement goes. And
   the binding surface is named, F12 having made it two names rather
   than one, together with where the axis does not reach yet.]*
+
+  *[Amended on F20's delivery: "the only supported one" stopped
+  being true when the DOSBox-X binding landed, and the run's
+  stop-short became the decided limit above — both the entry catching
+  up to code that moved, exactly as this entry said they would be
+  (D27).]*
 
 - **P2 — Suites name test environments.** A **test environment** is
   what a suite runs in, and naming one is the whole of what a

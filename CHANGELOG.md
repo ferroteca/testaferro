@@ -6,6 +6,32 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [Unreleased]
 
+- **DOSBox-X is a second execution provider** (F20 delivered, D27;
+  P1 amended in force). `provider="dosbox-x"` — in all three
+  spellings, and in a declaration's own `provider` key — runs a
+  suite through the new `testaferro.dosbox_x` binding: each backend
+  operation is one DOSBox-X invocation whose generated conf mounts
+  the staged work directory as `C:` in `[autoexec]`, runs the argv
+  with output redirected to a file, and exits, the host reading the
+  file back. No boot, no install, no image: one invocation runs the
+  whole integration suite in about 0.3 seconds, against about
+  fifteen for a single boot on the default provider. The redirected
+  file is CppUTest's own bytes, so the run also double-checks the
+  grammar against the framework rather than against a screen
+  transport (P9). The default provider stays reliquary — two
+  providers serve `dos` now, and inference never becomes a choice
+  (P8). `guest_session()` is refused on `dosbox-x` naming the
+  reason: no guest state survives between invocations, and a
+  scripted interaction exists to build on exactly that state (U10).
+  DOSBox-X itself (GPL-2.0-or-later, verified) is found on `PATH` or
+  at its conventional Windows install locations, is invoked strictly
+  as a separate process, and is not a dependency — its absence
+  refuses cleanly, and nothing of it ships in any artifact. The
+  placement vocabulary the two bindings share — nearest-speaker
+  overrides, host-side gathering, `program=` resolution — moved to
+  `testaferro.placement`, derived from the two concrete bindings
+  exactly as D1 and D11 said any richer seam would be.
+
 ## [0.1.0a2] - 2026-08-20
 
 - **A failure the console wrapped no longer reads as a pass.** The

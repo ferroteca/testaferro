@@ -181,9 +181,11 @@ class BackendResolutionTests(_ResolutionCase):
 class ProviderDispatchTests(_ResolutionCase):
     """Dispatch keys by provider, and the provider is declared.
 
-    Reliquary is the default and the only binding built (P1, D11), so
-    what these prove is that the axis exists and refuses cleanly —
-    not that a second provider works, which needs a second provider.
+    Reliquary is the default of the two bindings built (P1, D11, F20's
+    delivery): the axis exists, refuses cleanly, and a declared
+    `dosbox-x` reaches its own binding — through the same hyphen
+    normalization declaration keys already get, `dosbox-x` not being
+    a Python identifier (D16).
     """
 
     def test_nothing_named_takes_the_default_provider(self):
@@ -218,8 +220,23 @@ class ProviderDispatchTests(_ResolutionCase):
 
         with pytest.raises(
                 ValueError,
-                match=r"unknown provider 'vagrant'; testaferro binds: reliquary"):
+                match=(r"unknown provider 'vagrant'; testaferro binds: "
+                       r"dosbox-x, reliquary")):
             resolve_backend(self._exe(), provider="vagrant")
+
+    def test_a_declared_second_provider_selects_its_own_binding(self):
+        # `dosbox-x` is how a declaration spells it; the module is
+        # `dosbox_x`, hyphens having no Python spelling (D16).
+        from testaferro.resolution import resolve_backend
+
+        exe = self._exe()
+
+        with mock.patch("testaferro.dosbox_x.suite_backend",
+                        return_value=FakeBackend(OUTCOMES)) as factory:
+            backend = resolve_backend(exe, provider="DOSBox-X")
+
+        factory.assert_called_once_with(exe)
+        assert isinstance(backend, FakeBackend)
 
     def test_an_unknown_provider_is_never_imported(self):
         # The name selects a sibling module (D16), so the set of known
@@ -363,8 +380,19 @@ class GuestSessionResolutionTests(_ResolutionCase):
 
         with pytest.raises(
                 ValueError,
-                match=r"unknown provider 'vagrant'; testaferro binds: reliquary"):
+                match=(r"unknown provider 'vagrant'; testaferro binds: "
+                       r"dosbox-x, reliquary")):
             resolve_guest_session(provider="vagrant")
+
+    def test_the_batch_provider_refuses_guest_sessions_with_the_reason(self):
+        # The refusal is the binding's own voice (U10, D27): the seam
+        # dispatches to it exactly as it would for a suite, and what
+        # comes back is why this provider cannot serve a scripted
+        # interaction — not a resolution error about a missing name.
+        from testaferro.resolution import resolve_guest_session
+
+        with pytest.raises(ValueError, match="runs suites only"):
+            resolve_guest_session(provider="dosbox-x")
 
     def test_a_wrong_option_names_what_the_environment_runs_on(self):
         from testaferro.resolution import resolve_guest_session

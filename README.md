@@ -13,8 +13,9 @@ executable; the embedding API is the same plugin's programmatic layer. The distr
 and everything else — is `testaferro`. (The retired `testaferro` distribution is a tombstone pointing here.)
 
 DOS and CppUTest are what it supports today. Reliquary owns the guest-machine side; Testaferro owns the pytest facade and
-its test-framework adapters. Other platforms and frameworks are not built; what has been argued for them, and what the
-project has decided so far, is in [planning/](planning/).
+its test-framework adapters, and can also run a suite under [DOSBox-X](https://dosbox-x.com/) instead
+(`provider="dosbox-x"` — see below). Other platforms and frameworks are not built; what has been argued for them, and
+what the project has decided so far, is in [planning/](planning/).
 
 ## Where it fits
 
@@ -228,11 +229,21 @@ fields (`drives`, `boot`, `scripts`, `backend_settings`, `control_planes`, `para
 integer stays an integer, so `memory = 32` and `memory = 32M` are both accepted. Call `testaferro.load_config(path)` to
 load an explicit file, or `load_config()` to search upward from the current directory.
 
-**`provider` names what actually runs the suite** — `reliquary` today, the default and the only one built — and it is
+**`provider` names what actually runs the suite** — `reliquary`, the default, or `dosbox-x` — and it is
 the one guest-related word Testaferro speaks for itself. So it sits *beside* the blueprint fields rather than among
 them: reliquary's document has no field for who is reading it. Declare nothing and you get reliquary; name one that
 does not exist and the run is refused up front, listing what Testaferro binds. A named environment carries its own, so
 `provider=` and `environment=` are not combined — whichever environment you named has already answered.
+
+**`dosbox-x` runs each suite operation as one [DOSBox-X](https://dosbox-x.com/) invocation** — a generated conf mounts
+the staged files as `C:`, runs the suite with its output redirected to a file, and exits — which starts in well under a
+second, needs no install and no boot image, and reads back the suite's own bytes rather than a screen. DOSBox-X is
+found on `PATH` (or at its conventional Windows install location); it is not a Python dependency and nothing installs
+it for you. The trade is state: a `dosbox-x` guest exists per invocation, so `boot_image=`, a machine document, and
+`guest_session()` are refused there with the reason — a scripted interaction needs guest state to persist between
+commands, which is exactly what the batch shape does not have. Emulation differs from virtualization, too: a suite
+that cares about real-mode timing or hardware fidelity should stay on the default provider, and DOSBox-X is reached
+only by declaring it.
 
 A declaration is a template, never a running machine: every guest session creates a fresh machine from it, so runs do
 not share guest state. What that costs per session is the blueprint's own business — reliquary's `materialize` mode on

@@ -79,6 +79,7 @@ from . import at_rest
 from . import binfmt
 from . import cache
 from . import cpputest
+from . import placement
 from .backend import GuestOutputError
 from .suite import SuiteBackend
 
@@ -107,10 +108,6 @@ _BOOT_MEDIA_NAME = "testaferro-boot"
 # ever read off anything.
 _FLOPPY_BASE_LETTER = "A"
 _HDD_BASE_LETTER = "C"
-# What `program=` may say before the location is known. `{stem}` and
-# `{name}` in the enumerator template are the precedent; this joins
-# that vocabulary rather than inventing a second one (F4).
-_LOCATION_PLACEHOLDER = "location"
 # Testaferro's installed FreeDOS system, shared by every guest session
 # that declared nothing of its own.
 _SYSTEM_MEDIA_NAME = "testaferro-freedos"
@@ -518,31 +515,6 @@ def _default_location(drives, work_key):
     return f"{letter}:\\"
 
 
-def _resolve_program(program, location, exe_name):
-    """The guest address of what to run, defaulted or declared.
-
-    Defaulted it is the staged executable under the location, which
-    is the whole of the one-liner case. Declared it is the consumer's
-    own address, with `{location}` substituted — the location is
-    settled by now whether they stated it or Testaferro chose it, and
-    that is precisely what makes one placeholder enough.
-    """
-    if program is None:
-        return _join(location, exe_name)
-    try:
-        return program.format(**{_LOCATION_PLACEHOLDER: location})
-    except KeyError as error:
-        raise ValueError(
-            f"program={program!r} names {{{error.args[0]}}}, which "
-            f"testaferro does not substitute; it knows "
-            f"{{{_LOCATION_PLACEHOLDER}}}") from None
-
-
-def _join(location, name):
-    """Join a guest directory address to a name, DOS-style."""
-    return location.rstrip("\\") + "\\" + name
-
-
 class _GuestLifecycle:
     """The guest-session provisioning `ReliquarySuiteBackend` and
     `GuestSession` both draw on, rather than each carrying its own
@@ -585,10 +557,8 @@ class _GuestLifecycle:
 
     def _nearest(self, given, name, default=None):
         """This call, then the declaration, then the default."""
-        declared = (None if self._machine_config is None
-                    else getattr(self._machine_config, name, None))
-        return next((value for value in (given, declared)
-                     if value not in (None, ())), default)
+        return placement.nearest(given, self._machine_config, name,
+                                 default)
 
     @property
     def location(self):
@@ -667,20 +637,10 @@ class _GuestLifecycle:
         """Collect the staged set into one host directory.
 
         The suite executable, when there is one — a `GuestSession`
-        names none — plus each `files=` entry beside it. A named
-        directory contributes its contents rather than itself, which
-        is what makes `files=["fixtures"]` land the fixtures where a
-        guest program will look for them instead of one directory
-        deeper.
+        names none — plus each `files=` entry beside it
+        (`placement.gather()`, shared with every binding that stages).
         """
-        if self._exe is not None:
-            shutil.copy2(self._exe, os.path.join(work, self._exe_name()))
-        for source in self._files:
-            if os.path.isdir(source):
-                shutil.copytree(source, work, dirs_exist_ok=True)
-            else:
-                shutil.copy2(source, os.path.join(
-                    work, os.path.basename(source)))
+        placement.gather(work, self._files, exe_path=self._exe)
 
     def _create(self, blueprints, boot, work):
         """Author this session's blueprint and materialize it.
@@ -971,8 +931,9 @@ class ReliquarySuiteBackend(_GuestLifecycle, SuiteBackend):
         # **The address staged against is the address spelled.** Both
         # come off the same settled location, so the command cannot
         # name somewhere the files did not go.
-        command = _resolve_program(self._declared_program, self.location,
-                                   self._exe_name())
+        command = placement.resolve_program(self._declared_program,
+                                            self.location,
+                                            self._exe_name())
         if args:
             command += " " + " ".join(args)
         rows = self._session.exec(command, machine=self._machine,
