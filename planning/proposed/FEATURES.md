@@ -133,3 +133,98 @@ this project's behaviour can only be proved by booting a guest).
 > exists and its five cases take about a minute, most of it one boot;
 > what an integration test costs is no longer a guess. That is what
 > decides whether this is one feature or four.
+
+## F20 — DOSBox-X as a second execution provider
+
+Serves **P1**, and is the event three entries defer to rather than
+refuse: D1 reconsiders a runner seam "only if a second actual runner
+appears", D11 leaves construction "waiting on a second concrete
+provider", and D16 declines a `providers/` package until "the day a
+second binding exists". Each names this as the trigger. The work is a
+binding module for DOSBox-X, its `PLATFORMS` declaring `dos`, and
+`provider=` accepting a second value — the axis P1 already describes,
+exercised for the first time.
+
+**The argument is cost, and P10 is where it lands.** The tiers are
+split on expense rather than coverage, and nearly everything
+Testaferro does can only be proved by booting a guest — so integration
+carries most of the real coverage, at roughly fifteen seconds for a
+single boot. DOSBox-X does not boot: it starts a DOS in about a
+second, serves a host directory as a drive with no image at all, and
+needs no install. If that holds, the tier's cost curve changes shape
+and work currently priced out of being tested becomes cheap. **That is
+a claim to measure before pledging, not to assert** — and measuring it
+is itself cheap now that the tier exists to measure against.
+
+**The shape is batch, not interactive, and that is the whole design.**
+Reliquary's model is a machine that stays up with an `exec()` per
+operation against it. DOSBox-X has no such channel and should not be
+given one: each `Backend` operation becomes one DOSBox-X invocation
+whose generated conf mounts the work directory in `[autoexec]`, runs
+the argv, redirects to a file on it, and exits. The host then reads
+the file. Three consequences, every one of them a simplification:
+
+- **The screen transport disappears.** A redirected file is CppUTest's
+  own bytes, blank lines and tabs intact, so the mangling the grammar
+  had to learn to tolerate (P9, and the defect that taught it) is not
+  exercised at all. A second provider reading the same framework
+  through a clean channel is also the best check available that the
+  grammar is right about *CppUTest* rather than right about
+  reliquary's screen.
+- **Readiness does not apply.** `[autoexec]` runs after DOS is up by
+  construction, so the invariant whose absence made every run's first
+  command come back as the boot's own output has nothing to guard.
+- **Nothing is written at rest.** A mounted host directory is the work
+  drive, so `at_rest`, remanence and the letter map stay reliquary's
+  business and none of this binding's.
+
+**What the pledge costs is not the binding.** Three things land with
+it:
+
+- **P1 is amended**, in force at the root, on two clauses: "reliquary
+  is the only supported one" stops being true, and the note that
+  `start()`/`stop()` reach `reliquary.py` by name stops being a
+  declared stop-short and becomes a divergence — P1 already calls it
+  "the first place to look the day a second binding lands". Neither is
+  a reversal; both are the entry catching up to code that moved.
+- **The seam is derived, not designed.** D1 and D11 both hold that a
+  richer provider interface comes from the concrete implementations
+  once there are two, so this is where that judgement finally gets
+  made: what `_GuestLifecycle` holds that is genuinely reliquary's,
+  and what belongs above it, is answerable for the first time.
+- **Inference does not become a choice** (P8). Two providers serve
+  `dos`, so the platform-to-provider mapping stops being a function.
+  The default stays reliquary and DOSBox-X is reached by declaring it,
+  so zero configuration keeps meaning exactly one thing.
+
+**The open question that may cut this in half is U10.**
+`guest_session()` is in force: a script runs guest commands one at a
+time and reads each answer back, with guest state persisting between
+them. The batch model has no answer for that, and relaunching per
+command discards the very state a session exists to hold. Either the
+binding refuses guest sessions and says so — a provider serving some
+entry points and not others, which nothing in the architecture
+currently contemplates — or DOSBox-X gets an interactive channel after
+all and the simplicity above is spent buying it. **Answer this before
+pledging**; it decides whether this is one piece or two.
+
+**Licensing needs a new entry, and that is new in itself.** Testaferro
+would invoke an external emulator *itself*, where today QEMU is
+reliquary's to invoke and the arm's-length analysis deliberately lives
+there. DOSBox-X is **believed GPL-2.0-or-later and unverified** —
+verify against the upstream tag before pledging, as the prior-art rule
+requires at the version in question. Invoked as a separate process it
+is tier 2 and adds no runtime dependency, so P11's cap holds;
+bundling it into either build artifact would demote it and must not
+happen. A `dosbox` standard environment would also be the catalog's
+first entry with nothing to author (P17), DOSBox-X bringing its own
+DOS — either a pleasant degenerate case or a sign the catalog's shape
+quietly assumes a document.
+
+**Too large as written**, and the cut lines are the three questions
+above: the measurement, the suite-running binding, and U10's answer.
+One naming detail waits at the pledge — a binding is named for the
+provider it binds (D16), and `dosbox-x` is not a Python identifier, so
+`provider="dosbox-x"` resolving to a `dosbox_x` module wants the same
+hyphen normalization the declaration keys already use, or a different
+name.
