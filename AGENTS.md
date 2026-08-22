@@ -800,7 +800,7 @@ is re-verified then, at the version in question.
 
 The only guest-machine provider (P1, D1) and a declared, imported
 runtime dependency. GPL-3.0-only from its `0.1.0.dev5`; the release
-Testaferro currently pins (`0.1.0a2`, D4) is well past that
+Testaferro currently pins (`0.1.0a3`, D4) is well past that
 conversion, so today's installed closure is the copyleft one this
 standing was written for, not merely anticipating it. Imported GPL
 is tier 3 for any other author's work; reliquary is

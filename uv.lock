@@ -362,7 +362,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "pytest" },
-    { name = "reliquary", specifier = "==0.1.0a2" },
+    { name = "reliquary", specifier = "==0.1.0a3" },
     { name = "remanence", specifier = "==0.0.1a6" },
 ]
 
@@ -386,7 +386,7 @@ wheels = [
 
 [[package]]
 name = "reliquary"
-version = "0.1.0a2"
+version = "0.1.0a3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "json5" },
@@ -396,9 +396,9 @@ dependencies = [
     { name = "qemu-qmp" },
     { name = "rich" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/da/3d/6df07c580b3d3f4b57e4266e040072e5befd76a67a6a312788fe0be8517e/reliquary-0.1.0a2.tar.gz", hash = "sha256:4d1b58f78a18c989441bf6277c00b75a00506711a420ef78fe9e0caabc4953a3", size = 588209, upload-time = "2026-08-19T14:27:24.239Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/48/218db1a9b7a6730450cb39ad2613fc4c3fc23d0462881d411209d5218cca/reliquary-0.1.0a3.tar.gz", hash = "sha256:f2a1cdae9e874a4c17f07adf3f307fee2a9df681b66fd5048c298325b83d5acd", size = 613519, upload-time = "2026-08-22T04:48:49.385Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/32/1a/462d7764d7ce92ff54c48986779a3a9530a9531f567aa93704f1bd9df691/reliquary-0.1.0a2-py3-none-any.whl", hash = "sha256:c7d7cf537b0b92986f369b5dcf7f89038166643bf14223498c054def2ee1cad6", size = 307203, upload-time = "2026-08-19T14:27:25.579Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/cc/c145fafe0ad80d06315b2ec822a2ce55bca0765d6c92ce869dace46a540c/reliquary-0.1.0a3-py3-none-any.whl", hash = "sha256:512e514da1754282fd6b937bd9da907c74dadcaf111a12a2b481eabedf550631", size = 322410, upload-time = "2026-08-22T04:48:48.054Z" },
 ]
 
 [[package]]

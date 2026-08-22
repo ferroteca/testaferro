@@ -6,6 +6,14 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [Unreleased]
 
+- **The reliquary pin moves to `0.1.0a3`** (D4). An additive release
+  on the provider's side — the VNC control plane on QEMU, a guest's
+  own font as an authored asset and a script's `font` statement — and
+  none of the session verbs this binding calls moved: no code changed
+  here. Verified the way a pin move is required to be (AGENTS.md):
+  the unit tier on the default interpreter and the 3.12 floor, the
+  build, and the full integration tier booting real guests against
+  the new release.
 - **A whole test tree in parallel is a proven journey** (U5 armed;
   F22 delivered, cut from F15). The README's `pytest -n auto --dist
   loadfile` advice is now run for real by the integration tier: two
