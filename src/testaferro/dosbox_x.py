@@ -45,14 +45,32 @@ through here; what it broke surfaces in the suite's own output.
 The suite is staged into a disposable work directory under
 Testaferro's cache (`guests/guest-*/work`, the same layout every
 binding uses — D15, and `cache.release_guest_home()` decides keep or
-sweep). The guest reads it at **`C:\\`**: DOSBox-X's own DOS needs no
-system drive, so the work drive takes the first letter rather than
-landing beside anything.
+sweep). The guest reads it at **`D:\\`** — the same letter the
+default provider's work drive takes, beside its system disk, so that
+a declared address (`location="D:\\TESTS"`, a `setup=` naming
+`D:\\DRIVER.COM`) moves between providers unchanged (F21, D28).
+DOSBox-X's own DOS needs no system drive and nothing is mounted at
+`C:`; `{location}` stays the spelling that is portable to any
+provider, whatever letter it serves.
+
+**A dosbox-x environment goes as deep as DOSBox-X does** (P2, F21).
+Every declared field beside Testaferro's own words is a conf
+**section** — `cpu={"cycles": "max"}`, `dosbox={"machine": "vga"}` —
+and a `machine_config=` path is a whole `.conf`, DOSBox-X's own INI.
+Both are carried untouched into the generated conf ahead of
+`[autoexec]`, for DOSBox-X to validate; Testaferro reads none of
+them and writes into none of them (P3). `[autoexec]` is the one
+section Testaferro owns — the batch shape *is* that section — so a
+declaration supplying its own is refused naming that, as is
+`boot_image=`: DOSBox-X can `BOOT` a floppy image, but a booted DOS
+runs no `[autoexec]`, and the batch shape has no way back in.
 """
 
 from __future__ import annotations
 
 import atexit
+import collections.abc
+import configparser
 import os
 import shutil
 import subprocess
@@ -71,8 +89,13 @@ from .suite import SuiteBackend
 # reliquary binding does.
 PLATFORMS = ("dos",)
 
-# The one drive this binding serves: the mounted work directory.
-_WORK_LETTER = "C"
+# The one drive this binding serves: the mounted work directory, at
+# the letter the default provider's work drive gets (D28), so an
+# address declared for one provider holds on the other.
+_WORK_LETTER = "D"
+# The one conf section Testaferro writes, and so the one a
+# declaration may not: the batch shape is this section.
+_OWN_SECTION = "autoexec"
 # Where each invocation's redirected output lands, at the work
 # drive's root. A `files=` entry of the same name would be
 # overwritten by the first run's redirect, which is why the name is
@@ -103,8 +126,8 @@ _sweep_registered = False
 
 
 def suite_backend(exe_path, framework=cpputest, enumerator=None,
-                  machine_config=None, timeout=None, files=(),
-                  location=None, program=None, setup=()):
+                  machine_config=None, boot_image=None, timeout=None,
+                  files=(), location=None, program=None, setup=()):
     """Interrogate the referenced suite executable and return the
     backend matching its format — a DosboxXSuiteBackend for a DOS
     program. Raises FileNotFoundError for a missing file and
@@ -112,14 +135,15 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
 
     `timeout`, `files`, `location`, `program` and `setup` are the
     same Testaferro-own words the reliquary binding takes, with the
-    same nearest-speaker override rule (F4, F9). There is no
-    `boot_image=`: DOSBox-X brings its own DOS, and nothing boots.
+    same nearest-speaker override rule (F4, F9).
 
-    `machine_config` may carry only Testaferro's own words beside its
-    `platform`: an authored machine document is another provider's
-    vocabulary (P3), and DOSBox-X reads none of it — a declaration
-    carrying one is refused naming the fields, before anything runs
-    (P7).
+    `machine_config` is a DOSBox-X environment: Testaferro's own
+    words beside conf sections in DOSBox-X's own vocabulary, or the
+    path to a whole `.conf` (F21). The sections pass through for
+    DOSBox-X to validate (P3); the one refused is `[autoexec]`, which
+    is Testaferro's to write. `boot_image=` is refused with the
+    reason: a booted DOS runs no `[autoexec]`, so the batch shape
+    could never get back in to run the suite.
     """
     exe_path = os.fspath(exe_path)
     fmt = binfmt.classify(exe_path)
@@ -127,6 +151,12 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
         raise ValueError(
             f"{os.path.basename(exe_path)} is {fmt.kind} executable; "
             "only DOS guest suites are supported")
+    if boot_image is not None:
+        raise ValueError(
+            "the dosbox-x provider takes no boot_image: a DOS booted "
+            "from an image runs no [autoexec], which is the only way "
+            "this binding's batch invocation has of running the suite; "
+            "a boot image runs on the 'reliquary' provider")
     machine_config = _checked_machine_config(machine_config)
     return DosboxXSuiteBackend(exe_path, framework=framework,
                                enumerator=enumerator,
@@ -153,34 +183,90 @@ def guest_session(**options):
         "'reliquary' provider")
 
 
+def read_document(path):
+    """An authored DOSBox-X `.conf` on disk, as a declaration.
+
+    DOSBox-X's own INI: each section becomes a field holding that
+    section's keys, read with nothing interpolated, nothing
+    case-folded and nothing required to have a value — the file is
+    DOSBox-X's to validate, and this reads only enough of it to carry
+    it (P3). Comments do not survive, exactly as a blueprint's do
+    not. What is checked is what the binding refuses anyway, so a
+    bad document fails at declaration rather than at the first run
+    (P7).
+    """
+    parser = configparser.ConfigParser(interpolation=None,
+                                       allow_no_value=True, strict=False)
+    parser.optionxform = str
+    with open(path, encoding="utf-8") as handle:
+        parser.read_file(handle, source=path)
+    sections = {name: dict(parser[name]) for name in parser.sections()}
+    _checked_sections(sections)
+    from .environments import EnvironmentSpec
+
+    return EnvironmentSpec(sections)
+
+
 def _checked_machine_config(machine_config):
     """The declaration, validated for this binding, or None.
 
     A dosbox-x environment declares Testaferro's own words —
     `provider`, `timeout`, `suites`, `files`, `location`, `program`,
-    `setup` — and its `platform`. Any other machine field is another
-    provider's document (P3): DOSBox-X reads none of it, and dropping
-    an authored field silently would be worse than refusing it.
+    `setup` — its `platform`, and conf sections (F21). A field that
+    is not a section, or blueprint `media` beside the machine, is
+    another provider's document (P3): DOSBox-X reads none of it, and
+    dropping an authored field silently would be worse than refusing
+    it.
     """
     if machine_config is None:
         return None
     from .environments import _coerce_machine_config
 
-    machine_config = _coerce_machine_config(machine_config)
+    machine_config = _coerce_machine_config(machine_config,
+                                            read=read_document)
     if machine_config.platform != "dos":
         raise ValueError(
             "this binding runs DOS guests and needs a DOS machine "
             f"config, not {machine_config.platform!r}")
-    foreign = sorted(set(machine_config.fields) - {"platform"})
     if machine_config.media:
-        foreign.append("media")
+        raise ValueError(
+            "a dosbox-x environment declares conf sections; this "
+            "declaration's media belong to another provider's document, "
+            "which dosbox-x does not read")
+    _checked_sections({name: value
+                       for name, value in machine_config.fields.items()
+                       if name != "platform"})
+    return machine_config
+
+
+def _checked_sections(sections):
+    """Refuse what this binding cannot carry: a field that is not a
+    section, and the one section that is Testaferro's own."""
+    foreign = sorted(name for name, value in sections.items()
+                     if not isinstance(value, collections.abc.Mapping))
     if foreign:
         raise ValueError(
-            "a dosbox-x environment carries testaferro's own words "
-            "only; this declaration's " + ", ".join(foreign)
+            "a dosbox-x environment's fields are conf sections — each "
+            "a mapping of that section's keys; this declaration's "
+            + ", ".join(foreign)
             + " belong to another provider's document, which dosbox-x "
             "does not read")
-    return machine_config
+    if _OWN_SECTION in sections:
+        raise ValueError(
+            f"a dosbox-x environment cannot declare [{_OWN_SECTION}]: "
+            "that section is how testaferro mounts the work drive, runs "
+            "the suite and exits, so it is the one section testaferro "
+            "writes itself; commands to run ahead of the suite are "
+            "declared as setup=")
+
+
+def _sections(machine_config):
+    """The declared conf sections, in declaration order, or none."""
+    if machine_config is None:
+        return ()
+    return tuple((name, value)
+                 for name, value in machine_config.fields.items()
+                 if name != "platform")
 
 
 def _find_executable():
@@ -213,22 +299,41 @@ def _split_address(address):
     return text[0].upper(), text[2:].strip("\\")
 
 
-def _conf(work, commands):
-    """The conf one invocation runs: mount, run, exit.
+def _conf(work, commands, sections=()):
+    """The conf one invocation runs: the declared sections, then
+    mount, run, exit.
 
-    Pure text, unit-testable with nothing launched (P10): the
-    `[autoexec]` section mounts the staged work directory as the work
-    drive, switches to it, runs the given command lines in order, and
-    exits DOSBox-X — which with `-silent` is the whole visible life
-    of the invocation.
+    Pure text, unit-testable with nothing launched (P10). The
+    declared `sections` — `(name, keys)` pairs in declaration order —
+    are written first and as authored, for DOSBox-X to validate
+    (P3); then the `[autoexec]` section mounts the staged work
+    directory as the work drive, switches to it, runs the given
+    command lines in order, and exits DOSBox-X — which with `-silent`
+    is the whole visible life of the invocation.
     """
-    lines = ["[autoexec]",
-             "@echo off",
-             f'mount {_WORK_LETTER.lower()} "{work}"',
-             f"{_WORK_LETTER}:"]
+    lines = []
+    for name, keys in sections:
+        lines.append(f"[{name}]")
+        for key, value in keys.items():
+            lines.append(key if value is None else f"{key}={_value(value)}")
+        lines.append("")
+    lines.extend([f"[{_OWN_SECTION}]",
+                  "@echo off",
+                  f'mount {_WORK_LETTER.lower()} "{work}"',
+                  f"{_WORK_LETTER}:"])
     lines.extend(commands)
     lines.append("exit")
     return "\n".join(lines) + "\n"
+
+
+def _value(value):
+    """One conf value as DOSBox-X spells it. The host literal for a
+    truth value (JSON's `true` in an INI, Python's `True` inline)
+    becomes the conf's `true`/`false` — a spelling, not a reading,
+    the same kind of exception P3 makes for hyphenated keys."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
 
 
 def _opened(backend):
@@ -267,6 +372,7 @@ class DosboxXSuiteBackend(SuiteBackend):
         staged_setup = placement.nearest(setup or None, declaration,
                                          "setup") or ()
         self._setup = tuple(str(command) for command in staged_setup)
+        self._sections = _sections(declaration)
         # The location settles at construction: there is no drive map
         # to read back, this binding serving exactly one drive. A
         # declared address naming any other letter is refused here,
@@ -350,7 +456,8 @@ class DosboxXSuiteBackend(SuiteBackend):
         conf = os.path.join(self._home, "testaferro.conf")
         with open(conf, "w", encoding="utf-8") as handle:
             handle.write(_conf(self._work,
-                               [*self._setup, redirected]))
+                               [*self._setup, redirected],
+                               self._sections))
         try:
             result = subprocess.run(
                 [self._executable, "-conf", conf, "-silent", "-nolog"],

@@ -20,7 +20,11 @@ provider is a choice a tester **declares**: `provider=` has all three
 spellings, dispatch is keyed by it, and the default stays reliquary
 so that two providers serving `dos` never turn inference into a
 choice (P8). The DOSBox-X binding is batch-shaped and refuses
-`guest_session()` naming the reason (D27).
+`guest_session()` naming the reason (D27), and a DOSBox-X
+environment goes as deep as DOSBox-X does: conf sections inline or
+a whole `.conf`, carried untouched ahead of `[autoexec]`, with the
+work drive at `D:` on both providers so that declared addresses
+move between them unchanged (P2, F21, D28).
 Testaferro's pluggable aspect is the guest unit-test framework
 (U6).
 
@@ -70,16 +74,23 @@ docstring):
   test-environment declarations backed by immutable
   `EnvironmentSpec` templates, plus selection and loading of the
   optional per-project `testaferro.ini` (declarative twin of
-  `config()`). An `EnvironmentSpec` holds the *authored* reliquary
-  blueprint JSON and mirrors none of reliquary's schema: fields pass
+  `config()`). An `EnvironmentSpec` holds the *authored* provider
+  document — reliquary blueprint fields, or DOSBox-X conf sections
+  (F21) — and mirrors neither provider's schema: fields pass
   through untouched — `platform` among them, which is the provider's
-  word rather than Testaferro's (P2) — and reliquary validates them
-  when it parses the document. Keys hyphenated in the blueprint
+  word rather than Testaferro's (P2) — and the provider validates
+  them when it parses the document. Keys hyphenated in the blueprint
   (`backend-settings`, `control-planes`) are written with underscores
-  in Python and INI and normalized on construction. **`provider`,
+  in Python and INI and normalized on construction. **A document on
+  disk is opened by the provider that owns its format** (D28):
+  `_coerce_machine_config()` takes a `read` callable, each binding
+  supplies its own `read_document()` — JSON5 for a `.rlqb`, INI for a
+  `.conf` — and a declaration naming a path asks the provider it
+  declared through `resolution.binding_for()`, which is also where
+  the default provider is applied and nowhere else. **`provider`,
   `timeout` and `suites` are Testaferro's own** and never reach the
-  blueprint: `provider` names what runs the guest (P1, D11), and
-  reliquary's document has no field for who is reading it, which is
+  document: `provider` names what runs the guest (P1, D11), and no
+  provider's document has a field for who is reading it, which is
   exactly why it is declared beside the machine spec rather than
   inside it. It is left `None` when unsaid — the default belongs to
   `resolution.py`, said in one place. `select()`
@@ -88,11 +99,15 @@ docstring):
   matches declarations only, so zero configuration stays zero (P8).
 - [src/testaferro/catalog.py](src/testaferro/catalog.py) — the standard
   environments Testaferro curates, reachable by name
-  (`environment="freedos"`). Each entry is an authored provider document
-  carried through untouched, exactly as a declaration is (P3);
-  `freedos` declares only its platform, which is what makes naming it
-  and naming nothing run the same guest. Siblings arrive as guests
-  grow.
+  (`environment="freedos"`, `environment="dosbox-x"`). Each entry is
+  spelled as `configure()`'s own options — the provider beside the
+  provider's own document — and built through the same
+  `_declaration()` a `testaferro.ini` section is, carried through
+  untouched exactly as a declaration is (P3, P16). `freedos` declares
+  only its platform, which is what makes naming it and naming nothing
+  run the same guest; `dosbox-x` declares its provider and one
+  authored section, `[cpu] cycles=max` (F21, D28). Siblings arrive as
+  guests grow.
 - [src/testaferro/suite.py](src/testaferro/suite.py) — `SuiteBackend`, the
   internal execution × framework composition. Argv crosses it
   untouched: it joins nothing and quotes nothing, because a
@@ -349,12 +364,26 @@ docstring):
   (`[autoexec]` runs after DOS is up by construction), and nothing is
   written at rest (the mounted host directory *is* the work drive, so
   `at_rest`, remanence and the letter map stay reliquary's business).
-  The guest reads the staged set at `C:\`, DOSBox-X's own DOS needing
-  no system drive. `guest_session()` is **refused here, with the
-  reason** (U10, D27): no guest state survives between invocations,
-  and a scripted interaction exists to build on exactly that state —
-  relaunching per command would discard it silently, which is worse
-  than saying no. `setup=` commands become `[autoexec]` lines ahead
+  The guest reads the staged set at `D:\` — the letter the default
+  provider's work drive takes beside its system disk, so a declared
+  address holds on both providers (F21, D28); DOSBox-X's own DOS
+  needs no system drive and nothing is mounted at `C:`. **A dosbox-x
+  environment goes as deep as DOSBox-X does** (P2, F21): every
+  declared field beside Testaferro's own words is a conf section and
+  a `machine_config=` path is a whole `.conf`, opened by this
+  binding's `read_document()` and written ahead of `[autoexec]` as
+  authored — nothing read, nothing case-folded, a host truth value
+  spelled as the conf's `true`/`false` and nothing else touched (P3).
+  `[autoexec]` is the one section Testaferro writes, so a declaration
+  supplying its own is refused naming `setup=`; a field that is not
+  a section, and blueprint `media`, are refused as another
+  provider's document. `boot_image=` is refused in the binding's own
+  voice (P1's rule, D27): a booted DOS runs no `[autoexec]`, which is
+  the batch shape's only way in. `guest_session()` is **refused here,
+  with the reason** (U10, D27): no guest state survives between
+  invocations, and a scripted interaction exists to build on exactly
+  that state — relaunching per command would discard it silently,
+  which is worse than saying no. `setup=` commands become `[autoexec]` lines ahead
   of the program, so they run in every invocation — the batch
   spelling of once per guest session, each invocation being its own
   guest — and a failing one has no `check=True` channel here; what it
@@ -420,7 +449,9 @@ docstring):
   that made it was closed. The claiming policy is the load-bearing
   part — see the invariant below. Its module imports stay stdlib-only:
   a pytest run that claims no guest suite must not pay for reliquary,
-  which is why `environments.py` imports the JSONC reader lazily.
+  which is why `environments.py` reaches a binding's `read_document()`
+  only when a declaration actually names a path, and through a lazy
+  import of `resolution` when it does.
 - [src/testaferro/facade.py](src/testaferro/facade.py) — the pytest facade
   and public entry point: `guest_suite(path_or_backend, ...)` items
   (re-exported as `testaferro.guest_suite`), selection-aware batching

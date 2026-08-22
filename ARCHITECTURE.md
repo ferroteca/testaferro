@@ -131,8 +131,9 @@ built and verified.
   **How deep a custom environment goes is the tester's to choose,
   and it goes as deep as the provider does.** A name and nothing
   else, or a complete provider document — a reliquary blueprint with
-  its drives, its provisioning scripts, its `backend-settings` —
-  carried to the provider for it to validate (P3, D4, U7). Precision
+  its drives, its provisioning scripts, its `backend-settings`; a
+  DOSBox-X conf with its sections (F21, D28) — carried to the
+  provider for it to validate (P3, D4, U7). Precision
   is never rationed here, and a tester who needs the provider's most
   specific knob reaches it by writing the provider's own document.
 

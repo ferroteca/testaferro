@@ -6,12 +6,33 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [Unreleased]
 
+- **A DOSBox-X environment goes as deep as DOSBox-X does** (F21
+  delivered, D28; P2). Where a reliquary environment carries a
+  blueprint, a `dosbox-x` environment now carries DOSBox-X's own
+  conf, in all three spellings: sections inline
+  (`testaferro.config("fast", provider="dosbox-x",
+  cpu={"cycles": "max"})`), a whole document
+  (`machine_config="harness.conf"`, its `template` alias, and
+  `--testaferro-machine-config`), and `testaferro.ini` (`cpu =
+  {"cycles": "max"}`, or `machine_config = harness.conf` relative to
+  the file). Sections are written ahead of Testaferro's `[autoexec]`
+  as authored, for DOSBox-X to validate; `[autoexec]` itself is the
+  one section a declaration may not supply, and `boot_image=` is
+  refused naming why a booted DOS has no way back into the batch
+  shape. A machine document on disk is opened by the provider that
+  declared it — JSON5 for a `.rlqb`, INI for a `.conf` — rather than
+  read as a blueprint regardless. The work drive moves from `C:` to
+  **`D:`**, the letter the default provider's work drive takes, so a
+  declared `location=`, a `setup=` naming `D:\DRIVER.COM`, or a suite
+  reading `D:` moves between providers unchanged. A `dosbox-x`
+  standard environment joins the catalog, authoring one section —
+  `[cpu] cycles=max`.
 - **DOSBox-X is a second execution provider** (F20 delivered, D27;
   P1 amended in force). `provider="dosbox-x"` — in all three
   spellings, and in a declaration's own `provider` key — runs a
   suite through the new `testaferro.dosbox_x` binding: each backend
   operation is one DOSBox-X invocation whose generated conf mounts
-  the staged work directory as `C:` in `[autoexec]`, runs the argv
+  the staged work directory as `D:` in `[autoexec]`, runs the argv
   with output redirected to a file, and exits, the host reading the
   file back. No boot, no install, no image: one invocation runs the
   whole integration suite in about 0.3 seconds, against about

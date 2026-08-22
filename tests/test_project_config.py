@@ -228,3 +228,40 @@ class ProjectConfigTests:
 
         assert (environments.configured()["msdos"].setup
                 == ("DRIVER.COM /install",))
+
+    def test_a_dosbox_x_section_spells_conf_sections_as_json(self):
+        # The structured-value rule already covering it (F21): a value
+        # opening with a brace is JSON, so a conf section is written
+        # under the environment's section with no new spelling.
+        ini = self._write(
+            "testaferro.ini",
+            "[fast]\n"
+            "provider = dosbox-x\n"
+            "cpu = {\"cycles\": \"max\"}\n"
+            "render = {\"aspect\": true}\n")
+
+        environments.load_config(ini)
+
+        config = environments.configured()["fast"]
+        assert config.provider == "dosbox-x"
+        assert config.cpu == {"cycles": "max"}
+        assert config.render == {"aspect": True}
+
+    def test_a_dosbox_x_conf_path_resolves_from_the_ini_directory(self):
+        # The existing path rule, and the declared provider opening
+        # its own document (F21): a .conf beside testaferro.ini is
+        # read as DOSBox-X's INI, never as a blueprint.
+        self._write("machines/harness.conf",
+                    "[dosbox]\nmachine = vga\n[cpu]\ncycles = max\n")
+        ini = self._write(
+            "testaferro.ini",
+            "[fast]\n"
+            "provider = dosbox-x\n"
+            "machine_config = machines/harness.conf\n")
+
+        environments.load_config(ini)
+
+        config = environments.configured()["fast"]
+        assert config.provider == "dosbox-x"
+        assert config.dosbox == {"machine": "vga"}
+        assert config.cpu == {"cycles": "max"}

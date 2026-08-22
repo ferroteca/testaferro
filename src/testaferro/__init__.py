@@ -110,12 +110,16 @@ def guest_session(environment=None, provider=None, **options):
 
 
 def config(name, **options):
-    """Declare a named test environment, backed by reliquary.
+    """Declare a named test environment, backed by the declared
+    provider's own document.
 
     Without a ``machine_config`` / ``template``, the options are the
-    blueprint's own machine fields — ``platform``, ``memory``,
-    ``drives`` and friends — passed through untouched for reliquary to
-    validate. The declaration is reused as a template; each guest
+    provider's own fields — a blueprint's ``platform``, ``memory``,
+    ``drives`` and friends for reliquary; conf sections such as
+    ``cpu={"cycles": "max"}`` for ``provider="dosbox-x"`` — passed
+    through untouched for the provider to validate. With one, the
+    path is the provider's own document (a ``.rlqb``, or a ``.conf``)
+    and that provider opens it. The declaration is reused as a template; each guest
     session receives a fresh materialization. The same declarations
     may be written in ``testaferro.ini`` (see ``load_config``).
     """

@@ -153,6 +153,44 @@ class EnvironmentConfigurationTests:
 
         assert config.setup == ()
 
+    def test_a_dosbox_x_environment_declares_conf_sections_inline(self):
+        # The same shape as blueprint fields, one provider over (F21,
+        # P2): each field is a section in DOSBox-X's own vocabulary,
+        # kept as written for the binding to carry (P3).
+        config = environments.configure(
+            "fast", provider="dosbox-x", cpu={"cycles": "max"},
+            dosbox={"machine": "vga"})
+
+        assert config.provider == "dosbox-x"
+        assert config.cpu == {"cycles": "max"}
+        assert config.dosbox == {"machine": "vga"}
+        assert (dict(config.fields)
+                == {"platform": "dos", "cpu": {"cycles": "max"},
+                    "dosbox": {"machine": "vga"}})
+
+    def test_a_document_path_is_opened_by_the_declared_provider(
+            self, tmp_path):
+        # Who parses is the one real change (F21): the declaration
+        # keeps the path and the provider, and that provider's binding
+        # reads its own format — a .conf here, not JSON5.
+        conf = tmp_path / "harness.conf"
+        conf.write_text("[cpu]\ncycles = max\n", encoding="utf-8")
+
+        config = environments.configure(
+            "fast", provider="dosbox-x", machine_config=str(conf))
+
+        assert config.provider == "dosbox-x"
+        assert config.cpu == {"cycles": "max"}
+
+    def test_a_document_path_for_an_unknown_provider_is_refused(
+            self, tmp_path):
+        conf = tmp_path / "harness.conf"
+        conf.write_text("[cpu]\ncycles = max\n", encoding="utf-8")
+
+        with pytest.raises(ValueError, match="unknown provider 'vagrant'"):
+            environments.configure("fast", provider="vagrant",
+                                   machine_config=str(conf))
+
 
 class StandardCatalogTests:
     """An environment name resolves to the project's declarations
@@ -192,28 +230,39 @@ class StandardCatalogTests:
         assert environments.select(inferred="dos") is None
 
     def test_every_standard_document_is_testaferros_own(self):
-        # A standard environment is fully owned: its document names
-        # no blueprint and no medium Testaferro did not author beside
-        # it, so nothing resolves from reliquary's codex or from the
-        # user's reliquary home (D6, D10).
-        for name, document in catalog.STANDARD.items():
-            declared = {spec.get("name") for spec in document
-                        if spec.get("type") != "machine"}
-            for spec in document:
-                assert spec.get("type") in ("machine", "media"), name
-                if spec.get("type") != "machine":
-                    assert (
-                        spec.get("location") or spec.get("path")), (
-                        f"{name}: medium {spec.get('name')!r} locates "
-                        "nothing testaferro authored")
-                    continue
-                for slot, drive in (spec.get("drives") or {}).items():
-                    located = (isinstance(drive, dict)
-                               and (drive.get("location")
-                                    or drive.get("media") in declared))
-                    assert located, (
-                        f"{name}: drive {slot!r} reaches for media "
-                        "declared somewhere testaferro does not own")
+        # A standard environment is fully owned (P17): its entry is
+        # written in the catalog module itself — no document read
+        # from a file outside it — and a blueprint's drives reach only
+        # media Testaferro authored beside them, so nothing resolves
+        # from reliquary's codex or the user's reliquary home (D6, D10).
+        for name, options in catalog.STANDARD.items():
+            assert "machine_config" not in options, name
+            assert "template" not in options, name
+            media = options.get("media", ())
+            media = [media] if isinstance(media, dict) else list(media)
+            declared = {spec.get("name") for spec in media}
+            for spec in media:
+                assert spec.get("location") or spec.get("path"), (
+                    f"{name}: medium {spec.get('name')!r} locates "
+                    "nothing testaferro authored")
+            for slot, drive in (options.get("drives") or {}).items():
+                located = (isinstance(drive, dict)
+                           and (drive.get("location")
+                                or drive.get("media") in declared))
+                assert located, (
+                    f"{name}: drive {slot!r} reaches for media "
+                    "declared somewhere testaferro does not own")
+
+    def test_the_second_provider_has_a_standard_environment(self):
+        # Worth authoring once there is a document to author (F21,
+        # P17): the name carries the provider and one conf section,
+        # spelled exactly as a declaration would spell them.
+        name, config = environments.select(name="dosbox-x")
+
+        assert name == "dosbox-x"
+        assert config.provider == "dosbox-x"
+        assert config.platform == "dos"
+        assert config.cpu == {"cycles": "max"}
 
     def test_an_unknown_name_lists_both_sources(self):
         environments.configure("win98", platform="win9x")

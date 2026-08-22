@@ -1,22 +1,28 @@
 # SPDX-FileCopyrightText: 2026 Paul Galbraith
 # SPDX-License-Identifier: GPL-3.0-only
-"""Named test-environment declarations backed by reliquary blueprints.
+"""Named test-environment declarations backed by provider documents.
 
 A **test environment** is what a suite runs in, and naming one is the
 whole of what a suite-facing consumer writes (P2): a standard
 environment Testaferro authors and names, or a custom one declared
 here. A declaration is reusable configuration, not a running guest: it
-is the authored blueprint document reliquary materializes afresh for
-every backend session. Testaferro carries the authored JSON through
-untouched and mirrors none of reliquary's schema — validation happens
-when reliquary parses it, and ``platform`` is one of the fields
-passing through rather than a word Testaferro speaks (P3).
+is the authored document the declared provider materializes afresh
+for every backend session — a reliquary blueprint, or a DOSBox-X conf
+(F21). Testaferro carries the authored fields through untouched and
+mirrors neither provider's schema — validation happens when the
+provider parses them, and ``platform`` is one of the fields passing
+through rather than a word Testaferro speaks (P3). **A document on
+disk is opened by the provider that owns its format**: the
+declaration keeps the path and the provider, and the selected
+binding's ``read_document()`` turns the one into a declaration in the
+other's vocabulary — JSON5 for a ``.rlqb``, INI sections for a
+``.conf`` — so nothing here assumes one provider's format for all.
 
 ``provider`` runs the other way: it is the one guest-related word
 Testaferro *does* speak, naming what actually runs the suite
 (``reliquary``, the default, or ``dosbox-x``), and the
 environment is the one place it is named (P1, P2, D11). So it never
-reaches the blueprint — reliquary's document has no field for who is
+reaches the document — no provider's document has a field for who is
 reading it.
 
 Declarations come from ``configure()`` / ``testaferro.config()`` or
@@ -92,14 +98,17 @@ _loaded_config = None
 
 
 class EnvironmentSpec:
-    """One declared test environment: an authored reliquary blueprint.
+    """One declared test environment: an authored provider document.
 
     Immutable, and a template rather than a running guest — the
-    binding writes it into a private reliquary home and creates a
-    fresh machine from it per session. Blueprint fields are readable
-    as attributes (``spec.platform``, ``spec.memory``,
-    ``spec.drives``), with underscores standing in for the hyphens the
-    blueprint spells (``spec.backend_settings``).
+    binding materializes a fresh guest from it per session. The
+    fields are the declared provider's own vocabulary and are readable
+    as attributes: a reliquary blueprint's machine fields
+    (``spec.platform``, ``spec.memory``, ``spec.drives``), with
+    underscores standing in for the hyphens the blueprint spells
+    (``spec.backend_settings``); or, for a ``dosbox-x`` environment,
+    DOSBox-X's own conf sections (``spec.cpu``, ``spec.dosbox``), each
+    a mapping of that section's keys (F21).
 
     ``provider``, ``timeout`` and ``suites`` are Testaferro's own
     rather than blueprint fields: which provider runs this environment
@@ -179,27 +188,39 @@ class EnvironmentSpec:
         return [machine, *(dict(spec) for spec in self._media)]
 
 
-def configure(name, machine_config=None, template=None, boot_image=None,
-              **options):
+def configure(name, **options):
     """Declare a named test environment and return its EnvironmentSpec.
 
     ``machine_config`` (or its ``template`` spelling) accepts an
     EnvironmentSpec, a mapping (a blueprint machine spec, or a whole
-    blueprint document), or the path to a ``.rlqb``. Without one, the
-    remaining options are the blueprint's own machine fields —
-    ``platform``, ``memory``, ``drives``, ``boot`` and friends — which
-    pass through untouched for reliquary to validate (P3).
+    blueprint document), or the path to the declared provider's own
+    document — a ``.rlqb`` for reliquary, a ``.conf`` for DOSBox-X —
+    which that provider's binding opens (F21). Without one, the
+    remaining options are the provider's own fields: a blueprint's
+    ``platform``, ``memory``, ``drives``, ``boot`` and friends for
+    reliquary, or conf sections — ``cpu={"cycles": "max"}`` — for
+    DOSBox-X, passing through untouched for the provider to validate
+    (P3).
 
     ``provider`` names what actually runs this environment's guests —
     ``reliquary``, the default, or ``dosbox-x`` (P1, D11).
     It, ``timeout`` and ``suites`` are Testaferro's own rather than
-    blueprint fields, so they may be said beside a complete template
+    document fields, so they may be said beside a complete template
     as well as beside constructed fields.
     """
     if not isinstance(name, str) or not name:
         raise ValueError("environment name must be a non-empty string")
     if name in _environments:
         raise ValueError(f"test environment {name!r} is already configured")
+    _environments[name] = _declaration(**options)
+    return _environments[name]
+
+
+def _declaration(machine_config=None, template=None, boot_image=None,
+                 **options):
+    """Build one declaration from ``configure()``'s options — the
+    same path a ``testaferro.ini`` section and a standard-catalog
+    entry take, so the three spellings cannot drift (P16)."""
     if machine_config is not None and template is not None:
         raise TypeError("pass either machine_config or template, not both")
     if template is not None:
@@ -233,7 +254,11 @@ def configure(name, machine_config=None, template=None, boot_image=None,
                                          program=options.get("program"),
                                          setup=options.get("setup", ()))
     else:
-        machine_config = _coerce_machine_config(machine_config)
+        # A path is the declared provider's own document, so that
+        # provider opens it — the default's binding when none was
+        # named, applied in resolution and nowhere else.
+        machine_config = _coerce_machine_config(
+            machine_config, read=_document_reader(options.get("provider")))
         if own:
             # A template is the provider's own document, so it says
             # nothing about which provider reads it, about timeouts, or
@@ -249,9 +274,19 @@ def configure(name, machine_config=None, template=None, boot_image=None,
                 location=own.get("location", machine_config.location),
                 program=own.get("program", machine_config.program),
                 setup=own.get("setup", machine_config.setup))
-
-    _environments[name] = machine_config
     return machine_config
+
+
+def _document_reader(provider):
+    """The ``read_document()`` of the binding ``provider`` names —
+    resolved only when a path actually arrives, so a declaration that
+    names no file never imports a binding to declare itself."""
+    def read(path):
+        from . import resolution
+
+        _, binding = resolution.binding_for(provider)
+        return binding.read_document(path)
+    return read
 
 
 def _provider(value):
@@ -424,15 +459,17 @@ def select(name=None, inferred=None):
 def _standard_environment(name):
     """The standard catalog's environment of that name, or None.
 
-    The document is authored and never edited, so it is materialized
+    The entry is authored and never edited, so it is materialized
     once and shared: every resolution of one standard name yields the
-    same immutable declaration, exactly as a declared name does.
+    same immutable declaration, exactly as a declared name does. An
+    entry is spelled as ``configure()``'s own options and built the
+    same way (P16, P17).
     """
-    document = catalog.STANDARD.get(name)
-    if document is None:
+    options = catalog.STANDARD.get(name)
+    if options is None:
         return None
     if name not in _standard:
-        _standard[name] = _from_document(list(document))
+        _standard[name] = _declaration(**options)
     return _standard[name]
 
 
@@ -448,8 +485,10 @@ def load_config(path=None, *, search_from=None):
     ``configure()``. Relative ``boot_image``, ``machine_config``, and
     ``template`` paths resolve from the file's directory. Structured
     blueprint fields (``drives``, ``boot``, ``backend_settings`` and
-    friends) accept JSON values. Idempotent for a repeated load of the
-    same path or a repeated empty search.
+    friends) accept JSON values, as does any value opening with a
+    bracket or brace — which is how a DOSBox-X conf section is spelled
+    here (``cpu = {"cycles": "max"}``). Idempotent for a repeated load
+    of the same path or a repeated empty search.
     """
     global _loaded_config
 
@@ -551,31 +590,26 @@ def _resolve_path(base_dir, value):
     return os.path.abspath(os.path.join(base_dir, value))
 
 
-def _coerce_machine_config(value):
+def _coerce_machine_config(value, read):
+    """A ``machine_config`` however it was spelled, as a declaration.
+
+    ``read`` opens a path: the provider's own ``read_document()``,
+    because a document on disk is in the provider's format and only
+    its binding knows which (F21). Every other spelling is already in
+    Python — a declaration, a mapping, or a list of specs — and needs
+    no provider to become one.
+    """
     if isinstance(value, EnvironmentSpec):
         return value
     if isinstance(value, collections.abc.Mapping):
         return _from_document(value)
     if isinstance(value, (str, os.PathLike)):
-        # The .rlqb dialect (JSON5: comments, trailing commas,
-        # unquoted keys): a declaration is authored blueprint JSON, so
-        # it is read the way reliquary reads it (0.1.0a2, D102 —
-        # reliquary's own JSONC dialect retired in favor of published
-        # JSON5). Imported here rather than at module scope so that
-        # importing this module stays stdlib-cheap — the plugin
-        # auto-loads into every pytest run, and a run that claims no
-        # guest suite must not pay for reliquary.
-        from reliquary import json5reader
-
-        path = os.fspath(value)
-        with open(path, encoding="utf-8") as handle:
-            document = json5reader.load(handle)
-        return _from_document(document)
+        return read(os.fspath(value))
     if isinstance(value, collections.abc.Sequence):
         return _from_document(list(value))
     raise TypeError(
-        "machine_config must be an EnvironmentSpec, a blueprint "
-        "mapping, a blueprint document, or a path to one")
+        "machine_config must be an EnvironmentSpec, a mapping, a "
+        "blueprint document, or a path to the provider's own document")
 
 
 def _from_document(document):

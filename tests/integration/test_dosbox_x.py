@@ -110,6 +110,10 @@ class DosboxResolutionTests:
     seam every entry point shares selects the dosbox-x binding and a
     real invocation answers through it."""
 
+    @pytest.fixture(autouse=True)
+    def _setup(self, clean_environments):
+        pass
+
     def test_the_declared_provider_resolves_and_runs_for_real(self):
         from testaferro.resolution import resolve_backend
 
@@ -123,3 +127,56 @@ class DosboxResolutionTests:
 
         assert outcomes[("Guest", "Runs")].passed
         assert not outcomes[("Guest", "Fails")].passed
+
+    def test_declared_conf_sections_reach_the_emulator_for_real(self):
+        # A dosbox-x environment goes as deep as DOSBox-X does (F21,
+        # P2): sections declared inline are written ahead of
+        # [autoexec], and only a real invocation can show DOSBox-X
+        # accepts the generated file — and that the work drive
+        # mounted at D: with nothing at C: runs the suite.
+        import testaferro
+        from testaferro.resolution import resolve_backend
+
+        testaferro.config("fast", provider="dosbox-x",
+                          dosbox={"machine": "vga", "memsize": 16},
+                          cpu={"cycles": "max"})
+        backend = resolve_backend(str(SUITE), environment="fast")
+        backend.start_guest()
+        try:
+            outcomes = {(o.group, o.name): o
+                        for o in backend.run_all()}
+        finally:
+            backend.stop_guest()
+
+        assert backend.location == "D:\\"
+        assert outcomes[("Guest", "Runs")].passed
+        assert not outcomes[("Guest", "Fails")].passed
+
+    def test_a_conf_document_reaches_the_emulator_for_real(self, tmp_path):
+        from testaferro.resolution import resolve_backend
+
+        conf = tmp_path / "harness.conf"
+        conf.write_text("# the tester's own DOSBox-X conf\n"
+                        "[cpu]\ncycles = max\n", encoding="utf-8")
+        backend = resolve_backend(str(SUITE), provider="dosbox-x",
+                                  machine_config=str(conf))
+        backend.start_guest()
+        try:
+            outcome = backend.run_test("Guest", "Runs")
+        finally:
+            backend.stop_guest()
+
+        assert outcome.passed
+
+    def test_the_standard_environment_resolves_and_runs_for_real(self):
+        # The catalog's second entry, end to end (F21, P17).
+        from testaferro.resolution import resolve_backend
+
+        backend = resolve_backend(str(SUITE), environment="dosbox-x")
+        backend.start_guest()
+        try:
+            outcome = backend.run_test("Guest", "Runs")
+        finally:
+            backend.stop_guest()
+
+        assert outcome.passed

@@ -108,11 +108,12 @@ named here follows that rule.
    (`testaferro.cpputest`) usable on their own. This is the primary
    interface, and the one U1 is written against.
 2. **The test-environment declaration** — the vocabulary of a
-   declaration, whichever spelling carries it: blueprint machine
-   fields passed through untouched (P3), `platform` among them, plus
-   Testaferro's own spellings around them — `environment=`,
-   `provider=`, `boot_image=`, `machine_config=`, and the
-   underscore-for-hyphen normalization of blueprint keys.
+   declaration, whichever spelling carries it: the declared
+   provider's own document fields passed through untouched (P3) — a
+   blueprint's machine fields, `platform` among them, or a DOSBox-X
+   conf's sections — plus Testaferro's own spellings around them —
+   `environment=`, `provider=`, `boot_image=`, `machine_config=`, and
+   the underscore-for-hyphen normalization of blueprint keys.
 3. **`testaferro.ini`** — the authored per-project file: its
    section-per-environment shape, its scalar and JSON value
    spellings, its relative-path resolution, and the upward search
@@ -174,8 +175,9 @@ anything that looks normative is written.
 
 - **P3 — Testaferro mirrors no provider's schema.** An authored
   machine document belongs to the declared provider's own
-  vocabulary — a reliquary blueprint today — and passes through
-  untouched for that provider to validate, so a new field is
+  vocabulary — a reliquary blueprint, or a DOSBox-X conf (F21) —
+  and passes through untouched for that provider to validate, so a
+  new field is
   expressible the day the provider ships it, without a Testaferro
   change. The single deliberate exception is key spelling:
   hyphenated blueprint keys are written with underscores in Python

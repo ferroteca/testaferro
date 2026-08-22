@@ -85,7 +85,8 @@ def guest_suite(target, framework=None, enumerator=None,
     named environment carries its own, so the two do not combine. Any
     further keyword is environment-specific and validated by the
     selected binding: today, `boot_image=` or `machine_config=` for
-    DOS, plus the placement declarations `files=`, `location=` and
+    DOS — the latter the declared provider's own document, a `.rlqb`
+    or a DOSBox-X `.conf` — plus the placement declarations `files=`, `location=` and
     `program=` — what is staged into the guest, the guest address it
     lands at, and what to run there. All three default, so a lone
     suite executable still needs none of them, and where a run landed

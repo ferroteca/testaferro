@@ -111,6 +111,59 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D28 — The DOSBox-X work drive is `D:`, and a document is opened by the provider that declared it
+
+**Decided** owner, 2026-08-21, by directing F21's delivery.
+**Supports** P2 (in force), P3, P17.
+
+Three rulings made in F21's course, each with the alternative it
+declined:
+
+- **The work drive takes `D:` on both providers.** F21 left this
+  between matching reliquary's letter and leaving letters each
+  provider's own with `{location}` as the portable spelling. Matched:
+  the owner's direction was that changing provider be as close to
+  transparent as is realistic, and a `setup=` naming `D:\DRIVER.COM`
+  or a suite reading its data from `D:` is exactly the declaration
+  that would otherwise not move. Nothing is mounted at `C:` — DOSBox-X
+  needs no system drive — and `{location}` remains the spelling
+  portable to any provider serving another letter. Reopened only by
+  a provider that cannot serve `D:` at all.
+- **A machine document on disk is opened by the declared provider's
+  binding**, each supplying its own `read_document()`, and a
+  declaration naming a path asks the provider it declared — the
+  default's binding when none was named, applied in
+  `resolution.binding_for()` and nowhere else. Declined: keeping one
+  parser in `environments.py` and sniffing the format, because a
+  format is the provider's (P3) and a `.conf` read as JSON5 fails
+  naming the wrong grammar.
+- **The `dosbox-x` catalog entry authors one section, `[cpu]
+  cycles=max`.** D27 declined the entry as having nothing to author;
+  the document channel gives it something, and a suite is run for
+  its answer rather than its timing. Declined: an entry declaring
+  nothing — the degenerate case P17 allows — which would buy nothing
+  over `provider=`, the ground D27 refused it on. Reopened by a suite
+  for which `cycles=max` changes an answer, and such a suite belongs
+  on the default provider regardless (D27).
+
+Refusals land in the binding's own voice (P1's rule, D27): a
+declared `[autoexec]`, a field that is not a section, blueprint
+`media`, and `boot_image=` — the last because a booted DOS runs no
+`[autoexec]`, the batch shape's only way in.
+
+**Folded into:** `src/testaferro/dosbox_x.py`,
+`src/testaferro/environments.py`, `src/testaferro/resolution.py`,
+`src/testaferro/reliquary.py`, `src/testaferro/catalog.py`,
+`src/testaferro/plugin.py`, [../ARCHITECTURE.md](../ARCHITECTURE.md)
+(P2), [proposed/ARCHITECTURE.md](proposed/ARCHITECTURE.md) (P3, the
+interface enumeration), [../AGENTS.md](../AGENTS.md),
+[../README.md](../README.md), [../CHANGELOG.md](../CHANGELOG.md),
+`tests/test_dosbox_x.py`, `tests/test_environments.py`,
+`tests/test_project_config.py`, `tests/test_resolution.py`,
+`tests/integration/test_dosbox_x.py`,
+[proposed/FEATURES.md](proposed/FEATURES.md) (F21 retired by
+delivery), [SEQUENCES.md](SEQUENCES.md).
+
 ### D27 — DOSBox-X is the second provider, batch-shaped, and refuses guest sessions
 
 **Decided** owner, 2026-08-21, by directing F20's delivery.
@@ -192,14 +245,17 @@ third binding may reopen this); a `dosbox` standard catalog entry
 (DOSBox-X brings its own DOS, so there is nothing to author — P17's
 degenerate case — and naming an environment that declares nothing
 buys nothing over declaring `provider=` until someone asks for the
-name); and a machine-document channel for DOSBox-X's own conf (a
+name) *[the entry exists now, with a section to author: F21, D28]*;
+and a machine-document channel for DOSBox-X's own conf (a
 dosbox-x declaration carries Testaferro's own words only, and a
 declaration carrying another provider's blueprint fields is refused
 naming them rather than silently stripped — passing authored conf
 sections through, P3's shape for this provider, is its own argued
-feature the day a suite needs one). `boot_image=` is likewise not a
+feature the day a suite needs one) *[that day came: F21 delivered
+the channel, D28]*. `boot_image=` is likewise not a
 dosbox-x option: nothing boots, and resolution's existing
-wrong-option refusal names the environment and provider.
+wrong-option refusal names the environment and provider *[the
+binding refuses it in its own voice since F21, naming why]*.
 
 **Folded into:** `src/testaferro/dosbox_x.py`,
 `src/testaferro/placement.py`, `src/testaferro/reliquary.py`,

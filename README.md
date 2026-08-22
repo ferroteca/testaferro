@@ -192,10 +192,11 @@ backend.location        # 'C:\\TESTS'
 ### Named test environments
 
 A **test environment** is what a suite runs in, and naming one is the whole of what a suite writes. Declare a named
-environment once when several suites share it. A declaration is a reliquary **blueprint** — the machine's own
-description, in reliquary's vocabulary. `config()` accepts blueprint machine fields directly (`platform`, `memory`,
-`drives`, `boot`, `backend_settings`, …), which pass through untouched for reliquary to validate, or a complete
-`machine_config=` template: an `EnvironmentSpec`, a mapping, a whole blueprint document, or a path to a `.rlqb` file.
+environment once when several suites share it. A declaration is the provider's own document — a reliquary
+**blueprint**, the machine's own description in reliquary's vocabulary, or a DOSBox-X **conf** (below). `config()`
+accepts blueprint machine fields directly (`platform`, `memory`, `drives`, `boot`, `backend_settings`, …), which pass
+through untouched for reliquary to validate, or a complete `machine_config=` template: an `EnvironmentSpec`, a
+mapping, a whole blueprint document, or a path to a `.rlqb` file.
 
 ```python
 import testaferro
@@ -236,14 +237,41 @@ does not exist and the run is refused up front, listing what Testaferro binds. A
 `provider=` and `environment=` are not combined — whichever environment you named has already answered.
 
 **`dosbox-x` runs each suite operation as one [DOSBox-X](https://dosbox-x.com/) invocation** — a generated conf mounts
-the staged files as `C:`, runs the suite with its output redirected to a file, and exits — which starts in well under a
+the staged files as `D:`, runs the suite with its output redirected to a file, and exits — which starts in well under a
 second, needs no install and no boot image, and reads back the suite's own bytes rather than a screen. DOSBox-X is
 found on `PATH` (or at its conventional Windows install location); it is not a Python dependency and nothing installs
-it for you. The trade is state: a `dosbox-x` guest exists per invocation, so `boot_image=`, a machine document, and
-`guest_session()` are refused there with the reason — a scripted interaction needs guest state to persist between
-commands, which is exactly what the batch shape does not have. Emulation differs from virtualization, too: a suite
-that cares about real-mode timing or hardware fidelity should stay on the default provider, and DOSBox-X is reached
-only by declaring it.
+it for you. The work drive takes the same letter on both providers, so a declared `location=`, a `setup=` naming
+`D:\DRIVER.COM`, or a suite reading its own data from `D:` moves between them unchanged; `{location}` stays the
+spelling that is portable to any provider. The trade is state: a `dosbox-x` guest exists per invocation, so
+`boot_image=` and `guest_session()` are refused there with the reason — a booted DOS runs no `[autoexec]`, and a
+scripted interaction needs guest state to persist between commands, which is exactly what the batch shape does not
+have. Emulation differs from virtualization, too: a suite that cares about real-mode timing or hardware fidelity
+should stay on the default provider, and DOSBox-X is reached only by declaring it.
+
+**A `dosbox-x` environment goes as deep as DOSBox-X does.** Where a reliquary environment carries a blueprint, a
+DOSBox-X environment carries DOSBox-X's own conf — its sections and keys, in its vocabulary, written into the
+generated file ahead of Testaferro's `[autoexec]` for DOSBox-X to validate. Say a section inline as a mapping, or hand
+over a whole `.conf`:
+
+```python
+testaferro.config("fast", provider="dosbox-x", cpu={"cycles": "max"}, dosbox={"machine": "vga"})
+testaferro.config("tuned", provider="dosbox-x", machine_config="machines/harness.conf")
+```
+
+```ini
+[fast]
+provider = dosbox-x
+cpu = {"cycles": "max"}
+
+[tuned]
+provider = dosbox-x
+machine_config = machines/harness.conf
+```
+
+Testaferro writes into none of your sections and reads none of them. `[autoexec]` is the one section it owns — the
+batch invocation *is* that section — so a declaration supplying its own is refused; commands to run ahead of the
+suite are `setup=`, as on every provider. The same `--testaferro-machine-config` option takes a `.conf` when the
+provider is `dosbox-x`: a machine document is the declared provider's, and that provider is what opens it.
 
 A declaration is a template, never a running machine: every guest session creates a fresh machine from it, so runs do
 not share guest state. What that costs per session is the blueprint's own business — reliquary's `materialize` mode on
@@ -258,7 +286,9 @@ test_guest_case = testaferro.guest_suite("build/TESTS.EXE", environment="freedos
 ```
 
 `freedos` is a **standard environment** Testaferro curates — the zero-configuration DOS guest, made nameable, so a
-suite can say which environment it means without the project declaring one. More arrive as guests grow.
+suite can say which environment it means without the project declaring one. `dosbox-x` is its sibling on the second
+provider: DOSBox-X with one authored section, `cycles=max`, because a suite is run for its answer rather than its
+timing. More arrive as guests grow.
 
 A name resolves against your own declarations first and the standard catalog second, so declaring `freedos` yourself
 gets you yours. The catalog is reached by asking for it by name and never by inference: with nothing declared, an

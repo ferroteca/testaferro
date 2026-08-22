@@ -70,29 +70,75 @@ class SuiteDispatchTests(_BindingFixture):
                                   machine_config={"platform": "os2"})
 
     def test_another_providers_document_is_refused_naming_its_fields(self):
-        # An authored machine document is the declared provider's own
-        # vocabulary (P3). DOSBox-X reads none, so a declaration
-        # carrying blueprint fields is refused rather than quietly
-        # stripped of them.
+        # A dosbox-x environment's fields are conf sections (F21). A
+        # field that is not one — a blueprint's `memory`, `boot` — is
+        # another provider's vocabulary (P3), refused by name rather
+        # than quietly dropped.
         with pytest.raises(ValueError) as caught:
             binding.suite_backend(self.exe, machine_config={
-                "platform": "dos", "memory": "32M", "drives": {}})
+                "platform": "dos", "memory": "32M", "boot": ["hdd0"],
+                "cpu": {"cycles": "max"}})
 
-        assert "drives, memory" in str(caught.value)
+        assert "boot, memory" in str(caught.value)
+        assert "cpu" not in str(caught.value)
+
+    def test_blueprint_media_beside_the_machine_are_refused(self):
+        from testaferro.environments import EnvironmentSpec
+
+        spec = EnvironmentSpec({"platform": "dos"},
+                               media=[{"name": "boot", "location": "x"}])
+
+        with pytest.raises(ValueError, match="media belong to another"):
+            binding.suite_backend(self.exe, machine_config=spec)
 
     def test_a_declaration_of_testaferros_own_words_is_accepted(self):
         from testaferro.environments import EnvironmentSpec
 
         spec = EnvironmentSpec({"platform": "dos"}, timeout=5,
-                               location="C:\\TESTS",
+                               location="D:\\TESTS",
                                program="{location}\\RUN.EXE",
                                setup=("DRIVER.COM /install",))
 
         backend = binding.suite_backend(self.exe, machine_config=spec)
 
         assert backend._timeout == 5
-        assert backend.location == "C:\\TESTS"
+        assert backend.location == "D:\\TESTS"
         assert backend._setup == ("DRIVER.COM /install",)
+
+    def test_declared_sections_are_carried_in_declaration_order(self):
+        # Each field beside Testaferro's own words is a conf section,
+        # carried as authored (P2, P3): nothing is read, and the order
+        # the tester wrote is the order DOSBox-X sees.
+        from testaferro.environments import EnvironmentSpec
+
+        spec = EnvironmentSpec({"platform": "dos",
+                                "dosbox": {"machine": "vga"},
+                                "cpu": {"cycles": "max", "core": "auto"}})
+
+        backend = binding.suite_backend(self.exe, machine_config=spec)
+
+        assert backend._sections == (
+            ("dosbox", {"machine": "vga"}),
+            ("cpu", {"cycles": "max", "core": "auto"}))
+
+    def test_a_declared_autoexec_is_refused_with_the_reason(self):
+        # [autoexec] is the batch shape itself — the one section
+        # Testaferro writes — so a declaration supplying its own is
+        # refused naming that and the spelling that does exist.
+        with pytest.raises(ValueError) as caught:
+            binding.suite_backend(self.exe, machine_config={
+                "platform": "dos", "autoexec": {"DRIVER.COM": None}})
+
+        assert "cannot declare [autoexec]" in str(caught.value)
+        assert "setup=" in str(caught.value)
+
+    def test_a_boot_image_is_refused_with_the_reason(self):
+        # DOSBox-X can BOOT a floppy image, but a booted DOS runs no
+        # [autoexec], and that section is the batch shape's only way
+        # of running the suite — refused naming that (F21).
+        with pytest.raises(ValueError, match="runs no \\[autoexec\\]"):
+            binding.suite_backend(self.exe,
+                                  boot_image=str(self.tempdir / "a.img"))
 
     def test_guest_sessions_are_refused_with_the_reason(self):
         # U10's open question, answered (D27): the batch model holds
@@ -108,12 +154,15 @@ class PlacementTests(_BindingFixture):
     binding's own constant, no machine to read anything off."""
 
     def test_the_default_location_is_the_work_drive_root(self):
+        # D:, the letter the default provider's work drive takes, so
+        # an address declared for one provider holds on the other
+        # (F21, D28).
         backend = binding.suite_backend(self.exe)
 
-        assert backend.location == "C:\\"
+        assert backend.location == "D:\\"
 
     def test_a_declared_location_maps_to_a_work_subdirectory(self):
-        backend = binding.suite_backend(self.exe, location="C:\\TESTS")
+        backend = binding.suite_backend(self.exe, location="D:\\TESTS")
         backend.start_guest()
         try:
             staged = os.path.join(backend._work, "TESTS", "SUITE.EXE")
@@ -123,10 +172,10 @@ class PlacementTests(_BindingFixture):
 
     def test_a_location_on_another_drive_is_refused_naming_this_one(self):
         with pytest.raises(ValueError) as caught:
-            binding.suite_backend(self.exe, location="D:\\TESTS")
+            binding.suite_backend(self.exe, location="C:\\TESTS")
 
-        assert "names drive D:" in str(caught.value)
-        assert "C:" in str(caught.value)
+        assert "names drive C:" in str(caught.value)
+        assert "D:" in str(caught.value)
 
     def test_files_are_gathered_beside_the_suite(self):
         data = self.tempdir / "DATA.BIN"
@@ -164,24 +213,97 @@ class ConfAuthoringTests:
 
     def test_the_autoexec_mounts_runs_and_exits(self):
         text = binding._conf(r"C:\cache\guests\g1\work",
-                             ["SUITE.EXE -v > C:\\TSTFERRO.OUT"])
+                             ["SUITE.EXE -v > D:\\TSTFERRO.OUT"])
 
         assert text == (
             "[autoexec]\n"
             "@echo off\n"
-            'mount c "C:\\cache\\guests\\g1\\work"\n'
-            "C:\n"
-            "SUITE.EXE -v > C:\\TSTFERRO.OUT\n"
+            'mount d "C:\\cache\\guests\\g1\\work"\n'
+            "D:\n"
+            "SUITE.EXE -v > D:\\TSTFERRO.OUT\n"
             "exit\n")
 
     def test_setup_commands_precede_the_program_in_order(self):
         text = binding._conf("work", ["FIRST.COM", "SECOND.COM",
-                                      "RUN.EXE > C:\\TSTFERRO.OUT"])
+                                      "RUN.EXE > D:\\TSTFERRO.OUT"])
 
         lines = text.splitlines()
         assert lines.index("FIRST.COM") < lines.index("SECOND.COM")
         assert lines.index("SECOND.COM") < lines.index(
-            "RUN.EXE > C:\\TSTFERRO.OUT")
+            "RUN.EXE > D:\\TSTFERRO.OUT")
+
+    def test_declared_sections_precede_the_autoexec_as_authored(self):
+        # The tester's sections go in ahead of Testaferro's own, each
+        # key spelled as DOSBox-X spells it — a truth value as the
+        # conf's `true`, everything else as written (F21).
+        text = binding._conf("work", ["RUN.EXE > D:\\TSTFERRO.OUT"],
+                             sections=(("cpu", {"cycles": "max"}),
+                                       ("render", {"aspect": True,
+                                                   "scaler": "none"})))
+
+        assert text == (
+            "[cpu]\n"
+            "cycles=max\n"
+            "\n"
+            "[render]\n"
+            "aspect=true\n"
+            "scaler=none\n"
+            "\n"
+            "[autoexec]\n"
+            "@echo off\n"
+            'mount d "work"\n'
+            "D:\n"
+            "RUN.EXE > D:\\TSTFERRO.OUT\n"
+            "exit\n")
+
+
+class DocumentTests(_BindingFixture):
+    """A whole `.conf` is DOSBox-X's own document, opened by this
+    binding (F21): the declaration keeps the path, the provider reads
+    the format."""
+
+    def _conf_file(self, text):
+        path = self.tempdir / "harness.conf"
+        path.write_text(text, encoding="utf-8")
+        return str(path)
+
+    def test_a_conf_document_reads_as_sections(self):
+        path = self._conf_file(
+            "# DOSBox-X's own INI, comments and all\n"
+            "[dosbox]\n"
+            "machine = vga\n"
+            "memsize = 16\n"
+            "\n"
+            "[cpu]\n"
+            "cycles = max\n")
+
+        spec = binding.read_document(path)
+
+        assert spec.platform == "dos"
+        assert spec.dosbox == {"machine": "vga", "memsize": "16"}
+        assert spec.cpu == {"cycles": "max"}
+
+    def test_keys_and_values_are_carried_as_authored(self):
+        # Nothing case-folded, nothing interpolated: `%` and mixed
+        # case are DOSBox-X's to read (P3).
+        path = self._conf_file("[sdl]\nOutput = OpenGL\ntitle = 100%\n")
+
+        spec = binding.read_document(path)
+
+        assert spec.sdl == {"Output": "OpenGL", "title": "100%"}
+
+    def test_a_document_with_its_own_autoexec_is_refused_on_reading(self):
+        path = self._conf_file("[cpu]\ncycles = max\n"
+                               "[autoexec]\nDRIVER.COM /install\n")
+
+        with pytest.raises(ValueError, match="cannot declare \\[autoexec\\]"):
+            binding.read_document(path)
+
+    def test_a_document_path_reaches_the_generated_conf(self):
+        path = self._conf_file("[cpu]\ncycles = max\n")
+        backend = binding.suite_backend(self.exe, machine_config=path)
+
+        assert backend._sections == (("cpu", {"cycles": "max"}),)
 
 
 class GuestRunTests(_BindingFixture):
@@ -243,8 +365,28 @@ class GuestRunTests(_BindingFixture):
         self._run(backend, ("-sg", "Vring", "-sn", "Wraps"),
                   side_effect=fake_run)
 
-        assert ("C:\\SUITE.EXE -sg Vring -sn Wraps > C:\\TSTFERRO.OUT"
+        assert ("D:\\SUITE.EXE -sg Vring -sn Wraps > D:\\TSTFERRO.OUT"
                 in conf_seen[0])
+
+    def test_declared_sections_are_written_ahead_of_the_autoexec(self):
+        backend = binding.suite_backend(
+            self.exe, machine_config={"platform": "dos",
+                                      "cpu": {"cycles": "max"}})
+        conf_seen = []
+
+        def fake_run(argv, **kwargs):
+            with open(argv[2], encoding="utf-8") as handle:
+                conf_seen.append(handle.read())
+            with open(os.path.join(backend._work, "TSTFERRO.OUT"),
+                      "wb") as handle:
+                handle.write(b"OK\r\n")
+            return self._completed()
+
+        self._run(backend, ("-v",), side_effect=fake_run)
+
+        lines = conf_seen[0].splitlines()
+        assert lines.index("[cpu]") < lines.index("cycles=max")
+        assert lines.index("cycles=max") < lines.index("[autoexec]")
 
     def test_setup_commands_run_in_every_invocation(self):
         # The batch spelling of "once per guest session": each
@@ -266,7 +408,7 @@ class GuestRunTests(_BindingFixture):
 
         lines = conf_seen[0].splitlines()
         assert lines.index("DRIVER.COM /install") < lines.index(
-            "C:\\SUITE.EXE -v > C:\\TSTFERRO.OUT")
+            "D:\\SUITE.EXE -v > D:\\TSTFERRO.OUT")
 
     def test_a_declared_program_is_the_command_spelled(self):
         backend = binding.suite_backend(
@@ -283,7 +425,7 @@ class GuestRunTests(_BindingFixture):
 
         self._run(backend, ("-v",), side_effect=fake_run)
 
-        assert "C:\\RUNNER.EXE -v > C:\\TSTFERRO.OUT" in conf_seen[0]
+        assert "D:\\RUNNER.EXE -v > D:\\TSTFERRO.OUT" in conf_seen[0]
 
     def test_a_run_that_leaves_no_output_fails_naming_the_channel(self):
         backend = binding.suite_backend(self.exe)

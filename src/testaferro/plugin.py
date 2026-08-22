@@ -88,8 +88,9 @@ _SETTINGS = (
     ("provider", "name of the provider that runs claimed suites; a "
                  "named environment carries its own"),
     ("boot-image", "boot image for the zero-configuration environment"),
-    ("machine-config", "path to a machine document (.rlqb) claimed "
-                       "suites run on"),
+    ("machine-config", "path to the provider's own machine document "
+                       "claimed suites run on: a .rlqb for reliquary, "
+                       "a .conf for dosbox-x"),
     ("enumerator", "host-built twin that enumerates a suite, as a "
                    "path template: build/host/{stem}.exe"),
     ("timeout", "seconds one guest command may take before the "

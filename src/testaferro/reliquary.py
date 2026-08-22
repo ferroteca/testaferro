@@ -177,14 +177,7 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
         raise ValueError(
             f"{os.path.basename(exe_path)} is {fmt.kind} executable; "
             "only DOS guest suites are supported")
-    if machine_config is not None:
-        from .environments import _coerce_machine_config
-
-        machine_config = _coerce_machine_config(machine_config)
-        if machine_config.platform != "dos":
-            raise ValueError(
-                "this binding runs DOS guests and needs a DOS machine "
-                f"config, not {machine_config.platform!r}")
+    machine_config = _checked_machine_config(machine_config)
     if boot_image is not None and machine_config is not None:
         raise TypeError("boot_image and machine_config cannot be combined")
     return ReliquarySuiteBackend(exe_path, framework=framework,
@@ -208,18 +201,45 @@ def guest_session(boot_image=None, machine_config=None, timeout=None,
     `boot_image`, `machine_config`, `timeout`, `files` and `setup`
     are the same options `suite_backend()` takes, with the same
     validation and the same nearest-speaker override rule."""
-    if machine_config is not None:
-        from .environments import _coerce_machine_config
-
-        machine_config = _coerce_machine_config(machine_config)
-        if machine_config.platform != "dos":
-            raise ValueError(
-                "this binding runs DOS guests and needs a DOS machine "
-                f"config, not {machine_config.platform!r}")
+    machine_config = _checked_machine_config(machine_config)
     if boot_image is not None and machine_config is not None:
         raise TypeError("boot_image and machine_config cannot be combined")
     return GuestSession(boot_image=boot_image, machine_config=machine_config,
                         timeout=timeout, files=files, setup=setup)
+
+
+def read_document(path):
+    """An authored `.rlqb` on disk, as a declaration.
+
+    The blueprint dialect is JSON5 (comments, trailing commas,
+    unquoted keys), so it is read the way reliquary reads it
+    (0.1.0a2, D102 — reliquary's own JSONC dialect retired in favor
+    of published JSON5). This lives in the binding because the format
+    is the provider's (F21): a declaration naming a path hands it to
+    whichever provider it declared, and this is reliquary's answer.
+    """
+    from reliquary import json5reader
+
+    from .environments import _from_document
+
+    with open(path, encoding="utf-8") as handle:
+        document = json5reader.load(handle)
+    return _from_document(document)
+
+
+def _checked_machine_config(machine_config):
+    """The declaration, validated for this binding, or None."""
+    if machine_config is None:
+        return None
+    from .environments import _coerce_machine_config
+
+    machine_config = _coerce_machine_config(machine_config,
+                                            read=read_document)
+    if machine_config.platform != "dos":
+        raise ValueError(
+            "this binding runs DOS guests and needs a DOS machine "
+            f"config, not {machine_config.platform!r}")
+    return machine_config
 
 
 # The active Testaferro run opened by start(), or None: its

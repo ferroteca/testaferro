@@ -238,6 +238,22 @@ class ProviderDispatchTests(_ResolutionCase):
         factory.assert_called_once_with(exe)
         assert isinstance(backend, FakeBackend)
 
+    def test_the_standard_dosbox_x_environment_selects_its_binding(self):
+        # A catalog name carries its provider like any declaration
+        # (F21, P17): naming "dosbox-x" reaches the dosbox_x binding
+        # with the authored declaration in hand.
+        from testaferro.resolution import resolve_backend
+
+        exe = self._exe()
+
+        with mock.patch("testaferro.dosbox_x.suite_backend",
+                        return_value=FakeBackend(OUTCOMES)) as factory:
+            resolve_backend(exe, environment="dosbox-x")
+
+        machine_config = factory.call_args.kwargs["machine_config"]
+        assert machine_config.provider == "dosbox-x"
+        assert machine_config.cpu == {"cycles": "max"}
+
     def test_an_unknown_provider_is_never_imported(self):
         # The name selects a sibling module (D16), so the set of known
         # providers is also the gate on what may become an import.

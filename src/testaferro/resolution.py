@@ -74,6 +74,25 @@ def _module(provider):
         "." + provider.replace("-", "_"), __package__)
 
 
+def binding_for(provider):
+    """The binding module a declared provider name selects — the
+    default's when nothing was named — or a refusal naming what
+    Testaferro binds. The one place the default is applied (P1, D11),
+    asked by both resolvers here and by a declaration that has to
+    know who reads its document before anything is resolved (F21):
+    a machine document is the declared provider's own, so the binding
+    that provider names is what opens it.
+    """
+    from . import environments
+
+    provider = environments._provider(provider) or _DEFAULT_PROVIDER
+    if provider not in _PROVIDERS:
+        raise ValueError(
+            f"unknown provider {provider!r}; testaferro binds: "
+            + ", ".join(sorted(_PROVIDERS)))
+    return provider, _module(provider)
+
+
 def resolve_backend(target, environment=None, provider=None,
                     search_from=None, **options):
     """Build the suite backend for an executable path.
@@ -115,13 +134,8 @@ def resolve_backend(target, environment=None, provider=None,
         options["machine_config"] = machine_config
     else:
         name, selected_platform = None, fmt.platform
-        selected_provider = environments._provider(provider)
-    selected_provider = selected_provider or _DEFAULT_PROVIDER
-    if selected_provider not in _PROVIDERS:
-        raise ValueError(
-            f"unknown provider {selected_provider!r}; testaferro binds: "
-            + ", ".join(sorted(_PROVIDERS)))
-    binding = _module(selected_provider)
+        selected_provider = provider
+    selected_provider, binding = binding_for(selected_provider)
     if selected_platform not in binding.PLATFORMS:
         # The platform is a blueprint field the tester wrote, or what
         # the format inferred — never an option anyone typed — so the
@@ -176,13 +190,8 @@ def resolve_guest_session(environment=None, provider=None,
         options["machine_config"] = machine_config
     else:
         name, selected_platform = None, None
-        selected_provider = environments._provider(provider)
-    selected_provider = selected_provider or _DEFAULT_PROVIDER
-    if selected_provider not in _PROVIDERS:
-        raise ValueError(
-            f"unknown provider {selected_provider!r}; testaferro binds: "
-            + ", ".join(sorted(_PROVIDERS)))
-    binding = _module(selected_provider)
+        selected_provider = provider
+    selected_provider, binding = binding_for(selected_provider)
     if selected_platform is not None and selected_platform not in binding.PLATFORMS:
         raise ValueError(
             f"test environment {name!r} declares platform "
