@@ -208,6 +208,48 @@ class PlacementTests(_BindingFixture):
         assert backend._home is None
 
 
+class DiscoveryTests:
+    """Where DOSBox-X is looked for: PATH, then the installer's
+    default, then the host's own Program Files."""
+
+    def test_program_files_comes_from_the_host_not_a_literal(self):
+        with mock.patch.dict(os.environ,
+                             {"PROGRAMFILES": r"E:\Apps",
+                              "PROGRAMFILES(X86)": r"E:\Apps32"}):
+            locations = binding._windows_locations()
+
+        assert locations == (r"C:\DOSBox-X\dosbox-x.exe",
+                             r"E:\Apps\DOSBox-X\dosbox-x.exe",
+                             r"E:\Apps32\DOSBox-X\dosbox-x.exe")
+
+    def test_a_32_bit_host_naming_one_directory_twice_lists_it_once(self):
+        with mock.patch.dict(os.environ,
+                             {"PROGRAMFILES": r"E:\Apps",
+                              "PROGRAMFILES(X86)": r"E:\Apps"}):
+            locations = binding._windows_locations()
+
+        assert locations == (r"C:\DOSBox-X\dosbox-x.exe",
+                             r"E:\Apps\DOSBox-X\dosbox-x.exe")
+
+    def test_without_program_files_only_the_installer_default_remains(self):
+        with mock.patch.dict(os.environ, clear=True):
+            locations = binding._windows_locations()
+
+        assert locations == (r"C:\DOSBox-X\dosbox-x.exe",)
+
+    def test_the_refusal_names_where_it_looked(self, tmp_path):
+        with mock.patch.object(binding.shutil, "which", return_value=None), \
+                mock.patch.object(binding.os.path, "isfile",
+                                  return_value=False), \
+                mock.patch.dict(os.environ,
+                                {"PROGRAMFILES": str(tmp_path)}):
+            with pytest.raises(FileNotFoundError) as caught:
+                binding._find_executable()
+
+        assert str(tmp_path) in str(caught.value)
+        assert "PATH" in str(caught.value)
+
+
 class ConfAuthoringTests:
     """The conf one invocation runs, as pure text (P10)."""
 

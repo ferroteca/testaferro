@@ -111,10 +111,24 @@ _DEFAULT_TIMEOUT = 120
 # PATH, or at the conventional Windows install locations when the
 # installer did not add itself to PATH.
 _EXECUTABLE = "dosbox-x"
-_WINDOWS_LOCATIONS = (
-    r"C:\DOSBox-X\dosbox-x.exe",
-    r"C:\Program Files\DOSBox-X\dosbox-x.exe",
-)
+
+
+def _windows_locations():
+    """The installer's default (`C:\\DOSBox-X`), then the Program
+    Files directories Windows itself names — `%PROGRAMFILES%` and,
+    for a 32-bit DOSBox-X on a 64-bit host, `%PROGRAMFILES(X86)%` —
+    read at lookup rather than assumed, since the system drive and
+    the directories' names are both the host's to say. Only PATH is
+    left off Windows, where neither variable exists."""
+    locations = [r"C:\DOSBox-X\dosbox-x.exe"]
+    for variable in ("PROGRAMFILES", "PROGRAMFILES(X86)"):
+        program_files = os.environ.get(variable)
+        if program_files:
+            candidate = os.path.join(program_files, "DOSBox-X",
+                                     "dosbox-x.exe")
+            if candidate not in locations:
+                locations.append(candidate)
+    return tuple(locations)
 
 # Backends holding a staged guest home right now. No process outlives
 # an invocation here — `subprocess.run()` waits — but a home would
@@ -280,12 +294,13 @@ def _find_executable():
     found = shutil.which(_EXECUTABLE)
     if found is not None:
         return found
-    for candidate in _WINDOWS_LOCATIONS:
+    locations = _windows_locations()
+    for candidate in locations:
         if os.path.isfile(candidate):
             return candidate
     raise FileNotFoundError(
-        "dosbox-x was not found on PATH or at "
-        + ", ".join(_WINDOWS_LOCATIONS)
+        "dosbox-x was not found on PATH"
+        + (" or at " + ", ".join(locations) if locations else "")
         + "; install DOSBox-X or add it to PATH to use "
         "provider='dosbox-x'")
 
