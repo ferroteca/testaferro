@@ -238,13 +238,15 @@ taken**: P4 amended to admit an optional sixth adapter callable
 `run_some()` operation on the seam, defaulted so the escape hatch
 owes nothing new, and a per-group batch in the broker, proven
 against a real guest both directly and under `--dist load`. **F2
-took the same compressed route and is the first delivery that armed
-nothing** (D30): `persist=` keeps a machine by name, the `testaferro`
+took the same compressed route, and U8 armed a step behind it**
+(D30, D31): `persist=` keeps a machine by name, the `testaferro`
 console script enumerates and removes what is kept, and every clause
-of U8 but one is proven against real boots — the one short, a
-machine staying up across the suites that name it in one run, is
-recorded at U8's entry with its reason, and the use case stays
-drafted until that is built or the owner amends the clause. Several
+of U8 but one was proven against real boots at delivery — the one
+short, a machine staying up across the suites that name it in one
+run, was left recorded at the entry rather than claimed, and the
+owner then amended the clause to accept the reboot F2 built, which
+is the honest order: the list never carried a claim the code did not
+meet. Several
 drafted entries describe code that already exists; that makes their
 route short, not automatic — the pledge is still an act, and
 delivery still has to be true.

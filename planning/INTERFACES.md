@@ -29,7 +29,10 @@ and honors today: root [`USE-CASES.md`](../USE-CASES.md) holds **U4**,
 the trial journey, armed once a guest actually ran it; **U7**,
 harness prep, armed once a real guest boot proved `setup=` — commands
 run in the guest before any test, once per session, a real failure
-ending the session cleanly; **U9**, a standard environment named
+ending the session cleanly; **U8**, a persistent machine kept by
+name, armed once real boots proved its disks carry across guest
+sessions and runs and its clause on serving suites was amended to
+the reboot that was built (D31); **U9**, a standard environment named
 rather than left to inference, armed once `environment="freedos"`
 proved out against a real guest boot; and **U10**, a scripted guest
 interaction, armed once `guest_session()` proved out against a real
@@ -49,8 +52,8 @@ the point of arming: a change that would erode zero configuration, add
 a fourth dependency, ask a consumer for an emulator, or make a grammar
 answerable to a captured sample is refused against a rule rather than
 argued against a draft — and a change that would break the trial
-journey, harness prep, or a scripted guest interaction, is refused
-against U4, U7 or U10 the same way.
+journey, harness prep, a kept machine, or a scripted guest
+interaction, is refused against U4, U7, U8 or U10 the same way.
 Both files number from the
 same global
 sequences and keep their numbers when they move. A number is never

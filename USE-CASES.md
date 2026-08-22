@@ -139,12 +139,12 @@ cut from F15 to this one journey, and retired with it.
   supply it — met by a custom boot image (U3) or a persistent
   provisioned machine (U8), not by this journey.
 
-**U7 cites U3 and U8, both still drafted**, for the boot-level need
-this journey deliberately does not cover. That is a citation rather
-than a dependency, exactly as U4's citations of U1–U3 were: the map's
-rule against leaning on a proposal tests completion, and no clause
-above leans on U3 or U8 for anything this journey itself claims — they
-are named only to say what a different journey answers. Declaring
+**U7 cites U3, still drafted, and U8, in force below**, for the
+boot-level need this journey deliberately does not cover. That is a
+citation rather than a dependency, exactly as U4's citations of U1–U3
+were: the map's rule against leaning on a proposal tests completion,
+and no clause above leans on U3 or U8 for anything this journey itself
+claims — they are named only to say what a different journey answers. Declaring
 `setup=` and running `pytest` are both proven against a real guest
 boot: a command written to the work drive by a `setup=` entry is read
 back before any test runs, and a `setup=` command that signals failure
@@ -152,6 +152,38 @@ back before any test runs, and a `setup=` command that signals failure
 `reliquary.Session.exec(check=True)` — ends the guest session and is
 reported once, in the same `GuestOutputError` shape every other guest
 exchange fails in, never as a traceback into Testaferro.
+
+- **U8 — A persistent machine, kept for many tests, never silently
+  destroyed.** A provisioned machine is expensive and its disk
+  state is the point, so the tester opts a machine out of the
+  sweep. The cycle is the pytest session: the machine boots when
+  the first suite needs it, serves every test that names it — one
+  guest session at a time, rebooting the same disks between the
+  suites that name it rather than staying up across them, because a
+  suite reaches the guest on a work drive read once at boot — and
+  shuts down when the session ends. But shutting down is not
+  destroying, and the next session boots the same disks with the
+  harness still in place. Destroying is explicit — a lifecycle verb,
+  never a side effect of a test run. This is a stated exception to
+  U3's fresh-machine rule, and it is the tester's trade, made by
+  name: state carries across suites and cycles because carrying it
+  is what was asked for, and what persists, where, is enumerable and
+  removable (P5).
+
+**U8 cites U3, still drafted**, only to name the rule it is an
+exception to; no clause above leans on U3 being met. Its clause on
+serving suites was amended at arming (D31): as drafted it read "while
+up", and what F2 built reboots the kept machine between suites, for
+the reason the clause now states — a second suite's staged set can
+reach the guest only by a boot. The owner accepted the reboot rather
+than owing pre-boot staging of every suite's set, which is a seam
+change nobody has asked for. Every clause is proven against real
+boots (D30): `persist=<name>` keeps the machine under
+`machines/<name>`, a file written to `C:` in one guest session is
+read back in the next, a suite runs on the kept machine, a machine a
+run died with up is refused by name and freed by `testaferro
+shutdown`, `testaferro list` enumerates what is kept and where, and
+only `testaferro destroy` removes it.
 
 - **U9 — A standard environment, by name.** Between nothing and a
   declaration sits a name: `environment="freedos"` selects a standard
@@ -221,7 +253,7 @@ boot for real, the way every other proven journey here was proven.
   a script that actually needs it.
 
 **U10 cites U1 and U3, still drafted, for the same reason U7's
-citations of U3 and U8 stayed drafted**: the map's rule against
+citation of U3 stayed drafted**: the map's rule against
 leaning on a proposal tests completion, and no clause above leans on
 U1 or U3 for anything this journey itself claims — they are named
 only to say `guest_session()` takes the same placement vocabulary

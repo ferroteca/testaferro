@@ -111,6 +111,27 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D31 — U8 accepts a reboot between suites, and arms
+
+**Decided** owner, 2026-08-22, by directing the amendment. **Supports**
+U8 (in force). A ruling made in an arming's course, recorded slim.
+
+U8's clause "serves every test that names it while up" now reads
+"one guest session at a time, rebooting the same disks between the
+suites that name it rather than staying up across them", with the
+reason in the clause itself: a suite reaches the guest on a work
+drive read once at boot. The alternative D30 named — every suite's
+staged set on the drive before the first boot, which the entry
+points know and the binding does not — is declined as a seam change
+nobody has asked for; the journey's value is the disks carrying
+across suites and runs, and a reboot between suites keeps every bit
+of that. With the clause amended, every clause of U8 is met by
+proven code, so it moves to root `USE-CASES.md` in the same change.
+
+**Folded into:** root `USE-CASES.md` (U8), D30 (annotation),
+`planning/proposed/USE-CASES.md` (U8 removed), `AGENTS.md`,
+`CHANGELOG.md`, `planning/README.md`, `planning/INTERFACES.md`.
+
 ### D30 — A persistent machine is a named opt-out, and the lifecycle CLI is its door
 
 **Decided** owner, 2026-08-22, by directing F2's implementation;
@@ -192,7 +213,8 @@ the entry points know at that moment and the binding does not. That
 is a seam change (a backend told about suites it was not asked to
 boot yet) and not F2's to make on the side. U8 stays drafted with
 the residue at its entry; arming it is that work, or the owner
-amending the clause, and this entry decides neither.
+amending the clause, and this entry decides neither. *[The owner
+amended the clause the same day, D31, and U8 armed.]*
 
 **Weighed and declined:** keying the kept machine by environment
 name (above); a boolean `persistent = true` (nothing to list by);

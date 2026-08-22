@@ -26,8 +26,9 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
   `persist=` with the reason. Proven against real boots: a file
   written to `C:` in one guest session is read back in the next, a
   suite runs on the kept machine, a machine left running is refused
-  and then freed by `shutdown`, and `destroy` removes it. U8 stays
-  drafted with one clause's residue named at its entry.
+  and then freed by `shutdown`, and `destroy` removes it. **U8
+  armed** once its clause on serving suites was amended to accept
+  that reboot between suites (D31).
 - **Intra-suite sharding: a narrowed selection runs a group at a
   time** (F3 delivered, D29; P4 amended in force). The `Backend` seam
   gains `run_some(group, names)`, defaulted to one `run_test()` per

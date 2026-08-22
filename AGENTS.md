@@ -593,13 +593,13 @@ both batched and `-k`-narrowed.
   `guest_session()`, its prerequisite F18 delivered and retired with
   it in turn. `planning/pledged/` now holds nothing. Every other U- or
   P-number still open names either a rule in force or an argument,
-  never something merely owed. **U8 is the one drafted use case
-  whose feature has delivered without arming it** (F2, D30):
-  persistence, the verbs and the enumeration are built and proven,
-  and one clause — a machine staying up across the suites that name
-  it in one run — is short by a reboot between suites, for a reason
-  recorded at the entry; arming it is either that work or the owner
-  amending the clause, and neither is an agent's call.
+  never something merely owed. **U8** armed a step behind its
+  feature (F2, D30, D31): delivery left one clause — a machine
+  staying up across the suites that name it in one run — short by a
+  reboot and said so at the entry, and the owner amended the clause
+  to accept the reboot rather than owe pre-boot staging; a use-case
+  amendment is never an agent's call, which is why the gap was
+  recorded rather than closed.
   Four principles stay drafted: P3 and P5, each contradicted by a
   small piece of the code and each saying so at its own entry, and
   P14 and P15, which govern conduct rather than code. An entry may

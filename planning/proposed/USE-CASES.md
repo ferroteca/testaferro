@@ -104,32 +104,3 @@ once, each suite whole on its own worker.
   was obtained, which is also why it is usable on its own, against
   output the caller captured some other way.
 
-- **U8 — A persistent machine, up for many tests, never silently
-  destroyed.** A provisioned machine is expensive and its disk
-  state is the point, so the tester opts a machine out of the
-  sweep. The cycle is the pytest session: the machine boots when
-  the first suite needs it, serves every test that names it while
-  up, and shuts down when the session ends — but shutting down is
-  not destroying, and the next session boots the same disks with
-  the harness still in place. Destroying is explicit — a lifecycle
-  verb (F2), never a side effect of a test run. This is a stated
-  exception to U3's fresh-machine rule, and it is the tester's
-  trade, made by name: state carries across suites and cycles
-  because carrying it is what was asked for, and what persists,
-  where, is enumerable and removable (P5).
-
-  **F2 delivered this journey's mechanism and left one clause short**
-  (D30). `persist=<name>` keeps the machine under `machines/<name>`;
-  its disks carry across guest sessions and runs; `testaferro list`
-  enumerates, `testaferro destroy` removes, and nothing a run does
-  destroys — all proven against real boots. What is not built is
-  "serves every test that names it *while up*" read across suites:
-  a suite reaches the guest on a work drive QEMU reads once at boot,
-  so a second suite naming the same machine in one run closes the
-  first's session and **reboots** the same disks rather than joining
-  a machine still up. Staying up would need every suite's staged set
-  on the drive before the first boot, which the entry points know
-  and the binding does not — a seam change F2 did not carry. Arming
-  waits on that work, or on the owner amending the clause; neither
-  is decided here.
-

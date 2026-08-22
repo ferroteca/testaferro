@@ -83,10 +83,8 @@ A gap in the numbering here is where one of them went.
 use case — F9 with U7, F18 with U10 — not retired, not split at the
 time, just moved. Both have since delivered and retired, arming U7
 and U10 with them. **F2 left last**, pledged and delivered in one
-change (D30) without arming U8: the mechanism, the verbs and the
-enumeration are built, and the one clause left short is recorded
-at U8's own entry rather than here, a feature number being the
-wrong place to keep a use case's residue.
+change (D30); U8 armed the same day once its one short clause was
+amended to say what F2 built (D31).
 
 ## F5 — A second guest platform binding
 
