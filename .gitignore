@@ -5,6 +5,14 @@ __pycache__/
 .idea/
 build/
 
+# uv writes this on every sync and it is deliberately not tracked. A
+# library's lockfile reaches no consumer — it is absent from both
+# artifacts, and pip resolves from `Requires-Dist` — so all a committed
+# one does here is hide the resolution a user actually gets. With
+# `pytest` unbounded, a fresh resolve is what makes the local suite the
+# gate it is claimed to be. See AGENTS.md, "The environment".
+uv.lock
+
 # Open Watcom leavings from building the guest suite. SUITE.EXE is
 # checked in deliberately — the objects and the CppUTest library it
 # was linked from are not, being reproducible from the makefile.

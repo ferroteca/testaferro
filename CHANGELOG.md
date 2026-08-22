@@ -6,6 +6,19 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [Unreleased]
 
+- **`uv.lock` is no longer tracked**, reversing the call made when uv
+  was adopted. A library's lockfile reaches no consumer — it is in
+  neither artifact, and pip resolves from `Requires-Dist` — so all a
+  committed one did here was develop this checkout against a
+  resolution no user gets, which is the opposite of what "with no CI
+  the local suite is the gate" is supposed to mean. `pytest` is
+  declared unbounded, and a plugin is more exposed to a pytest release
+  than to anything else it depends on; letting `uv sync` resolve it
+  fresh is what makes a green suite evidence about an install rather
+  than about one frozen environment. What ships stays reproducible,
+  being the two exact pins (D4). The cost is accepted and recorded in
+  AGENTS.md: no known-good set to roll back to when a transitive
+  release breaks.
 - **The remanence pin moves to `0.0.1a7`** (D4). An additive release
   on a part of the dependency this seam does not reach: the PC's
   1.44 MB 3.5-inch drive enrolled as a device family, and the HxC MFM

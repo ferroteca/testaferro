@@ -1025,11 +1025,24 @@ nothing in `pyproject.toml` names it.
 uv sync
 ```
 
-`uv.lock` is committed, and it is what makes "the environment the
-suite passed in" reproducible — which matters here because with no CI
-the local suite *is* the gate. `uv sync` reproduces the lock exactly;
-`uv lock` is what deliberately moves it. Do not hand-manage `.venv`,
-and do not install tooling globally.
+**`uv.lock` is deliberately not tracked**, and the reason is the same
+one that makes the local suite the gate: with no CI, this checkout is
+the only place a compatibility problem can be found before a user
+finds it. A library's lockfile reaches no consumer — it is in neither
+artifact, and pip resolves from `Requires-Dist` — so committing one
+would buy reproducibility here at the cost of developing against a
+resolution no user gets. `pytest` is declared unbounded, which is
+exactly the dependency a plugin is most exposed to, so `uv sync`
+resolving it fresh is a feature: the suite runs against what an
+install would actually pull. What is reproducible is what ships — the
+two exact pins in `pyproject.toml` (D4), which every consumer gets
+too.
+
+The cost is real and accepted: there is no recorded known-good set to
+roll back to when a transitive release breaks. Diagnose such a break
+from `uv pip list` and pin the offender temporarily rather than
+reaching for a committed lock. Do not hand-manage `.venv`, and do not
+install tooling globally.
 
 ## Checks
 

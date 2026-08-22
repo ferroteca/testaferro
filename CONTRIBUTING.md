@@ -53,7 +53,7 @@ the facade's batching behavior.
 Testaferro supports Python 3.12 and newer.
 [uv](https://docs.astral.sh/uv/) provisions the environment — one
 command creates `.venv`, installs the project editable, and installs
-its dependencies from the committed `uv.lock`:
+its dependencies:
 
 ```powershell
 uv sync
@@ -68,6 +68,15 @@ remanence. Reliquary and remanence are both pinned to exact versions:
 their APIs are still changing quickly, so the pins are what keep a
 checkout reproducible. Moving either is its own change, not a
 drive-by.
+
+`uv.lock` is **not** tracked, and is git-ignored so uv can rewrite it
+freely. A library's lockfile reaches no consumer — it ships in neither
+artifact — so a committed one would only develop this checkout against
+a resolution no user gets. `pytest` is declared unbounded, so letting
+`uv sync` resolve it fresh is what keeps the local suite an honest
+gate: it runs against what an install would actually pull. Expect the
+version of an unpinned dependency to differ between two contributors,
+and say which one you saw when reporting a failure.
 
 The unit suite also runs under a plain stdlib Python: tests that need
 pytest or reliquary skip when those are absent. Run the full suite from
