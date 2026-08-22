@@ -26,11 +26,17 @@ pledging it means, and a split retires the parent's number for a
 fresh one per piece. Entries flagged below as too large must be cut
 at the pledge.
 
-**Four numbers here are retired by split**, which is what the sprint
+**Five numbers here are retired by split**, which is what the sprint
 bound does at the pledge: the parent goes and each piece takes a
 fresh one, because sub-numbering would build a hierarchy and
 hierarchy is how a feature list turns into a schedule.
 
+- **F5**, a second guest platform binding: shapeless by its own
+  admission until a platform was named, and cutting it meant naming
+  one. **F23** names OpenBSD — the one non-DOS guest reliquary holds
+  a recipe for — and stays proposed, blocked on the provider's
+  `exec` for that platform. `win9x` and `winnt` are not a remainder
+  of F5; each takes a fresh number if and when it is named.
 - **F1** (D9): the backend-resolution seam became F7, the
   command-line surface became the plugin, F8, and the `run` verb
   died with the wrapper it named — a lifecycle CLI survives inside
@@ -86,11 +92,79 @@ and U10 with them. **F2 left last**, pledged and delivered in one
 change (D30); U8 armed the same day once its one short clause was
 amended to say what F2 built (D31).
 
-## F5 — A second guest platform binding
+## F23 — An OpenBSD guest, through the reliquary binding
 
-A guest OS beyond DOS surfacing through the facade: a platform name,
-its binary formats and default boot media in `binfmt`, and a thin
-binding module. Waits entirely on reliquary — install media,
-unattended setup and platform-specific completion detection are its
-work, not Testaferro's (D2). This entry is shapeless until a
-specific platform is named, and cutting it means naming one.
+Serves **U9**'s plural growth (the clause D25 severed from the
+pledge: a second standard environment, "as guests grow") and **U6**
+(the framework adapter is unchanged by what OS runs it). Cut from
+F5 by naming the platform: **OpenBSD**, because it is the one
+non-DOS guest reliquary already holds an authored recipe for — its
+codex carries `openbsd.rlqb` and `openbsd-install` (OpenBSD 7.9
+amd64, autoinstall over reliquary's run-scoped HTTP server) — so
+the provisioning half D2 puts on reliquary's side is the half that
+already exists there.
+
+**Blocked on reliquary, and exactly where.** Reliquary's `exec`
+refuses every platform but DOS by rule id
+(`platform.verb-not-implemented`, "DOS is the delivered workflow"),
+and its README says the same: other platform names reserve the QEMU
+lifecycle and raise until an adapter is implemented. Every
+Testaferro guest operation is one `Session.exec()`, so until an
+OpenBSD adapter gives that verb — plus readiness and output capture
+— the same contract DOS has, there is nothing here to bind (D2). This
+entry is therefore **not pledgeable** until that release ships; it
+names what to build the day it does. The prerequisite is the
+provider's own work and carries the provider's own handle, quoted
+here when it exists rather than minted (SEQUENCES.md).
+
+**What Testaferro builds, once unblocked — and it is thin:**
+
+- **`binfmt`: ELF is claimed by declaration, never inferred.** An
+  ELF header proves Linux-or-BSD and nothing finer; `classify()`
+  already reports it as `an ELF x86-64 (Linux/BSD)` with platform
+  `None`. That stays: a scan never claims an ELF, and a named file
+  is claimed only when a declaration's `platform = openbsd` says a
+  guest runs it (P7, the same rule a host-runnable PE already gets).
+  Nothing new is sniffed.
+- **The reliquary binding serves a second platform.** `PLATFORMS`
+  becomes `("dos", "openbsd")`; what differs is confined to the
+  guest-OS aspect the binding already owns (D16): the command line
+  spelled from argv tokens is a shell's, the work drive is whatever
+  reliquary's OpenBSD adapter attaches and the *location* is its
+  mount point rather than a letter — `_letter_map()` is DOS's and is
+  not asked — and `_logical_lines()`'s 80-column rejoin applies only
+  if the adapter's capture is a text screen. The argv budget is the
+  shell's, not COMMAND.COM's 126. Readiness is the adapter's script,
+  authored in `assets/` as `freedos-ready` is (P17).
+- **A second standard environment, `"openbsd"`** (U9's plural
+  clause): a catalog entry naming the platform, the system disk
+  built once by the codex recipe exactly as FreeDOS is (D20) and
+  kept in the cache — an install measured in tens of minutes, paid
+  once, never by a test run (D10). `persist=` works unchanged, which
+  is where an install of that size most wants to live (U8).
+- **The framework adapter changes nothing** (P4, U6): CppUTest's
+  argv and grammar are the same on OpenBSD, and the binding is what
+  decides how tokens become a command line.
+
+**The proof is the cost, and it is an open question.** The integration
+suite is `tests/integration/guest/SUITE.EXE`, built with Open Watcom
+for DOS; an OpenBSD build of the same `SUITE.CPP` needs clang
+*inside* an OpenBSD guest, or a cross toolchain the host does not
+have. Two routes, neither decided: build it in the guest as part of
+the standard environment's recipe and check the binary in as the
+DOS one is (licence-clean — no Watcom runtime — so the BSD carve-out
+in that directory would not apply to it), or build it in the
+integration fixture on every run and pay the minutes. One real-boot
+case is owed either way: the suite enumerates, runs, and reports its
+deliberate failure with the guest's own file and line.
+
+**Out of scope, by the cut:** DOSBox-X (it is DOS by definition);
+`win9x` and `winnt`, which reliquary names in its schema and holds
+no recipe for — a fresh number when one is named, not a residue of
+this one; any in-guest agent or listener (D2, D1); and a
+`guest_session()` over OpenBSD beyond what `exec()` gives — ssh is
+reliquary's to offer if it ever is.
+
+**Sprint bound:** fits once unblocked, on condition the proof route
+is settled at the pledge — building a toolchain story is the part
+that could not.

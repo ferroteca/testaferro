@@ -195,7 +195,7 @@ only `testaferro destroy` removes it.
   Testaferro authored or the project checked in.
 
   **Severed from its own plural growth** (D25): a second named
-  environment waits on a second guest platform (F5), which waits
+  environment waits on a second guest platform (F23, OpenBSD, cut from F5), which waits
   entirely on reliquary (D2) and is neither owed nor delivered here.
   This journey covers the singular case alone — one name, resolving
   as documented — and stays true whether or not Testaferro ever grows

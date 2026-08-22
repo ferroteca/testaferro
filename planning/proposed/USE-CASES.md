@@ -52,7 +52,7 @@ took the same route in turn: pledged alongside its prerequisite F19
 (D25), and now in force there too, once `environment="freedos"` was
 proven against a real guest boot — severed from its own plural
 growth, which stays here, unowed: a second named environment waits on
-F5's second guest platform, itself waiting entirely on reliquary. U5
+F23's OpenBSD guest (cut from F5), itself waiting entirely on reliquary. U5
 took the shortest route of all: pledged and armed in one change,
 alongside F22 — cut from F15 to the one journey nothing had
 exercised — once two suites actually booted on two xdist workers at
