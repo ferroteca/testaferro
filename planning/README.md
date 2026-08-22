@@ -220,10 +220,21 @@ than only through the zero-configuration default's own inference
 reaching the same disk unnamed, and boots for real through both
 `resolve_backend()` and `resolve_guest_session()`. F19 delivered and
 retired with it, leaving no code behind — the mechanism was already
-built, and this pledge's whole content was the proof. Several drafted
-entries describe code that already exists; that makes their route
-short, not automatic — the pledge is still an act, and delivery still
-has to be true.
+built, and this pledge's whole content was the proof. **U5 armed the
+same way, by the shortest route yet.** F15 was cut at the pledge to
+the one journey no proof had touched — parallelism — and the piece
+took a fresh number, F22, the rest of F15 having already been run by
+the tier without anyone calling it work; the owner compressed pledge
+and delivery into one change, as F20's had been, so neither shelf
+file reappeared for it. The proof is the README's own advice run for
+real: two suites under `pytest -n 2 --dist loadfile`, each whole on
+its own worker, both booting at once. Delivery found one thing the
+proof itself could not, on a machine whose system disk was long
+built: two workers installing it for the first time at the same
+moment staged into one shared partial file, and each build now
+stages into its own. Several drafted entries describe code that
+already exists; that makes their route short, not automatic — the
+pledge is still an act, and delivery still has to be true.
 
 **What did not arm is worth naming, because the bar is what makes
 the root list mean anything.** P3 and P5 each describe the code, and

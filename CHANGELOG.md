@@ -6,6 +6,19 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [Unreleased]
 
+- **A whole test tree in parallel is a proven journey** (U5 armed;
+  F22 delivered, cut from F15). The README's `pytest -n auto --dist
+  loadfile` advice is now run for real by the integration tier: two
+  suites on two xdist workers at once, each suite whole on its own
+  worker so its one-boot batching survives, both reporting normally.
+  Delivery fixed the one hole reading found: on a machine that has
+  never built Testaferro's FreeDOS system disk, two workers finding it
+  missing at the same moment both install it — which isolation
+  permits — but staged into one shared `freedos.qcow2.part`, so the
+  second build's atomic move took the first's partial out from under
+  it. Each build now stages into a partial named for itself, a failed
+  build removes its own, and `stop(clear_downloads=True)` sweeps any
+  a killed process left behind.
 - **A DOSBox-X environment goes as deep as DOSBox-X does** (F21
   delivered, D28; P2). Where a reliquary environment carries a
   blueprint, a `dosbox-x` environment now carries DOSBox-X's own

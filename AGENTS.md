@@ -12,9 +12,10 @@ A pytest plugin over reliquary for DOS CppUTest suites (D12), with
 two entry points onto one execution: the collection plugin, which
 auto-loads and claims suite executables, and the embedding facade,
 which is its programmatic layer. Both resolve through the same seam.
-Built and working under its unit tier — though no guest has run since
-the migration to the blueprint model, so end-to-end proof is owed
-(see "Unit and integration" below). Two execution providers are
+Built and working under its unit tier, and proven end to end by an
+integration tier that boots real guests (see "Unit and integration"
+below) — most recently U5's whole tree in parallel, two suites on two
+xdist workers at once. Two execution providers are
 bound — reliquary, the default, and DOSBox-X (P1, in force) — and the
 provider is a choice a tester **declares**: `provider=` has all three
 spellings, dispatch is keyed by it, and the default stays reliquary
@@ -529,6 +530,9 @@ both batched and `-k`-narrowed.
   [USE-CASES.md](USE-CASES.md) now exists, carrying **U4**, armed once
   a guest ran the journey it describes; **U7**, armed once a real
   guest boot proved `setup=`, its prerequisite F9 delivered and
+  retired with it; **U5**, armed once two suites booted on two xdist
+  workers at once, each suite whole on its own worker, its
+  prerequisite F22 — cut from F15 to that one journey — delivered and
   retired with it; **U9**, armed once a real guest boot proved
   `environment="freedos"` resolves against the standard catalog rather
   than only through the zero-configuration default's own inference,
@@ -950,7 +954,11 @@ could make one unsafe; the licences are recorded anyway so that a
 future promotion — to concept reference or dependency — starts from
 a known standing instead of an assumption. pytest-xdist appears in
 README usage advice as a consumer-side tool (MIT); it is not a
-dependency and nothing of it enters this codebase.
+dependency and nothing of it enters this codebase. The integration
+tier's U5 case runs it the way a consumer would — a `pytest -n 2`
+subprocess, proving the README's advice for real — and borrows it for
+that run alone with `uv run --with pytest-xdist`, skipping without it;
+nothing in `pyproject.toml` names it.
 
 ## The environment
 
@@ -996,8 +1004,12 @@ boots a guest, so it is asked for rather than discovered:
 
 ```powershell
 $env:TESTAFERRO_INTEGRATION = "1"
-uv run pytest tests/integration -v
+uv run --with pytest-xdist pytest tests/integration -v
 ```
+
+`--with pytest-xdist` lends the U5 parallel-tree case the tool it
+drives without making it a dependency (see prior art above); without
+it that one case skips and says so.
 
 **A pin move is one of the changes that warrants it**, whatever it
 touches: the provider owns the guest lifecycle, so a release can move

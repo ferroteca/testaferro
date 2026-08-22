@@ -79,6 +79,33 @@ declared environments are exercised by that proof in passing, which is
 not the same as being met in full — and the difference is exactly what
 this file is for.
 
+- **U5 — A whole test tree in parallel.** A project with several
+  guest suites should not pay for them serially. Running under
+  pytest-xdist, different suites boot their guests concurrently on
+  different workers while each suite's own items stay together on
+  one worker, so the whole-suite batching survives. Safety comes
+  from isolation rather than from locking: every run has its own
+  home and its own image, so no two workers share mutable guest
+  state. That is the isolation Testaferro can claim, and the limit is
+  worth naming — a distinct backend process and port per machine is
+  reliquary's guarantee, relied on here rather than re-checked (P1).
+
+Proven by the command the README advises, run for real: a project
+holding two suites under `pytest -n 2 --dist loadfile`, every worker
+collecting — and so every worker booting its own enumeration guest —
+each suite landing whole on one worker and booting one execution
+guest there, the two suites on different workers at the same time,
+and both reporting their deliberate failure normally. The worker
+tags xdist puts on every item are the evidence, not a clock. One
+thing the proof could not reach, because this machine had long since
+built its system disk, was found by reading instead: on a machine
+that never had, two workers find it missing at the same moment and
+both install it — which isolation permits, at the cost of a second
+install — but they used to stage into one shared partial file, and
+the second's atomic move took the first's out from under it. Each
+build now stages into a partial of its own. F22 delivered this,
+cut from F15 to this one journey, and retired with it.
+
 - **U7 — Harness support prepped in the guest.** A tester's suite
   will not pass on a bare booted OS: a TSR has to be resident first,
   and loading it twice is not idempotent, so it cannot simply run as

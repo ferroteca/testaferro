@@ -25,10 +25,11 @@ claim, and each entry has to be met clause by clause.
 
 **A guest runs now**, so what these wait on has changed. The
 integration tier exists and U4 has armed on the strength of it, but
-one boot does not arm four journeys: U1, U2, U3 and U5 are exercised
-in passing by that proof rather than met in full by it — U5's
-parallelism is not exercised at all — so each still owes the clauses
-nobody has asserted.
+one boot does not arm four journeys: U1, U2 and U3 are exercised in
+passing by that proof rather than met in full by it, so each still
+owes the clauses nobody has asserted. (U5 was the fourth, and the one
+that first proof did not touch at all; it has since armed on a proof
+of its own, below.)
 
 Reconstructed drafts, so read them for accuracy first: these are the
 owner's use cases put into words by an agent, not dictated by him.
@@ -51,7 +52,11 @@ took the same route in turn: pledged alongside its prerequisite F19
 (D25), and now in force there too, once `environment="freedos"` was
 proven against a real guest boot — severed from its own plural
 growth, which stays here, unowed: a second named environment waits on
-F5's second guest platform, itself waiting entirely on reliquary.
+F5's second guest platform, itself waiting entirely on reliquary. U5
+took the shortest route of all: pledged and armed in one change,
+alongside F22 — cut from F15 to the one journey nothing had
+exercised — once two suites actually booted on two xdist workers at
+once, each suite whole on its own worker.
 
 - **U1 — Unit tests that can only run on the target OS, surfaced as
   ordinary pytest items.** A developer maintains code whose unit
@@ -89,17 +94,6 @@ F5's second guest platform, itself waiting entirely on reliquary.
   state. What the repository cannot carry — a proprietary boot
   image — stays the developer's to supply, and the declaration says
   where it goes.
-
-- **U5 — A whole test tree in parallel.** A project with several
-  guest suites should not pay for them serially. Running under
-  pytest-xdist, different suites boot their guests concurrently on
-  different workers while each suite's own items stay together on
-  one worker, so the whole-suite batching survives. Safety comes
-  from isolation rather than from locking: every run has its own
-  home and its own image, so no two workers share mutable guest
-  state. That is the isolation Testaferro can claim, and the limit is
-  worth naming — a distinct backend process and port per machine is
-  reliquary's guarantee, relied on here rather than re-checked (P1).
 
 - **U6 — A different guest test framework.** The guest unit-test
   framework is Testaferro's pluggable aspect. A developer whose

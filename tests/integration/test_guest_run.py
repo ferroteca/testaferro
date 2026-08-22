@@ -20,8 +20,10 @@ where everything passes proves only that output was parsed.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -323,3 +325,66 @@ class GuestCollectionTests:
         assert "SUITE.EXE::Guest-Runs" in output, output
         assert "SUITE.EXE::Guest-Fails" in output, output
         assert "1 failed" in output
+
+
+requires_xdist = pytest.mark.skipif(
+    importlib.util.find_spec("xdist") is None,
+    reason="pytest-xdist is not installed — run the tier with "
+           "`uv run --with pytest-xdist pytest tests/integration`")
+
+
+@requires_guest
+@requires_suite
+@requires_xdist
+class ParallelTreeTests:
+    """U5's journey: a whole tree of guest suites, run in parallel.
+
+    The same `pytest -n auto --dist loadfile` the README advises, run
+    for real over a project holding two suites: each worker collects
+    — so each worker boots its own enumeration guest — and each suite
+    lands whole on one worker, boots one execution guest there, and
+    runs its items batched. The two suites run on different workers
+    at the same time; the proof of that is in xdist's own per-item
+    worker tags rather than in any clock, since a suite kept whole on
+    one worker and two workers each holding one suite is exactly
+    what `loadfile` means, and what the batching needs.
+
+    pytest-xdist is a consumer's tool and not a dependency of this
+    package (AGENTS.md, prior art); the tier borrows it for the run
+    with `uv run --with pytest-xdist`, and this class skips without
+    it rather than failing.
+    """
+
+    def test_two_suites_boot_on_two_workers_each_staying_whole(self):
+        with tempfile.TemporaryDirectory() as project:
+            root = Path(project)
+            for name in ("ALPHA.EXE", "BRAVO.EXE"):
+                shutil.copy2(SUITE, root / name)
+            (root / "testaferro.ini").write_text(
+                "[project-dos]\nplatform = dos\nsuites = *.EXE\n",
+                encoding="utf-8")
+            (root / "pytest.ini").write_text("[pytest]\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "-m", "pytest", "-p", "no:cacheprovider",
+                 "-v", "-n", "2", "--dist", "loadfile"],
+                capture_output=True, text=True, check=False, cwd=str(root))
+            output = result.stdout + result.stderr
+
+        # xdist tags every reported item with the worker that ran it:
+        # "[gw0] [ 25%] PASSED ALPHA.EXE::Guest-Runs".
+        placements = {}
+        for worker, suite in re.findall(
+                r"\[(gw\d+)\] \[\s*\d+%\] \w+ (\w+\.EXE)::", output):
+            placements.setdefault(suite, set()).add(worker)
+        assert set(placements) == {"ALPHA.EXE", "BRAVO.EXE"}, output
+        # Each suite whole on one worker (the batching survives) ...
+        assert all(len(workers) == 1 for workers in placements.values()), \
+            placements
+        # ... and the two suites on different workers (the tree was
+        # actually run in parallel rather than queued on one).
+        assert placements["ALPHA.EXE"] != placements["BRAVO.EXE"], placements
+        # Both suites ran to their deliberate failure, and both guests
+        # came down cleanly enough for pytest to report normally.
+        assert "2 failed" in output, output
+        assert result.returncode == 1, output

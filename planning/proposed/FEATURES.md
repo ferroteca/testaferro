@@ -26,7 +26,7 @@ pledging it means, and a split retires the parent's number for a
 fresh one per piece. Entries flagged below as too large must be cut
 at the pledge.
 
-**Three numbers here are retired by split**, which is what the sprint
+**Four numbers here are retired by split**, which is what the sprint
 bound does at the pledge: the parent goes and each piece takes a
 fresh one, because sub-numbering would build a hierarchy and
 hierarchy is how a feature list turns into a schedule.
@@ -49,8 +49,8 @@ hierarchy is how a feature list turns into a schedule.
   slice, and that slice was **F13** — one real suite, one real
   machine, one real failure — **delivered, its number evaporated with
   it**. What F6 could not carry became **F14** (CppUTest's own
-  output) and **F15** (the remaining journeys), the latter still
-  below.
+  output) and **F15** (the remaining journeys), the latter since
+  split in its turn, below.
 
 **F14 retired without ever being separate work.** It was issued to
 hold an open question — whether CppUTest builds for a DOS target at
@@ -59,6 +59,16 @@ all — which turned out to be answered upstream, in CppUTest's own
 F13 was not already doing, so it was absorbed and its number retires
 unreused like any other. A number is a handle for work; where the work
 turns out not to exist apart, neither does the handle.
+
+- **F15**, the remaining journeys: cut at the pledge to the one
+  journey nothing had exercised, **U5**'s parallelism, which became
+  **F22** — pledged and delivered in one change, the F20 precedent —
+  and is gone in its turn. The other half, U3's declared environment
+  booting for real, had already been run by the tier (a
+  `testaferro.ini` beside a project, claiming a suite and booting the
+  environment it names, in `tests/integration/test_guest_run.py`),
+  so no work remained in it to carry a number; what U3 itself still
+  owes is its own clauses, and it stays drafted here, unowed.
 
 A gap in the numbering here is where one of them went.
 
@@ -118,18 +128,3 @@ binding module. Waits entirely on reliquary — install media,
 unattended setup and platform-specific completion detection are its
 work, not Testaferro's (D2). This entry is shapeless until a
 specific platform is named, and cutting it means naming one.
-
-## F15 — The remaining journeys, proven
-
-The end-to-end coverage the first integration slice deliberately
-left: **U3**'s declared environments booting for real — a
-`testaferro.ini` beside a project selecting a machine that actually
-comes up — and **U5**'s parallelism, where every xdist worker collects
-and so every worker wants a guest. Each is a journey a consumer takes,
-and neither can be armed on unit tests (P10 says why: nearly all of
-this project's behaviour can only be proved by booting a guest).
-
-> **Now measurable, and worth cutting on that basis.** The tier
-> exists and its five cases take about a minute, most of it one boot;
-> what an integration test costs is no longer a guess. That is what
-> decides whether this is one feature or four.

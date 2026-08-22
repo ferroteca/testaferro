@@ -68,6 +68,7 @@ execution, so that write is not the provider's to supply (F16, D23);
 from __future__ import annotations
 
 import atexit
+import glob
 import json
 import os
 import shutil
@@ -338,10 +339,13 @@ def stop(clear_downloads=False):
         cache.release_guest_home(_run_area["dir"])
         _run_area = None
     if clear_downloads:
-        cached = os.path.join(cache.cache_root(), _FREEDOS_IMAGE_NAME)
-        for path in (cached, cached + ".part"):
-            if os.path.exists(path):
-                os.remove(path)
+        root = cache.cache_root()
+        cached = os.path.join(root, _FREEDOS_IMAGE_NAME)
+        if os.path.exists(cached):
+            os.remove(cached)
+        # Partials a killed build left behind, one per builder (below).
+        for path in glob.glob(cached + ".*.part"):
+            os.remove(path)
 
 
 def _run_image():
@@ -381,9 +385,25 @@ def _build_default_image(destination):
     destroyed afterwards and only its disk survives, moved into place
     atomically so a killed build leaves no half-installed system to be
     mistaken for a finished one.
+
+    **The partial file is this build's own.** Two processes can find
+    the system missing at the same moment — under xdist every worker
+    collects, and on a machine that has never built it each one
+    installs it (U5). Nothing locks: the claim is isolation, and a
+    second install costs minutes rather than correctness. What it must
+    not cost is the disk itself, which a *shared* partial name did —
+    the second build's move took the first build's partial out from
+    under it. So each build stages into a partial named for itself,
+    and whichever finishes first is the disk: a build that arrives to
+    find one already in place discards its own rather than replacing
+    a file the winner's guest may by then have open, both being the
+    same recipe's answer.
     """
     os.makedirs(cache.cache_root(), exist_ok=True)
-    partial = destination + ".part"
+    handle, partial = tempfile.mkstemp(
+        prefix=os.path.basename(destination) + ".", suffix=".part",
+        dir=os.path.dirname(destination))
+    os.close(handle)
     with tempfile.TemporaryDirectory(
             prefix="build-", dir=cache.cache_root()) as home:
         session = _open_session(home, _ASSETS, scripts=_ASSETS)
@@ -393,6 +413,9 @@ def _build_default_image(destination):
             state = session.load_machine_state(machine)
             installed = state["drives"]["hdd0"]["path"]
             shutil.copy(installed, partial)
+        except BaseException:
+            os.remove(partial)
+            raise
         finally:
             try:
                 session.destroy_machine(machine)
@@ -401,6 +424,9 @@ def _build_default_image(destination):
                 # machine that will not tear down must not also cost
                 # us the image we just spent an install on.
                 pass
+    if os.path.exists(destination):
+        os.remove(partial)
+        return
     os.replace(partial, destination)
 
 
