@@ -82,28 +82,11 @@ A gap in the numbering here is where one of them went.
 **F9 and F18 have left this file too**, each pledged alongside its
 use case — F9 with U7, F18 with U10 — not retired, not split at the
 time, just moved. Both have since delivered and retired, arming U7
-and U10 with them.
-
-## F2 — Persistent machines and the lifecycle verbs
-
-Serves **U8**. A test machine that opts out of the sweep: its disks
-persist when the session ends, because shutting down is not
-destroying. The cycle is the pytest session — the machine boots
-when the first suite needs it, serves every test that names it
-while up, and shuts down at session end — and the next session
-boots the same disks with the harness still in place. Destroying is
-explicit: `testaferro shutdown`, `testaferro destroy`, plus cache
-management, as verbs of a small lifecycle CLI — the one
-command-line surface D9 leaves standing, carried by a
-`[project.scripts]` console entry that does not exist today.
-Persistence is also what makes provisioned platforms viable (U7,
-F9): an install-recipe machine document implies provisioning and
-reuse rather than a fresh machine per session.
-
-Note the tension with **P5**: a machine surviving a session is state
-Testaferro created and did not sweep. Pledging this feature means
-saying exactly what remains, where, and how a user gets rid of it —
-U8 already demands it be enumerable and removable.
+and U10 with them. **F2 left last**, pledged and delivered in one
+change (D30) without arming U8: the mechanism, the verbs and the
+enumeration are built, and the one clause left short is recorded
+at U8's own entry rather than here, a feature number being the
+wrong place to keep a use case's residue.
 
 ## F5 — A second guest platform binding
 

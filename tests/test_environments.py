@@ -272,3 +272,39 @@ class StandardCatalogTests:
                 match=(r"unknown test environment 'msdos'.*"
                        r"configured: win98.*standard: freedos")):
             environments.select(name="msdos")
+
+
+class PersistDeclarationTests:
+    """``persist=`` names the machine a declaration keeps between
+    runs (F2, U8): Testaferro's own word beside the provider's
+    document, never a field inside it."""
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, clean_environments):
+        pass
+
+    def test_persist_names_the_kept_machine_beside_the_fields(self):
+        config = environments.configure("harness", persist="hw-harness")
+
+        assert config.persist == "hw-harness"
+        assert "persist" not in config.fields
+
+    def test_an_undeclared_persist_stays_none(self):
+        config = environments.configure("msdos")
+
+        assert config.persist is None
+
+    def test_persist_is_said_beside_a_complete_template(self):
+        template = environments.configure("base", memory="16M")
+
+        config = environments.configure(
+            "harness", machine_config=template, persist="hw-harness")
+
+        assert config.persist == "hw-harness"
+        assert template.persist is None
+
+    @pytest.mark.parametrize("bad", ["", "  ", "a/b", "a\b", "..",
+                                     ".hidden", "with space", "x" * 65])
+    def test_a_name_that_cannot_be_a_directory_is_refused(self, bad):
+        with pytest.raises(ValueError, match="persist="):
+            environments.configure("harness", persist=bad)

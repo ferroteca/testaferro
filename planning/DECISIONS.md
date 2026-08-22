@@ -111,6 +111,107 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D30 — A persistent machine is a named opt-out, and the lifecycle CLI is its door
+
+**Decided** owner, 2026-08-22, by directing F2's implementation;
+pledge and delivery compressed into one change, as F3's and F22's
+were. **Supports** U8 (drafted) and P5 (drafted). Answers the
+tension F2's own entry named with P5, and records why U8 does not
+arm with it.
+
+**The word is `persist=<name>`**, one more of Testaferro's own
+beside the provider's document (P3, the same argument `files=`,
+`location=`, `program=` and `setup=` each made): a document says
+what a machine *is*, and whether Testaferro keeps it between runs
+is Testaferro's policy, so no provider's schema has a field for it.
+It takes every spelling a declaration word takes (P16) —
+`testaferro.ini`, `config()`, `guest_suite()`, `guest_session()`,
+`--testaferro-persist` and `testaferro-persist` — under the same
+nearest-speaker rule, and the name is validated where the word is
+defined, against what a directory name can be. **The name is the
+key**, deliberately: a boolean would leave nothing to enumerate by,
+and keying on the environment's name would stop two environments
+sharing one machine on purpose, which a harness built once and run
+under two configurations wants. Two projects colliding on a name is
+the tester's to avoid, as the name is the tester's to choose.
+
+**What remains, where, and how it goes — P5's question, answered.**
+A persistent machine is a reliquary home at `machines/<name>/`
+under Testaferro's cache, the one non-disposable area there
+(surface 6). Its system disk is a **copy** of the installed FreeDOS
+rather than a `difference` overlay, so it depends on nothing
+`clean --system` or `stop(clear_downloads=True)` may drop; a
+declared `boot_image` is copied once and then left as the machine's
+own floppy. `testaferro list` enumerates every one with the phase
+reliquary records for it; `testaferro destroy` is the only thing
+that removes one — never a run, never a sweep, never `stop()`. The
+guest session on it is as hermetic as any other: its own home, its
+own blueprints, nothing of the user's reliquary home seen.
+
+**What persists is the machine's own drives, and only those.** The
+work drive is Testaferro's staging and is rebuilt every guest
+session, so the staged set is always this run's; `C:` and a kept
+floppy carry whatever the guest wrote. The machine is taken up from
+the document it was created from, never re-authored — a declaration
+that changed describes drives the machine does not have — so a
+change takes effect after `destroy`, and the README says so.
+
+**One guest session at a time.** A later backend naming the same
+machine in one process closes the earlier holder's session and
+boots the same disks for itself; a machine recorded `running` by
+another process — or by a run that died with it up — is refused by
+name, and the refusal names `testaferro shutdown`, which is that
+verb's whole reason to exist. Stopping it from under whoever has it
+was declined: the recorded phase cannot tell a dead run from a live
+one, and the cost of guessing wrong is a guest pulled out from under
+a test.
+
+**The verbs are four, and none runs a test** (D9 holds): `list`,
+`shutdown`, `destroy`, `clean [--system]`. `clean` sweeps the run
+and guest homes killed runs leave, skipping any whose machine is
+recorded running, and never looks under `machines/`. Each is a thin
+presentation of a binding function, so the embedding API can do the
+same without a shell; `stop(clear_downloads=True)` stays as the
+embedding spelling of `clean --system`'s system half. The
+`dosbox-x` provider refuses `persist=` with the reason, in D27's
+shape: each invocation is its own guest over a work directory
+rebuilt every time, with no disk for state to persist on.
+
+**Why U8 does not arm, and what would arm it.** Every clause but one
+is built and proven against real boots — disks carrying across
+sessions and runs, a suite running on the kept machine, the
+refusal and the verb that frees it, enumeration, explicit
+destruction. The clause short is "serves every test that names it
+*while up*" read across suites: a second suite naming the machine
+in one run gets a **reboot** of the same disks, not a machine still
+up. The reason is mechanical: a suite reaches the guest on a work
+drive that is a vvfat directory QEMU reads once at boot, so a set
+staged after boot is invisible to the guest, and staying up would
+need every suite's set on the drive before the first boot — which
+the entry points know at that moment and the binding does not. That
+is a seam change (a backend told about suites it was not asked to
+boot yet) and not F2's to make on the side. U8 stays drafted with
+the residue at its entry; arming it is that work, or the owner
+amending the clause, and this entry decides neither.
+
+**Weighed and declined:** keying the kept machine by environment
+name (above); a boolean `persistent = true` (nothing to list by);
+keeping the machine up across suites by rebooting on each join
+while replaying every attached session's `setup=` (a union of
+resident state nobody declared, and a reboot all the same); a
+`difference` overlay for the kept system disk (ties it to a cache
+file a verb may drop); a `testaferro run` verb (D9); reporting a
+persistent machine's home among `--testaferro-keep-guest-home`'s
+kept homes (it is kept regardless, and `list` shows where).
+
+**Folded into:** `src/testaferro/environments.py`,
+`reliquary.py`, `cache.py`, `cli.py` (new), `plugin.py`,
+`dosbox_x.py`, `__init__.py`, `pyproject.toml`
+(`[project.scripts]`), `planning/proposed/ARCHITECTURE.md` (surfaces
+6 and 7, P5), `planning/proposed/USE-CASES.md` (U8's residue),
+`planning/proposed/FEATURES.md` (F2 removed), `README.md`,
+`AGENTS.md`, `CHANGELOG.md`.
+
 ### D29 — P4 admits an optional sixth adapter callable, and F3 is pledged on it
 
 **Decided** owner, 2026-08-22, by directing F3's pledge and

@@ -42,6 +42,14 @@ lower-level door instead (U10):
 guest_suite() remains the right tool for anything shaped as a suite
 of named tests; guest_session() is purely additive beside it.
 
+A guest is disposable unless a declaration names one to keep:
+`persist="hw-harness"` (on config(), guest_suite(), guest_session(),
+or in testaferro.ini) keeps that machine's disks between runs under
+Testaferro's cache, and the `testaferro` console script — `list`,
+`shutdown`, `destroy`, `clean` — is the lifecycle over what is kept
+(U8, F2). It is the one command line here that is not pytest's, and
+it runs no tests.
+
 For many suites (and future parallel runs), open a *run* so the boot
 image is specified once and all the state it leaves behind is swept
 together — in pytest, from the consumer's conftest.py:
@@ -167,6 +175,8 @@ def start(boot_image=None):
 def stop(clear_downloads=False):
     """Close the run, sweeping its staged image and every guest home
     inside it; safe without an active run. `clear_downloads=True`
-    also drops the cached default boot image."""
+    also drops the installed default system disk — what `testaferro
+    clean --system` does from a shell. Neither touches a persistent
+    machine, which only `testaferro destroy` removes."""
     from . import reliquary
     reliquary.stop(clear_downloads=clear_downloads)

@@ -218,6 +218,20 @@ class ProjectConfigTests:
         assert config.setup == ("DRIVER.COM /install", "OTHER.COM /go")
         assert "setup" not in config.fields
 
+    def test_persist_has_an_ini_spelling(self):
+        # The declarative twin of config(persist="...") (F2, P16): a
+        # name, kept as authored and never read as a number or JSON.
+        ini = self._write(
+            "testaferro.ini",
+            "[harness]\n"
+            "persist = hw-harness\n")
+
+        environments.load_config(ini)
+
+        config = environments.configured()["harness"]
+        assert config.persist == "hw-harness"
+        assert "persist" not in config.fields
+
     def test_a_lone_setup_command_needs_no_leading_newline(self):
         ini = self._write(
             "testaferro.ini",

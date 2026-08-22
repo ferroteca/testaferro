@@ -27,7 +27,11 @@ a whole `.conf`, carried untouched ahead of `[autoexec]`, with the
 work drive at `D:` on both providers so that declared addresses
 move between them unchanged (P2, F21, D28).
 Testaferro's pluggable aspect is the guest unit-test framework
-(U6).
+(U6). A machine a declaration names with `persist=` is kept between
+runs under `machines/<name>` in the cache, and the `testaferro`
+console script — `list`, `shutdown`, `destroy`, `clean` — is the one
+deliberately non-pytest surface: verbs over machines and caches,
+never over test runs (F2, D30, D9).
 
 Package layout under `src/` (each module states its contract in its
 docstring):
@@ -152,7 +156,10 @@ docstring):
   physical (D15): `runs/run-*/guests/guest-*/`, and `guests/` at the
   cache root for a guest belonging to no run. That policy is Testaferro's, not
   any binding's, which is what lets the plugin read the answer without
-  importing a binding — or a provider.
+  importing a binding — or a provider. `machines_root()` —
+  `machines/<name>/` — is the one non-disposable area (F2): a
+  persistent machine kept by name, which no sweep touches and only
+  `testaferro destroy` removes.
 - [src/testaferro/at_rest.py](src/testaferro/at_rest.py) — at-rest
   access to a guest's own drives, over `remanence`, and **the only
   module that imports it** (P11): everything it can refuse is
@@ -363,6 +370,25 @@ docstring):
   `guest_session()` is `suite_backend()`'s sibling factory, the same
   validation (a non-DOS `machine_config=`, `boot_image=` and
   `machine_config=` together) and no executable to classify.
+  **A persistent machine is the one guest that is not disposable**
+  (F2, U8, D30): `persist=<name>` puts the home at `machines/<name>`
+  instead of a fresh `guest-*`, the system disk is a `copy` rather
+  than a `difference` overlay so `clean --system` cannot orphan it,
+  `_reopen()` takes up an existing machine from the document it was
+  created from (never re-authored — a changed declaration takes
+  effect after `destroy`), and `stop_guest()` stops without sweeping.
+  The work drive is rebuilt per guest session; a declared
+  `boot_image` is copied once and then left as the machine's own.
+  **One guest session at a time**: `_holders` maps each name to the
+  backend holding it in this process, and a later `start_guest()`
+  closes that holder's session first — a reboot between suites,
+  because the work drive is a vvfat directory QEMU reads once at
+  boot — while a machine recorded `running` by another process is
+  refused naming `testaferro shutdown`. The module-level verbs the
+  CLI presents — `persistent_machines()`, `shutdown()`, `destroy()`,
+  `clean()` — live here because every one of them is a reliquary
+  call; `clean()` leaves any home whose machine is recorded running,
+  and never looks under `machines/` at all.
 - [src/testaferro/dosbox_x.py](src/testaferro/dosbox_x.py) — the DOSBox-X
   provider binding, for DOS guests, **batch-shaped by design** (F20,
   D27). Named for the provider it binds (D16), with the one spelling
@@ -507,6 +533,17 @@ vocabulary, a context manager rather than pytest items, and
 `Backend` remains the custom escape hatch. End-to-end proof belongs in
 a consuming project that runs real guest tests through the facade,
 both batched and `-k`-narrowed.
+- [src/testaferro/cli.py](src/testaferro/cli.py) — the lifecycle CLI,
+  installed as the `testaferro` console script (`[project.scripts]`;
+  F2, D9, D30): `list`, `shutdown NAME...`, `destroy NAME...` and
+  `clean [--system]`, verbs over the machines and caches a run leaves
+  on this host on purpose, and never over test runs — that is
+  pytest's own command line, and the CLI has no verb for it. Each
+  verb is a thin presentation of a binding function
+  (`reliquary.persistent_machines()`, `shutdown()`, `destroy()`,
+  `clean()`), imported lazily so `--help` costs no provider import.
+  `tests/test_cli.py` tests the presentation over a stand-in binding;
+  the functions are tested with the binding.
 
 ## Planning and governance
 
@@ -556,7 +593,13 @@ both batched and `-k`-narrowed.
   `guest_session()`, its prerequisite F18 delivered and retired with
   it in turn. `planning/pledged/` now holds nothing. Every other U- or
   P-number still open names either a rule in force or an argument,
-  never something merely owed.
+  never something merely owed. **U8 is the one drafted use case
+  whose feature has delivered without arming it** (F2, D30):
+  persistence, the verbs and the enumeration are built and proven,
+  and one clause — a machine staying up across the suites that name
+  it in one run — is short by a reboot between suites, for a reason
+  recorded at the entry; arming it is either that work or the owner
+  amending the clause, and neither is an agent's call.
   Four principles stay drafted: P3 and P5, each contradicted by a
   small piece of the code and each saying so at its own entry, and
   P14 and P15, which govern conduct rather than code. An entry may
@@ -572,7 +615,7 @@ both batched and `-k`-narrowed.
   [planning/proposed/ARCHITECTURE.md](planning/proposed/ARCHITECTURE.md)
   "The interfaces" — the embedding API, the machine declaration,
   `testaferro.ini`, the `Backend` ABC, the pytest items Testaferro
-  produces, and the cache layout. Ask "does this change an
+  produces, the cache layout, and the lifecycle CLI. Ask "does this change an
   interface?" **first**, and answer it by lookup against that list
   rather than from intuition about the diff. A yes is never
   housekeeping, however small the diff.

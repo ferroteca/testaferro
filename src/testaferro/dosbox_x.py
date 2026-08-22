@@ -141,7 +141,8 @@ _sweep_registered = False
 
 def suite_backend(exe_path, framework=cpputest, enumerator=None,
                   machine_config=None, boot_image=None, timeout=None,
-                  files=(), location=None, program=None, setup=()):
+                  files=(), location=None, program=None, setup=(),
+                  persist=None):
     """Interrogate the referenced suite executable and return the
     backend matching its format — a DosboxXSuiteBackend for a DOS
     program. Raises FileNotFoundError for a missing file and
@@ -177,7 +178,7 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
                                machine_config=machine_config,
                                timeout=timeout, files=files,
                                location=location, program=program,
-                               setup=setup)
+                               setup=setup, persist=persist)
 
 
 def guest_session(**options):
@@ -386,8 +387,20 @@ def _sweep_open():
 class DosboxXSuiteBackend(SuiteBackend):
     def __init__(self, exe_path, framework=cpputest, enumerator=None,
                  machine_config=None, timeout=None, files=(),
-                 location=None, program=None, setup=()):
+                 location=None, program=None, setup=(), persist=None):
         exe_path = os.fspath(exe_path)
+        # Refused with the reason, whether typed here or declared
+        # (F2, D27): a persistent machine is disks that outlive their
+        # runs, and this binding has no disks — its one drive is the
+        # work directory, rebuilt per invocation, and its DOS is the
+        # emulator's own with nothing to install into.
+        if placement.nearest(persist, machine_config, "persist") is not None:
+            raise ValueError(
+                "the dosbox-x provider keeps no persistent machine: each "
+                "guest operation is one dosbox-x invocation over a work "
+                "directory rebuilt every time, with no system disk for "
+                "state to persist on; persist= runs on the 'reliquary' "
+                "provider")
         # The argv goes into [autoexec], which DOSBox-X's own shell
         # reads with a line buffer far wider than COMMAND.COM's — but
         # the program still sees its arguments through the same DOS

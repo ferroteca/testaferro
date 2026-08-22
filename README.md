@@ -106,8 +106,8 @@ claims one, because nothing about the file can tell Testaferro that the situatio
 
 Every declaration keyword has a command-line and ini spelling, kebab-cased: `--testaferro-environment`,
 `--testaferro-provider`, `--testaferro-boot-image`, `--testaferro-machine-config`, `--testaferro-files`,
-`--testaferro-location`, `--testaferro-program`, `--testaferro-setup` (and `testaferro-environment`,
-`testaferro-provider`, … in pytest's ini). The command line wins over the ini, and both win over a declaration.
+`--testaferro-location`, `--testaferro-program`, `--testaferro-setup`, `--testaferro-persist` (and
+`testaferro-environment`, `testaferro-provider`, … in pytest's ini). The command line wins over the ini, and both win over a declaration.
 Blueprint fields — `memory`, `drives`, `platform` — have no option of their own: they are reliquary's words in a
 declaration, not Testaferro's.
 
@@ -308,7 +308,8 @@ def pytest_unconfigure(config):
 ```
 
 `start()` costs nothing until a guest actually runs; `stop()` sweeps the run's staged image and every guest home inside
-it, keeping the once-downloaded FreeDOS image cached for the next run (`stop(clear_downloads=True)` scrubs that too).
+it, keeping the once-installed FreeDOS system cached for the next run (`stop(clear_downloads=True)` scrubs that too,
+as `testaferro clean --system` does from a shell). Neither touches a persistent machine (below).
 Forgetting `stop()` is not fatal — `start()` registers an `atexit` failsafe that sweeps the run at interpreter
 exit — but the explicit call is still preferred: it cleans up at a deterministic point and is where
 `clear_downloads=True` can be said.
@@ -395,6 +396,57 @@ raise if the command signalled failure.
 
 `guest_suite()` remains the right tool for anything shaped as a suite of named tests; `guest_session()` is purely
 additive beside it, reached through the same provisioning rather than a second implementation of it.
+
+### Persistent machines and the lifecycle CLI
+
+Every guest so far is disposable: materialized from the declaration for each guest session, swept when it ends. A
+provisioned machine — a harness installed on `C:`, a driver set up once — is expensive, and its disk state is the
+point. Name it to keep it:
+
+```ini
+[harness]
+persist = hw-harness
+setup = DRIVER.COM /install
+```
+
+`persist = <name>` opts the machine out of the sweep. Its home is `machines/<name>` under Testaferro's cache; the
+first guest session creates it — its system disk a *copy* of Testaferro's FreeDOS, so it depends on nothing a cache
+clean may drop — and every session after boots the same disks. Shutting down is not destroying: what a guest wrote to
+`C:` last run is there this run. The work drive (`D:`) is Testaferro's staging and is rebuilt per session, so the
+staged set is always the current one. The same word is `persist=` on `config()`, `guest_suite()` and
+`guest_session()`, and `--testaferro-persist NAME` / `testaferro-persist` for the plugin.
+
+Two rules follow from one machine being one set of disks. It serves **one guest session at a time**: two suites
+naming it in one pytest run take turns — the second closes the first's session and reboots the same disks — and a
+machine another process has running is refused by name rather than stopped from under it. And a declaration that
+has changed takes effect only after the machine is destroyed, since the machine *is* the declaration materialized.
+
+Destroying is explicit — a verb of the `testaferro` console script, never a side effect of a run:
+
+```bash
+testaferro list
+```
+
+```bash
+testaferro shutdown hw-harness
+```
+
+```bash
+testaferro destroy hw-harness
+```
+
+```bash
+testaferro clean --system
+```
+
+`list` names every persistent machine, the phase reliquary records for it, and where it lives; `shutdown` stops one
+a run died with up (the refusal that a new run meets says so, and names this verb); `destroy` discards it; `clean`
+sweeps the run and guest homes killed runs left behind — never a persistent machine — and `--system` also drops the
+installed FreeDOS system disk, which the next zero-configuration run rebuilds. Running tests stays pytest's own
+command line; the CLI has no verb for it.
+
+The `dosbox-x` provider keeps no persistent machine — each invocation is its own guest over a work directory rebuilt
+every time — and refuses `persist=` naming the provider that does.
 
 ## Tests
 

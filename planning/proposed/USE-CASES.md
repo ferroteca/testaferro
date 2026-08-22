@@ -116,5 +116,20 @@ once, each suite whole on its own worker.
   exception to U3's fresh-machine rule, and it is the tester's
   trade, made by name: state carries across suites and cycles
   because carrying it is what was asked for, and what persists,
-  where, is enumerable and removable (P5). *(Unbuilt: F2.)*
+  where, is enumerable and removable (P5).
+
+  **F2 delivered this journey's mechanism and left one clause short**
+  (D30). `persist=<name>` keeps the machine under `machines/<name>`;
+  its disks carry across guest sessions and runs; `testaferro list`
+  enumerates, `testaferro destroy` removes, and nothing a run does
+  destroys — all proven against real boots. What is not built is
+  "serves every test that names it *while up*" read across suites:
+  a suite reaches the guest on a work drive QEMU reads once at boot,
+  so a second suite naming the same machine in one run closes the
+  first's session and **reboots** the same disks rather than joining
+  a machine still up. Staying up would need every suite's staged set
+  on the drive before the first boot, which the entry points know
+  and the binding does not — a seam change F2 did not carry. Arming
+  waits on that work, or on the owner amending the clause; neither
+  is decided here.
 

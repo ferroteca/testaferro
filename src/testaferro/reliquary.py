@@ -63,6 +63,24 @@ consumer declared naming some *other* drive the machine carries, not
 Testaferro's own. Reading and writing a stopped machine's disk is not
 execution, so that write is not the provider's to supply (F16, D23);
 `at_rest` does it over remanence.
+
+**A persistent machine is the one guest that is not disposable**
+(F2, U8, D30). A declaration naming `persist="<name>"` gets its home
+at `machines/<name>` under the cache instead of a fresh `guest-*`
+directory: the machine is created there once — its system disk a
+`copy` rather than a `difference` overlay, so it depends on nothing
+the cache may later drop — and every guest session after that boots
+the same disks. `stop_guest()` stops it and sweeps nothing; what
+persists is the machine's own drives (`C:`, or a tester's floppy),
+while the work drive is Testaferro's staging and is rebuilt per
+session like any other. Destroying is a verb of the lifecycle CLI
+(`testaferro destroy`), never a side effect of a run. One machine
+serves one guest session at a time: a later backend in this process
+closes the earlier holder's session and boots the same disks for
+itself — a reboot between suites, because a suite reaches the guest
+on a work drive QEMU reads once at boot — and a machine another
+process has running is refused by name, with `testaferro shutdown`
+named as the door.
 """
 
 from __future__ import annotations
@@ -73,6 +91,7 @@ import json
 import os
 import shutil
 import tempfile
+import typing
 
 import reliquary
 
@@ -164,7 +183,8 @@ _READY_VAR = "ready"
 
 def suite_backend(exe_path, framework=cpputest, enumerator=None,
                   boot_image=None, machine_config=None, timeout=None,
-                  files=(), location=None, program=None, setup=()):
+                  files=(), location=None, program=None, setup=(),
+                  persist=None):
     """Interrogate the referenced suite executable and return the
     backend matching its format — a ReliquarySuiteBackend for a DOS
     program. Raises FileNotFoundError for a missing file and
@@ -189,7 +209,11 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
     readiness wait and before anything else, an enumeration boot
     included — for a TSR or driver the suite needs resident before
     the framework ever takes over. A suite that declares none runs
-    exactly as before."""
+    exactly as before.
+
+    `persist` names a **persistent machine** (F2): one kept under that
+    name between runs rather than swept after each guest session, the
+    same override rule once more. None is the disposable guest."""
     exe_path = os.fspath(exe_path)
     fmt = binfmt.classify(exe_path)
     if fmt.platform != "dos":
@@ -205,11 +229,11 @@ def suite_backend(exe_path, framework=cpputest, enumerator=None,
                                  machine_config=machine_config,
                                  timeout=timeout, files=files,
                                  location=location, program=program,
-                                 setup=setup)
+                                 setup=setup, persist=persist)
 
 
 def guest_session(boot_image=None, machine_config=None, timeout=None,
-                  files=(), setup=()):
+                  files=(), setup=(), persist=None):
     """Return a GuestSession: the same zero-configuration guest
     provisioning `suite_backend()` draws on, reached without a suite
     executable to interrogate or place (U10, F18) — a context manager
@@ -217,14 +241,15 @@ def guest_session(boot_image=None, machine_config=None, timeout=None,
     for a guest-driven test that is a linear script rather than a
     suite of named cases.
 
-    `boot_image`, `machine_config`, `timeout`, `files` and `setup`
-    are the same options `suite_backend()` takes, with the same
-    validation and the same nearest-speaker override rule."""
+    `boot_image`, `machine_config`, `timeout`, `files`, `setup` and
+    `persist` are the same options `suite_backend()` takes, with the
+    same validation and the same nearest-speaker override rule."""
     machine_config = _checked_machine_config(machine_config)
     if boot_image is not None and machine_config is not None:
         raise TypeError("boot_image and machine_config cannot be combined")
     return GuestSession(boot_image=boot_image, machine_config=machine_config,
-                        timeout=timeout, files=files, setup=setup)
+                        timeout=timeout, files=files, setup=setup,
+                        persist=persist)
 
 
 def read_document(path):
@@ -275,6 +300,24 @@ _run_area = None
 # it. Every exit path stops machines before deleting anything.
 _running = set()
 _sweep_registered = False
+
+# The backend holding each persistent machine open in this process,
+# by name (F2). One machine serves one guest session at a time — its
+# work drive is read once at boot, so a second suite's staged set can
+# only reach it by a reboot — and this is how the later holder finds
+# the earlier one to close its session cleanly first.
+_holders = {}
+
+
+class PersistentMachine(typing.NamedTuple):
+    """One persistent machine as `persistent_machines()` reports it:
+    its declared name, the phase reliquary records for it (`ready`,
+    `running`, a transitional phase, or None for a home holding no
+    machine at all), and the directory it lives in."""
+
+    name: str
+    phase: typing.Optional[str]
+    home: str
 
 
 def _machine_started(backend):
@@ -339,13 +382,142 @@ def stop(clear_downloads=False):
         cache.release_guest_home(_run_area["dir"])
         _run_area = None
     if clear_downloads:
-        root = cache.cache_root()
-        cached = os.path.join(root, _FREEDOS_IMAGE_NAME)
-        if os.path.exists(cached):
-            os.remove(cached)
-        # Partials a killed build left behind, one per builder (below).
-        for path in glob.glob(cached + ".*.part"):
+        _remove_system()
+
+
+def _remove_system():
+    """Drop the installed FreeDOS system and any partial a killed
+    build left behind, one per builder (`_build_default_image`).
+    Returns what was removed. Safe with persistent machines in place:
+    each holds a *copy* of the system disk, never an overlay on this
+    file (F2)."""
+    cached = os.path.join(cache.cache_root(), _FREEDOS_IMAGE_NAME)
+    removed = []
+    for path in [cached, *glob.glob(cached + ".*.part")]:
+        if os.path.exists(path):
             os.remove(path)
+            removed.append(path)
+    return removed
+
+
+def persistent_machines():
+    """Every persistent machine this host keeps, by name (F2, U8).
+
+    What persists, where, enumerable (P5): one entry per directory
+    under `machines/`, each with the phase reliquary records for the
+    machine inside — so a run that died with one up shows `running`
+    here, which is what `testaferro shutdown` is for.
+    """
+    root = cache.machines_root()
+    if not os.path.isdir(root):
+        return ()
+    return tuple(
+        PersistentMachine(name, _recorded_phase(os.path.join(root, name)),
+                          os.path.join(root, name))
+        for name in sorted(os.listdir(root))
+        if os.path.isdir(os.path.join(root, name)))
+
+
+def shutdown(name):
+    """Stop the named persistent machine if it is recorded running.
+
+    Returns whether anything was stopped; a machine already at rest
+    is left as it is. A run that died leaves its machine recorded
+    `running` whether or not its process survived it, and reliquary's
+    own stop reconciles either case — an unreachable VM counts as
+    stopped. Raises LookupError for a name nothing was kept under.
+    """
+    home = _persistent_home(name)
+    holder = _holders.get(name)
+    if holder is not None:
+        holder.stop_guest()
+        return True
+    session = _open_session(home, os.path.join(home, "blueprints"))
+    stopped = False
+    for state in session.list_machines():
+        if state.get("phase") in ("running", "stopping"):
+            session.stop_machine(state["id"])
+            stopped = True
+    return stopped
+
+
+def destroy(name):
+    """Destroy the named persistent machine: stop it if running, let
+    reliquary dispose of it, and remove its home — the one act that
+    discards what `persist=` asked to keep, and deliberately a verb
+    of its own rather than anything a run does (F2, U8). Raises
+    LookupError for a name nothing was kept under."""
+    home = _persistent_home(name)
+    shutdown(name)
+    session = _open_session(home, os.path.join(home, "blueprints"))
+    for state in session.list_machines():
+        session.destroy_machine(state["id"])
+    shutil.rmtree(home)
+
+
+def clean(system=False):
+    """Sweep what killed runs left behind; with `system=True`, the
+    installed FreeDOS system too. Returns the paths removed.
+
+    A run area, a lone guest home or a half-finished build is stale
+    unless a machine inside it is recorded running — that one is
+    somebody's, and stays. Persistent machines are never touched
+    here: they are kept on purpose, and `destroy()` is their verb.
+    """
+    root = cache.cache_root()
+    removed = []
+    for run in _subdirectories(os.path.join(root, "runs")):
+        guests = _subdirectories(os.path.join(run, "guests"))
+        if not any(_in_use(home) for home in guests):
+            shutil.rmtree(run, ignore_errors=True)
+            removed.append(run)
+    for home in _subdirectories(os.path.join(root, "guests")):
+        if not _in_use(home):
+            shutil.rmtree(home, ignore_errors=True)
+            removed.append(home)
+    for build in sorted(glob.glob(os.path.join(root, "build-*"))):
+        if os.path.isdir(build) and not _in_use(build):
+            shutil.rmtree(build, ignore_errors=True)
+            removed.append(build)
+    if system:
+        removed.extend(_remove_system())
+    return tuple(removed)
+
+
+def _persistent_home(name):
+    home = os.path.join(cache.machines_root(), name)
+    if not os.path.isdir(home):
+        kept = ", ".join(found.name for found in persistent_machines())
+        raise LookupError(
+            f"no persistent machine is kept as {name!r}; kept: "
+            + (kept or "(none)"))
+    return home
+
+
+def _recorded_phase(home):
+    """The phase reliquary records for the machine a home holds, or
+    None when it holds none — or is no reliquary home at all."""
+    try:
+        session = _open_session(home, os.path.join(home, "blueprints"))
+        states = session.list_machines()
+    except (reliquary.ReliquaryError, OSError, ValueError):
+        return None
+    return states[0].get("phase") if states else None
+
+
+def _in_use(home):
+    """Whether a guest home is somebody's right now: held by a backend
+    in this process, or holding a machine recorded running."""
+    if any(backend._home == home for backend in _running):
+        return True
+    return _recorded_phase(home) in ("running", "stopping")
+
+
+def _subdirectories(path):
+    if not os.path.isdir(path):
+        return []
+    return sorted(os.path.join(path, name) for name in os.listdir(path)
+                  if os.path.isdir(os.path.join(path, name)))
 
 
 def _run_image():
@@ -595,7 +767,7 @@ class _GuestLifecycle:
 
     def __init__(self, exe_path=None, boot_image=None, machine_config=None,
                  timeout=None, files=(), location=None, program=None,
-                 setup=()):
+                 setup=(), persist=None):
         self._exe = exe_path
         self._boot_image = (None if boot_image is None
                             else os.fspath(boot_image))
@@ -607,9 +779,8 @@ class _GuestLifecycle:
         self._location = None
         self._machine_config = machine_config
         # Nearest speaker wins: this call, then the declaration, then
-        # the default. The same rule for all four, so a consumer never
-        # has to remember which options overrule a declaration.
-        declared = machine_config
+        # the default. The same rule for all of them, so a consumer
+        # never has to remember which options overrule a declaration.
         self._timeout = self._nearest(timeout, "timeout", _DEFAULT_TIMEOUT)
         self._declared_location = self._nearest(location, "location")
         self._declared_program = self._nearest(program, "program")
@@ -617,7 +788,12 @@ class _GuestLifecycle:
         self._files = tuple(os.fspath(path) for path in staged)
         staged_setup = self._nearest(setup or None, "setup") or ()
         self._setup = tuple(str(command) for command in staged_setup)
-        del declared
+        # The persistent machine's name, validated where the word is
+        # defined (environments._machine_name) so a name typed at a
+        # call is held to the same rule as one declared.
+        from .environments import _machine_name
+
+        self._persist = _machine_name(self._nearest(persist, "persist"))
 
     def _nearest(self, given, name, default=None):
         """This call, then the declaration, then the default."""
@@ -651,16 +827,32 @@ class _GuestLifecycle:
         return self._location
 
     def start_guest(self):
-        # A guest home sits inside the active run's area, or directly
-        # under the cache when no run was opened: a guest belonging to
-        # no run still needs somewhere disposable to live.
-        area = _run_area["dir"] if _run_area else cache.cache_root()
-        guests = os.path.join(area, "guests")
-        os.makedirs(guests, exist_ok=True)
-        self._home = tempfile.mkdtemp(prefix="guest-", dir=guests)
+        if self._persist is not None:
+            # A persistent machine's home is its own, named, and kept
+            # (F2). One guest session at a time: an earlier holder in
+            # this process is closed first — its session is over, its
+            # disks are not — and the work drive is rebuilt from this
+            # session's staged set, a directory QEMU reads once at
+            # boot and never again.
+            holder = _holders.get(self._persist)
+            if holder is not None and holder is not self:
+                holder.stop_guest()
+            self._home = os.path.join(cache.machines_root(), self._persist)
+            _holders[self._persist] = self
+            shutil.rmtree(os.path.join(self._home, "work"),
+                          ignore_errors=True)
+        else:
+            # A guest home sits inside the active run's area, or
+            # directly under the cache when no run was opened: a guest
+            # belonging to no run still needs somewhere disposable to
+            # live.
+            area = _run_area["dir"] if _run_area else cache.cache_root()
+            guests = os.path.join(area, "guests")
+            os.makedirs(guests, exist_ok=True)
+            self._home = tempfile.mkdtemp(prefix="guest-", dir=guests)
         blueprints = os.path.join(self._home, "blueprints")
         work = os.path.join(self._home, "work")
-        os.makedirs(blueprints)
+        os.makedirs(blueprints, exist_ok=True)
         os.makedirs(work)
         # The host side of the staged set: the suite executable, plus
         # whatever `files=` named, gathered into one directory because
@@ -681,7 +873,8 @@ class _GuestLifecycle:
         self._session = _open_session(self._home, blueprints,
                                       scripts=_ASSETS)
         try:
-            self._create(blueprints, boot, work)
+            if not self._reopen(blueprints):
+                self._create(blueprints, boot, work)
             # Between create and start: the drive images exist to be
             # read and written, and reliquary will still touch them at
             # rest. A declared address that cannot work fails here,
@@ -696,6 +889,43 @@ class _GuestLifecycle:
         except BaseException:
             self.stop_guest()
             raise
+
+    def _reopen(self, blueprints):
+        """Take up the machine a persistent home already holds, if it
+        holds one. Returns whether it did.
+
+        The document it was created from is read back rather than
+        re-authored: the machine *is* that document materialized, and
+        a declaration that has changed since takes effect only after
+        `testaferro destroy` — re-authoring would describe drives the
+        machine does not have. A machine recorded running belongs to
+        another process, or to a run that died with it up; either way
+        it is refused by name rather than stopped from under whoever
+        has it, and the refusal names the verb that frees it.
+        """
+        if self._persist is None:
+            return False
+        states = self._session.list_machines()
+        if not states:
+            return False
+        machine = states[0]["id"]
+        phase = self._session.load_machine_state(machine).get("phase")
+        if phase in ("running", "stopping"):
+            raise RuntimeError(
+                f"persistent machine {self._persist!r} is recorded "
+                f"{phase}: another run may be using it, and a run that "
+                "died leaves it so; if nothing is, free it with "
+                f"`testaferro shutdown {self._persist}`")
+        with open(os.path.join(blueprints, _BLUEPRINT_NAME + ".rlqb"),
+                  encoding="utf-8") as handle:
+            document = json.load(handle)
+        self._machine = machine
+        _machine_started(self)
+        self._drives = document[0]["drives"]
+        self._work_key = next(
+            key for key, drive in self._drives.items()
+            if drive.get("name") == _WORK_MEDIA_NAME)
+        return True
 
     def _gather(self, work):
         """Collect the staged set into one host directory.
@@ -758,9 +988,16 @@ class _GuestLifecycle:
                 self._session.stop_machine(self._machine)
                 self._retrieve_if_kept()
         finally:
-            # The machine's own cache lives under this home, so the
-            # sweep takes the whole guest session with it.
-            cache.release_guest_home(self._home)
+            if self._persist is not None:
+                # Shutting down is not destroying (U8): the home and
+                # the disks in it stay exactly where they are, and
+                # only the hold on them is given up.
+                if _holders.get(self._persist) is self:
+                    del _holders[self._persist]
+            else:
+                # The machine's own cache lives under this home, so
+                # the sweep takes the whole guest session with it.
+                cache.release_guest_home(self._home)
             self._home = None
             self._session = None
             self._machine = None
@@ -907,14 +1144,17 @@ class _GuestLifecycle:
                 # FreeDOS system. **Layered, never used in place** —
                 # every guest session gets its own overlay, so a guest
                 # writing to C: cannot reach the one copy each of them
-                # shares. The work drive lands beside it in the next
-                # slot; what the guest calls it is read off the created
-                # machine, not assumed from the slot.
+                # shares. A persistent machine takes a *copy* instead
+                # (F2): its C: is the disk state being kept, and an
+                # overlay would tie that to a cache file `clean
+                # --system` may drop. The work drive lands beside it
+                # in the next slot.
                 drives["hdd0"] = {
                     "type": "media",
                     "name": _SYSTEM_MEDIA_NAME,
                     "location": {"local": _cached_default_image()},
-                    "materialize": "difference",
+                    "materialize": ("copy" if self._persist is not None
+                                    else "difference"),
                 }
                 fields.setdefault("boot", ["hdd0"])
         key = None
@@ -963,6 +1203,11 @@ class _GuestLifecycle:
         if image is None:
             return None
         staged = os.path.join(self._home, "boot.img")
+        if self._persist is not None and os.path.exists(staged):
+            # A persistent machine's floppy is one of the disks being
+            # kept: what the guest wrote to it last session is the
+            # point, so the copy is made once and then left alone.
+            return staged
         shutil.copy2(image, staged)
         return staged
 
@@ -970,13 +1215,14 @@ class _GuestLifecycle:
 class ReliquarySuiteBackend(_GuestLifecycle, SuiteBackend):
     def __init__(self, exe_path, framework=cpputest, enumerator=None,
                  boot_image=None, machine_config=None, timeout=None,
-                 files=(), location=None, program=None, setup=()):
+                 files=(), location=None, program=None, setup=(),
+                 persist=None):
         exe_path = os.fspath(exe_path)
         _GuestLifecycle.__init__(self, exe_path, boot_image=boot_image,
                                  machine_config=machine_config,
                                  timeout=timeout, files=files,
                                  location=location, program=program,
-                                 setup=setup)
+                                 setup=setup, persist=persist)
         SuiteBackend.__init__(self, exe_path, run=self._run_in_guest,
                               framework=framework, enumerator=enumerator,
                               argv_budget=self._argv_budget)

@@ -102,6 +102,8 @@ _SETTINGS = (
                 "stands for the staged location"),
     ("setup", "commands run in the guest before any test, once per "
               "guest session; one per line"),
+    ("persist", "name of the persistent machine claimed suites run on, "
+                "kept between runs until `testaferro destroy`"),
 )
 # Settings naming a file, resolved from the rootdir when relative.
 _PATH_SETTINGS = frozenset({"boot-image", "machine-config"})
@@ -433,8 +435,9 @@ def _backend_for(config, path):
             options[name] = environments._commands(value)
     # Guest addresses, passed through as written: what a valid one is
     # belongs to the guest platform, and Testaferro never rewrites a
-    # host path into one (P17).
-    for name in ("location", "program"):
+    # host path into one (P17). A persistent machine's name passes
+    # through the same way, validated where the word is defined.
+    for name in ("location", "program", "persist"):
         value = _setting(config, name)
         if value is not None:
             options[name] = value

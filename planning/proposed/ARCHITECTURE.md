@@ -39,8 +39,10 @@ pytest items: collected, selected, batched, and reported like
 local tests, with `pytest tests/suite.exe` the whole first command
 (D9). The embedding API is the same plugin's programmatic layer;
 the framework adapters remain usable on their own, against output
-obtained some other way (U6); and a small lifecycle CLI (F2) is
-the one deliberately non-pytest surface.
+obtained some other way (U6); and a small lifecycle CLI — the
+`testaferro` console script's `list`, `shutdown`, `destroy` and
+`clean` — is the one deliberately non-pytest surface, verbs over
+machines and caches and never over test runs (D9, D30).
 
 It is deliberately not a VM tool. The declared provider owns the
 guest machine entirely — reliquary today, the only supported one
@@ -141,10 +143,18 @@ named here follows that rule.
    on-disk footprint on the user's machine is a contract with them —
    and since D20 what sits there is a FreeDOS system Testaferro
    *installed*, so `clear_downloads=True` discards minutes of work
-   rather than a download.
+   rather than a download. `machines/<name>/` is the one part of it
+   that is not disposable (F2, D30): a persistent machine a
+   declaration asked for by name, which no sweep touches.
+7. **The lifecycle CLI** — the `testaferro` console script and its
+   verbs: `list`, `shutdown NAME...`, `destroy NAME...`,
+   `clean [--system]`, their arguments, what each prints and its
+   exit status. Verbs over machines and caches, never over test
+   runs, which are pytest's own command line (D9); it is the
+   enumeration and the removal U8 asks for over the sixth surface.
 
-**The plugin's options have joined this list**, and they are not a
-seventh surface but a second presentation of the first two:
+**The plugin's options have joined this list**, and they are not an
+eighth surface but a second presentation of the first two:
 pytest's own command line and ini carry Testaferro's options, each
 the kebab-case spelling of a declaration keyword (P16, D9), and the
 items the plugin collects extend the fifth surface's id contract to
@@ -153,9 +163,10 @@ belong to the surfaces they extend: `suites` masks are declaration
 vocabulary (the second and third surfaces), and **which files the
 plugin claims** is world-facing in its own right — a project's tree
 is scanned by it, so what a scan may claim is a contract with every
-project that installs the distribution. A **lifecycle CLI** (F2)
-joins as its own small surface when it lands: verbs over machines
-and caches, never over test runs.
+project that installs the distribution. `persist=` joined the
+second surface when F2 landed, one more of Testaferro's own words
+beside the provider's document, and the lifecycle CLI joined as the
+seventh surface in the same change.
 
 **The second and third surfaces were renamed by the work**, not by
 the pledge that owed it. P1 and P2 — pledged by D18, since armed —
@@ -217,6 +228,14 @@ anything that looks normative is written.
   now Testaferro's copy inside the guest's own home, staged before
   boot exactly as the suite executable is; two suites in one run no
   longer share a floppy either can change either.
+
+  **A persistent machine is the stated exception, and it keeps the
+  rule's shape** (F2, U8, D30): a guest session on one still pins
+  its own home, cache and blueprints under Testaferro's cache and
+  sees nothing else; what changes is only that the home is named,
+  kept, and swept by no run — enumerable by `testaferro list` and
+  removable by `testaferro destroy`, which is what "hermetic" costs
+  when state is asked to outlive a run.
 
   **Two wording corrections stand between this and arming**, and
   neither is a defect: "asset root" names the `assets=` knob reliquary

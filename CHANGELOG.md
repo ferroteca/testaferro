@@ -6,6 +6,28 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [Unreleased]
 
+- **Persistent machines, and the lifecycle CLI** (F2 delivered, D30).
+  A declaration naming `persist = <name>` — in `testaferro.ini`, on
+  `config()`, `guest_suite()` or `guest_session()`, or as
+  `--testaferro-persist` / `testaferro-persist` for the plugin — keeps
+  its machine between runs under `machines/<name>` in Testaferro's
+  cache: created once, its system disk a self-contained copy rather
+  than an overlay, and booted from the same disks by every guest
+  session after. Shutting down is not destroying; the work drive is
+  restaged per session and the machine's own drives persist. One
+  machine serves one guest session at a time — a later suite in the
+  same run closes the earlier holder's session and reboots the same
+  disks, and a machine another process has running is refused by
+  name. The new `testaferro` console script is the one non-pytest
+  command line (D9): `list` enumerates what is kept and where,
+  `shutdown` stops a machine a run died with up, `destroy` discards
+  one, and `clean [--system]` sweeps what killed runs left behind —
+  never a persistent machine. The `dosbox-x` provider refuses
+  `persist=` with the reason. Proven against real boots: a file
+  written to `C:` in one guest session is read back in the next, a
+  suite runs on the kept machine, a machine left running is refused
+  and then freed by `shutdown`, and `destroy` removes it. U8 stays
+  drafted with one clause's residue named at its entry.
 - **Intra-suite sharding: a narrowed selection runs a group at a
   time** (F3 delivered, D29; P4 amended in force). The `Backend` seam
   gains `run_some(group, names)`, defaulted to one `run_test()` per

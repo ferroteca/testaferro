@@ -1407,3 +1407,220 @@ class LogicalLinesTests:
         ids = cpputest.parse_list(
             "\n".join(binding._logical_lines([line[:80], line[80:]])))
         assert [str(i) for i in ids] == line.split()
+
+
+def _machine_home(name):
+    return os.path.join(cache.cache_root(), "machines", name)
+
+
+@requires_reliquary
+class PersistentMachineTests(_BindingFixture):
+    """A declaration naming ``persist=`` keeps its machine between
+    guest sessions (F2, U8): the home lives under ``machines/<name>``
+    in Testaferro's cache, ``stop_guest()`` stops without sweeping,
+    and the next session boots the same machine rather than authoring
+    a new one. Every case declares a boot image so creation stays on
+    the cheap side of P10's line.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _release(self):
+        yield
+        binding._stop_running_machines()
+        binding._holders.clear()
+
+    def _machine_ids(self, home):
+        session = binding._open_session(
+            home, os.path.join(home, "blueprints"))
+        return [state["id"] for state in session.list_machines()]
+
+    def test_the_home_is_named_kept_and_reused(self):
+        backend = binding.suite_backend(self.exe, boot_image=self.image,
+                                        persist="hw-harness")
+
+        with self._fake_machine():
+            backend.start_guest()
+            home = backend._home
+            assert home == _machine_home("hw-harness")
+            first = self._machine_ids(home)
+            backend.stop_guest()
+
+            assert os.path.isdir(home)
+            assert self._machine_ids(home) == first
+
+            again = binding.suite_backend(self.exe, boot_image=self.image,
+                                          persist="hw-harness")
+            again.start_guest()
+            assert again._home == home
+            assert self._machine_ids(home) == first
+            assert again.location == "C:\\"
+            again.stop_guest()
+
+    def test_the_work_drive_is_restaged_each_session(self):
+        # D: is Testaferro's staging and is rebuilt per guest session;
+        # what persists is the machine's own disks, not the set that
+        # was staged last time.
+        stale = self.tempdir / "OLD.DAT"
+        stale.write_bytes(b"old")
+        first = binding.suite_backend(self.exe, boot_image=self.image,
+                                      persist="hw-harness",
+                                      files=[str(stale)])
+        with self._fake_machine():
+            first.start_guest()
+            work = pathlib.Path(first._home) / "work"
+            assert (work / "OLD.DAT").exists()
+            first.stop_guest()
+
+            second = binding.suite_backend(self.exe, boot_image=self.image,
+                                           persist="hw-harness")
+            second.start_guest()
+            assert sorted(p.name for p in work.iterdir()) == ["SUITE.EXE"]
+            second.stop_guest()
+
+    def test_a_second_holder_in_this_process_takes_over(self):
+        # Two suites naming one persistent machine in one run: the
+        # machine serves one guest session at a time, so the later
+        # one closes the earlier holder's session cleanly and boots
+        # the same disks for itself.
+        first = binding.suite_backend(self.exe, boot_image=self.image,
+                                      persist="hw-harness")
+        second = binding.suite_backend(self.exe, boot_image=self.image,
+                                       persist="hw-harness")
+        with self._fake_machine():
+            first.start_guest()
+            second.start_guest()
+
+            assert first._home is None
+            assert first not in binding._running
+            assert second in binding._running
+            second.stop_guest()
+
+    def test_a_machine_recorded_running_elsewhere_is_refused(self):
+        # Another process — or a run that died — holds it: refused
+        # naming the verb that frees it, never stopped from under
+        # whoever has it.
+        backend = binding.suite_backend(self.exe, boot_image=self.image,
+                                        persist="hw-harness")
+        with self._fake_machine():
+            backend.start_guest()
+            backend.stop_guest()
+
+            real = reliquary_dist.Session.load_machine_state
+
+            def running(session, machine_id):
+                state = real(session, machine_id)
+                state["phase"] = "running"
+                return state
+
+            with mock.patch.object(reliquary_dist.Session,
+                                   "load_machine_state", autospec=True,
+                                   side_effect=running):
+                with pytest.raises(RuntimeError,
+                                   match="testaferro shutdown hw-harness"):
+                    backend.start_guest()
+            assert backend._home is None
+
+    def test_persistent_machines_are_listed_by_name_with_their_phase(self):
+        assert binding.persistent_machines() == ()
+        backend = binding.suite_backend(self.exe, boot_image=self.image,
+                                        persist="hw-harness")
+        with self._fake_machine():
+            backend.start_guest()
+            backend.stop_guest()
+
+        [found] = binding.persistent_machines()
+        assert found.name == "hw-harness"
+        assert found.phase == "ready"
+        assert found.home == _machine_home("hw-harness")
+
+    def test_destroy_removes_the_machine_and_its_home(self):
+        backend = binding.suite_backend(self.exe, boot_image=self.image,
+                                        persist="hw-harness")
+        with self._fake_machine():
+            backend.start_guest()
+            home = backend._home
+            backend.stop_guest()
+
+            binding.destroy("hw-harness")
+
+        assert not os.path.exists(home)
+        assert binding.persistent_machines() == ()
+
+    def test_destroy_and_shutdown_refuse_an_unknown_name(self):
+        with pytest.raises(LookupError, match="no persistent machine"):
+            binding.destroy("nobody")
+        with pytest.raises(LookupError, match="no persistent machine"):
+            binding.shutdown("nobody")
+
+    def test_shutdown_of_a_stopped_machine_is_a_no_op(self):
+        backend = binding.suite_backend(self.exe, boot_image=self.image,
+                                        persist="hw-harness")
+        with self._fake_machine():
+            backend.start_guest()
+            backend.stop_guest()
+
+            assert binding.shutdown("hw-harness") is False
+
+
+@requires_reliquary
+class CacheCleaningTests(_BindingFixture):
+    """``clean()`` sweeps what killed runs left behind and nothing a
+    live one is using (F2): stale run and guest homes go, a home whose
+    machine is recorded running stays, and the installed system goes
+    only when asked for by name.
+    """
+
+    def _stale_guest(self, *parts):
+        home = pathlib.Path(cache.cache_root()).joinpath(*parts)
+        (home / "blueprints").mkdir(parents=True)
+        return home
+
+    def test_stale_homes_are_swept_and_reported(self):
+        run = self._stale_guest("runs", "run-dead", "guests", "guest-x")
+        lone = self._stale_guest("guests", "guest-y")
+
+        removed = binding.clean()
+
+        assert not run.exists()
+        assert not lone.exists()
+        assert sorted(removed) == sorted([
+            str(pathlib.Path(cache.cache_root()) / "runs" / "run-dead"),
+            str(lone)])
+
+    def test_a_home_with_a_running_machine_is_left_alone(self):
+        run = self._stale_guest("runs", "run-live", "guests", "guest-x")
+        with mock.patch.object(
+                reliquary_dist.Session, "list_machines", autospec=True,
+                return_value=[{"id": "m", "phase": "running"}]):
+            removed = binding.clean()
+
+        assert run.exists()
+        assert removed == ()
+
+    def test_the_system_disk_goes_only_when_asked(self):
+        cached = (pathlib.Path(cache.cache_root())
+                  / binding._FREEDOS_IMAGE_NAME)
+        cached.parent.mkdir(parents=True, exist_ok=True)
+        cached.write_bytes(b"not a real system")
+        (cached.parent / (cached.name + ".abc.part")).write_bytes(b"")
+
+        binding.clean()
+        assert cached.exists()
+
+        removed = binding.clean(system=True)
+        assert not cached.exists()
+        assert not list(cached.parent.glob("*.part"))
+        assert str(cached) in removed
+
+    def test_a_persistent_machine_is_never_cleaned(self):
+        backend = binding.suite_backend(self.exe, boot_image=self.image,
+                                        persist="hw-harness")
+        with self._fake_machine():
+            backend.start_guest()
+            home = backend._home
+            backend.stop_guest()
+        binding._holders.clear()
+
+        binding.clean(system=True)
+
+        assert os.path.isdir(home)

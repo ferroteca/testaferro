@@ -459,3 +459,90 @@ class ScatteredSuiteTests:
         assert "SUITE.EXE::Guest-Fails" in output, output
         assert "1 failed" in output, output
         assert result.returncode == 1, output
+
+
+@requires_guest
+@requires_suite
+class PersistentMachineTests:
+    """F2 against real boots: a machine a declaration keeps by name
+    carries what a guest wrote to its system disk into the next guest
+    session, serves a suite the same way, is enumerable by the
+    lifecycle CLI while at rest or left running, and is gone only
+    when destroyed — by the verb, never by a run.
+    """
+
+    NAME = "testaferro-proof"
+
+    @pytest.fixture(autouse=True)
+    def _fresh(self):
+        from testaferro import reliquary as binding
+
+        if any(m.name == self.NAME for m in binding.persistent_machines()):
+            binding.destroy(self.NAME)
+        yield
+        if any(m.name == self.NAME for m in binding.persistent_machines()):
+            binding.destroy(self.NAME)
+
+    def _cli(self, *verb):
+        return subprocess.run(
+            [sys.executable, "-m", "testaferro.cli", *verb],
+            capture_output=True, text=True, check=False)
+
+    def test_disk_state_carries_across_sessions_until_destroyed(self):
+        from testaferro import reliquary as binding
+
+        with binding.guest_session(persist=self.NAME) as guest:
+            guest.exec("ECHO kept > C:\\KEPT.TXT")
+            home = guest._home
+
+        # Shutting down is not destroying: the machine is at rest
+        # where the CLI can see it, its system disk a self-contained
+        # copy rather than an overlay on the cache's own.
+        [found] = [m for m in binding.persistent_machines()
+                   if m.name == self.NAME]
+        assert found.phase == "ready"
+        assert found.home == home
+        document = json.loads(
+            (Path(home) / "blueprints" / "testaferro.rlqb").read_text(
+                encoding="utf-8"))
+        assert document[0]["drives"]["hdd0"]["materialize"] == "copy"
+        listed = self._cli("list")
+        assert self.NAME in listed.stdout, listed.stdout + listed.stderr
+        assert "ready" in listed.stdout
+
+        # The next guest session boots the same disks: what the last
+        # one wrote to C: is there to read back.
+        with binding.guest_session(persist=self.NAME) as guest:
+            rows = guest.exec("TYPE C:\\KEPT.TXT")
+        assert any("kept" in row for row in rows), rows
+
+        # A suite runs on it exactly as on a disposable guest, its
+        # staged set rebuilt on the work drive for this session.
+        backend = binding.suite_backend(str(SUITE), persist=self.NAME)
+        backend.start_guest()
+        try:
+            outcomes = {(o.group, o.name): o for o in backend.run_all()}
+        finally:
+            backend.stop_guest()
+        assert outcomes[("Guest", "Runs")].passed
+        assert not outcomes[("Guest", "Fails")].passed
+
+        # Left running — a run that died — it is recorded so, refused
+        # to a new session by name, and freed by the shutdown verb.
+        left = binding.guest_session(persist=self.NAME)
+        left.start_guest()
+        binding._holders.clear()  # as if another process held it
+        try:
+            with pytest.raises(RuntimeError, match="testaferro shutdown"):
+                binding.guest_session(persist=self.NAME).start_guest()
+            assert binding.shutdown(self.NAME) is True
+            [found] = [m for m in binding.persistent_machines()
+                       if m.name == self.NAME]
+            assert found.phase == "ready"
+        finally:
+            binding._running.discard(left)
+
+        destroyed = self._cli("destroy", self.NAME)
+        assert destroyed.returncode == 0, destroyed.stdout + destroyed.stderr
+        assert not Path(home).exists()
+        assert self.NAME not in [m.name for m in binding.persistent_machines()]

@@ -43,6 +43,7 @@ import collections.abc
 import configparser
 import json
 import os
+import re
 import types
 
 from . import catalog
@@ -75,9 +76,13 @@ _HYPHENATED = types.MappingProxyType({
 # made three more times: reliquary's document has no field for what a
 # test run stages, where it puts it, or what it invokes there (F4).
 # `setup` is the same argument again: reliquary's document has no
-# field for what runs in the guest before a test does (F9).
+# field for what runs in the guest before a test does (F9). `persist`
+# is the argument one last time: the document says what a machine
+# *is*, and whether Testaferro keeps it between runs is Testaferro's
+# own policy (F2, U8).
 _TESTAFERRO_KEYS = frozenset({"provider", "timeout", "suites",
-                              "files", "location", "program", "setup"})
+                              "files", "location", "program", "setup",
+                              "persist"})
 # Path-valued and list-valued: staged sources are host paths, so an
 # INI one resolves against the config file like any other path.
 _PATH_LIST_KEYS = frozenset({"files"})
@@ -87,6 +92,12 @@ _PATH_LIST_KEYS = frozenset({"files"})
 # JSON, and reading it as JSON is how a placeholder would become a
 # parse error instead of a program.
 _ADDRESS_KEYS = frozenset({"location", "program"})
+# A persistent machine's name becomes a directory under Testaferro's
+# cache, so it is held to what every filesystem takes: one to
+# sixty-four characters of letters, digits, dot, dash and underscore,
+# starting with a letter or digit — which also rules out `.`, `..`
+# and anything that would hide from a listing.
+_MACHINE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}\Z")
 
 _environments = {}
 # Standard-catalog documents materialized on first use: the documents
@@ -133,14 +144,20 @@ class EnvironmentSpec:
     session — after the readiness wait and before anything else, an
     enumeration boot included. A suite that declares none runs exactly
     as it did before this existed.
+
+    ``persist`` names a **persistent machine** (F2, U8): the one the
+    declared provider materializes once and keeps between runs rather
+    than sweeping after each guest session, under that name in
+    Testaferro's cache. ``None`` — the default — is the fresh,
+    disposable guest every other declaration gets.
     """
 
     __slots__ = ("_fields", "_media", "provider", "timeout", "suites",
-                 "files", "location", "program", "setup")
+                 "files", "location", "program", "setup", "persist")
 
     def __init__(self, machine, media=(), timeout=None, suites=(),
                  provider=None, files=(), location=None, program=None,
-                 setup=()):
+                 setup=(), persist=None):
         fields = {_HYPHENATED.get(key, key): value
                   for key, value in machine.items()
                   if key not in ("type", "name")}
@@ -156,6 +173,7 @@ class EnvironmentSpec:
         object.__setattr__(self, "location", _address(location))
         object.__setattr__(self, "program", _address(program))
         object.__setattr__(self, "setup", _commands(setup))
+        object.__setattr__(self, "persist", _machine_name(persist))
 
     def __getattr__(self, name):
         try:
@@ -252,7 +270,8 @@ def _declaration(machine_config=None, template=None, boot_image=None,
                                          files=options.get("files", ()),
                                          location=options.get("location"),
                                          program=options.get("program"),
-                                         setup=options.get("setup", ()))
+                                         setup=options.get("setup", ()),
+                                         persist=options.get("persist"))
     else:
         # A path is the declared provider's own document, so that
         # provider opens it — the default's binding when none was
@@ -273,7 +292,8 @@ def _declaration(machine_config=None, template=None, boot_image=None,
                 files=own.get("files", machine_config.files),
                 location=own.get("location", machine_config.location),
                 program=own.get("program", machine_config.program),
-                setup=own.get("setup", machine_config.setup))
+                setup=own.get("setup", machine_config.setup),
+                persist=own.get("persist", machine_config.persist))
     return machine_config
 
 
@@ -358,6 +378,26 @@ def _commands(value):
         return tuple(line.strip() for line in value.splitlines()
                      if line.strip())
     return tuple(str(command) for command in value)
+
+
+def _machine_name(value):
+    """A declared ``persist`` name, or None when unsaid.
+
+    Validated here rather than by the binding because the name is
+    Testaferro's own word on every provider (a binding that keeps no
+    machine still refuses it by name), and because it is checked
+    against what a directory name can be — which no provider's
+    document has an opinion on.
+    """
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not _MACHINE_NAME.match(text):
+        raise ValueError(
+            f"persist={value!r} is not a machine name testaferro can "
+            "keep a directory under: use letters, digits, '.', '-' and "
+            "'_', starting with a letter or digit, at most 64 long")
+    return text
 
 
 def _address(value):

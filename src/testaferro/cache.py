@@ -69,7 +69,12 @@ def cache_root():
     many suites — and `guests/guest-*/` inside it is one guest
     session's home. A guest belonging to no run sits in `guests/` at
     this level instead. Stale directories from killed processes can
-    be deleted freely.
+    be deleted freely — `testaferro clean` does exactly that.
+
+    `machines/<name>/` is the one thing here that is **not**
+    disposable: a persistent machine a declaration asked for by name
+    (`persist=`, F2, U8), kept between runs on purpose and removed
+    only by `testaferro destroy <name>`.
     """
     if os.name == "nt":
         base = (os.environ.get("LOCALAPPDATA")
@@ -79,3 +84,14 @@ def cache_root():
         base = (os.environ.get("XDG_CACHE_HOME")
                 or os.path.join(os.path.expanduser("~"), ".cache"))
     return os.path.join(base, "testaferro")
+
+
+def machines_root():
+    """Where persistent machines live, one directory per name.
+
+    Kept apart from the run and guest areas so that a sweep of what
+    runs leave behind can never take a machine a tester asked to keep
+    (P5): everything else under the cache root is disposable, and
+    this directory alone is not.
+    """
+    return os.path.join(cache_root(), "machines")

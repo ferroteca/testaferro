@@ -149,6 +149,19 @@ class SuiteDispatchTests(_BindingFixture):
             binding.suite_backend(self.exe,
                                   boot_image=str(self.tempdir / "a.img"))
 
+    def test_a_persistent_machine_is_refused_with_the_reason(self):
+        # F2 on the batch shape: nothing here outlives an invocation,
+        # so a name to keep disks under is refused naming that and
+        # the provider that keeps them — typed or declared alike.
+        with pytest.raises(ValueError, match="keeps no persistent"):
+            binding.suite_backend(self.exe, persist="hw-harness")
+
+        from testaferro import environments
+        declared = environments.EnvironmentSpec(
+            {"platform": "dos"}, provider="dosbox-x", persist="hw-harness")
+        with pytest.raises(ValueError, match="keeps no persistent"):
+            binding.suite_backend(self.exe, machine_config=declared)
+
     def test_guest_sessions_are_refused_with_the_reason(self):
         # U10's open question, answered (D27): the batch model holds
         # no guest state between invocations, so a scripted

@@ -39,6 +39,12 @@ Repository = "https://github.com/ferroteca/testaferro"
 [project.entry-points.pytest11]
 testaferro = "testaferro.plugin"
 
+# The lifecycle CLI (F2, D9): verbs over the machines and caches a run
+# leaves behind on purpose — list, shutdown, destroy, clean — and
+# never over test runs, which are pytest's own command line.
+[project.scripts]
+testaferro = "testaferro.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
