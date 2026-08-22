@@ -44,6 +44,27 @@ class TestOutcome:
     message: str = ""
 
 
+@dataclass(frozen=True)
+class Availability:
+    """One external dependency a binding needs, found on this host or
+    not: a reliquary backend such as QEMU, or the DOSBox-X binary.
+
+    Availability only, never a choice: what a binding *could* run
+    with here, reported so a tester can see what is installed before
+    declaring anything. `provider` is the binding that needs it;
+    `backend` is the dependency's own name, spelled as its provider
+    spells it and passed through uninterpreted; `executable` is what
+    was found; `detail` says where, or why not.
+    """
+
+    provider: str
+    backend: str
+    available: bool
+    executable: str | None = None
+    version: str | None = None
+    detail: str = ""
+
+
 class GuestOutputError(Exception):
     """The guest answered, and no framework adapter could read it.
 

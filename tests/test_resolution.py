@@ -302,6 +302,43 @@ class ProviderDispatchTests(_ResolutionCase):
 
 
 @requires_reliquary
+@requires_reliquary
+class DiscoveryTests:
+    """`discover_backends()` concatenates what each binding found,
+    provider by provider, interpreting none of it."""
+
+    def test_every_bindings_answer_is_listed_under_its_provider(self):
+        from testaferro.backend import Availability
+        from testaferro.resolution import discover_backends
+
+        qemu = Availability("reliquary", "qemu", True,
+                            executable="/usr/bin/qemu-system-i386")
+        vbox = Availability("reliquary", "virtualbox", False,
+                            detail="VBoxManage not found on PATH")
+        dosbox = Availability("dosbox-x", "dosbox-x", True,
+                              executable=r"X:\dosbox-x.exe")
+
+        with mock.patch("testaferro.reliquary.discover",
+                        return_value=(qemu, vbox)), \
+                mock.patch("testaferro.dosbox_x.discover",
+                           return_value=(dosbox,)):
+            found = discover_backends()
+
+        # Provider order is the refusal's order; within a provider,
+        # the binding's own.
+        assert found == (dosbox, qemu, vbox)
+
+    def test_discovery_is_a_probe_and_resolves_nothing(self):
+        from testaferro.resolution import discover_backends
+
+        with mock.patch("testaferro.reliquary.discover", return_value=()), \
+                mock.patch("testaferro.dosbox_x.discover", return_value=()), \
+                mock.patch("testaferro.reliquary.suite_backend") as factory:
+            assert discover_backends() == ()
+
+        factory.assert_not_called()
+
+
 class GuestSessionResolutionTests(_ResolutionCase):
     """resolve_guest_session(): the same environment/provider seam as
     resolve_backend(), minus the executable it exists to classify

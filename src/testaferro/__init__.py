@@ -109,6 +109,23 @@ def guest_session(environment=None, provider=None, **options):
                                  search_from=search_from, **options)
 
 
+def discover_backends():
+    """What could run a guest on this host: every external dependency
+    a provider binding needs — reliquary's backends (QEMU, VirtualBox,
+    ...) and the DOSBox-X binary — each reported as found or not,
+    with where it was found or why it was not:
+
+        for found in testaferro.discover_backends():
+            print(found.provider, found.backend, found.available,
+                  found.detail)
+
+    Availability only: it selects nothing and boots nothing. It does
+    import every binding, so it costs what a declaration would.
+    """
+    from .resolution import discover_backends as discover
+    return discover()
+
+
 def config(name, **options):
     """Declare a named test environment, backed by the declared
     provider's own document.

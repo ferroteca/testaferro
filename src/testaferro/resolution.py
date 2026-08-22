@@ -93,6 +93,25 @@ def binding_for(provider):
     return provider, _module(provider)
 
 
+def discover_backends():
+    """Every external dependency a binding could run a guest with,
+    found on this host or not: reliquary's backends under
+    `provider="reliquary"`, the DOSBox-X binary under
+    `provider="dosbox-x"`, in provider order.
+
+    Each binding answers for its own dependencies (D16) and the seam
+    only concatenates, so a name here is never a table kept upstream
+    of the binding that needs it. Probing only: nothing is selected
+    and no guest is touched — but every binding is imported for it,
+    which is the one thing resolution otherwise never does ahead of a
+    declaration, and the reason this lives apart from `binding_for()`.
+    """
+    found = []
+    for provider in sorted(_PROVIDERS):
+        found.extend(_module(provider).discover())
+    return tuple(found)
+
+
 def resolve_backend(target, environment=None, provider=None,
                     search_from=None, **options):
     """Build the suite backend for an executable path.

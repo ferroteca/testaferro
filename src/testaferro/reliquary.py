@@ -80,7 +80,7 @@ from . import binfmt
 from . import cache
 from . import cpputest
 from . import placement
-from .backend import GuestOutputError
+from .backend import Availability, GuestOutputError
 from .suite import SuiteBackend
 
 
@@ -92,6 +92,24 @@ from .suite import SuiteBackend
 # guards the same ground for a caller who reached the binding
 # directly, exactly as `binfmt` is shared between the two (D16).
 PLATFORMS = ("dos",)
+
+
+def discover():
+    """The backends reliquary could drive on this host, each found or
+    not, in reliquary's own priority order.
+
+    Pure pass-through of reliquary's host probe: the names are
+    reliquary's (`qemu`, `virtualbox`, ...), reported as data and
+    never interpreted here, since which one a machine gets is decided
+    inside the blueprint and is reliquary's business. Probing only —
+    nothing is selected, and no machine is touched.
+    """
+    return tuple(
+        Availability(provider="reliquary", backend=found.backend,
+                     available=found.available, executable=found.executable,
+                     version=found.version, detail=found.detail)
+        for found in reliquary.backends.discover())
+
 
 # The blueprint name Testaferro writes into each session's private
 # blueprints directory, and the machine created from it.

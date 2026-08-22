@@ -177,7 +177,11 @@ docstring):
   provider binding, for DOS guests (D16). Named for the provider it
   binds, because that is the layer Testaferro talks to: every call in
   it is a reliquary call, and what reliquary drives underneath is its
-  own business and appears nowhere in this package.
+  own business and appears nowhere in this package — with one
+  deliberate exception: `discover()` passes reliquary's host probe
+  through as data, its backend names (`qemu`, `virtualbox`, ...)
+  reported verbatim and never interpreted or selected on, so a
+  tester can see what is installed before declaring anything.
 
   **Reliquary and remanence answer no drive-letter question at all,
   by design rather than by gap** (0.1.0a2, D108 there; remanence's
@@ -476,7 +480,12 @@ a bug rather than unbuilt work. Consumers see none of the backend classes: the p
 surface is `testaferro.config()` / `testaferro.load_config()` for
 named test environments (including `testaferro.ini`),
 `testaferro.guest_suite()` for `environment=` selection or a
-`provider=` said inline, and `testaferro.guest_session()` (U10, F18)
+`provider=` said inline, `testaferro.discover_backends()` for what
+is installed on this host (each binding's `discover()` reporting its
+own external dependencies — reliquary's backends, the DOSBox-X
+binary — found or not, concatenated by the seam and interpreted by
+nothing; it imports every binding, so it lives apart from
+`binding_for()`), and `testaferro.guest_session()` (U10, F18)
 for a guest-driven test shaped as a linear script rather than a suite
 — the same `environment=`/`provider=`/`files=`/`machine_config=`
 vocabulary, a context manager rather than pytest items, and

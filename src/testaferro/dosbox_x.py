@@ -80,7 +80,7 @@ from . import binfmt
 from . import cache
 from . import cpputest
 from . import placement
-from .backend import GuestOutputError
+from .backend import Availability, GuestOutputError
 from .suite import SuiteBackend
 
 
@@ -303,6 +303,20 @@ def _find_executable():
         + (" or at " + ", ".join(locations) if locations else "")
         + "; install DOSBox-X or add it to PATH to use "
         "provider='dosbox-x'")
+
+
+def discover():
+    """Whether DOSBox-X is on this host: the one external dependency
+    this binding has, found where `_find_executable()` looks, or the
+    refusal it would have raised carried as the detail instead."""
+    try:
+        found = _find_executable()
+    except FileNotFoundError as missing:
+        return (Availability(provider="dosbox-x", backend="dosbox-x",
+                             available=False, detail=str(missing)),)
+    return (Availability(provider="dosbox-x", backend="dosbox-x",
+                         available=True, executable=found,
+                         detail="found at " + found),)
 
 
 def _split_address(address):

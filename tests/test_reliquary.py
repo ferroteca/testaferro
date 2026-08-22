@@ -76,6 +76,37 @@ def _patched(*patches):
 
 
 @requires_reliquary
+class DiscoveryTests:
+    """`discover()` passes reliquary's host probe through as data:
+    its names, its order, its detail, nothing interpreted."""
+
+    def test_reliquarys_probe_is_reported_under_its_provider(self):
+        from testaferro import reliquary as binding
+
+        probe = (
+            reliquary_dist.backends.Availability(
+                backend="qemu", available=True, version="9.0",
+                executable="/usr/bin/qemu-system-i386",
+                detail="on PATH"),
+            reliquary_dist.backends.Availability(
+                backend="virtualbox", available=False,
+                detail="VBoxManage not found"),
+        )
+        with mock.patch.object(reliquary_dist.backends, "discover",
+                               return_value=probe) as probed:
+            found = binding.discover()
+
+        probed.assert_called_once_with()
+        assert [(f.provider, f.backend, f.available, f.executable,
+                 f.version, f.detail) for f in found] == [
+            ("reliquary", "qemu", True, "/usr/bin/qemu-system-i386",
+             "9.0", "on PATH"),
+            ("reliquary", "virtualbox", False, None, None,
+             "VBoxManage not found"),
+        ]
+
+
+@requires_reliquary
 class SuiteBackendDispatchTests:
     """The guard on suite_backend(); the per-format naming matrix
     lives with the classifier in test_binfmt."""

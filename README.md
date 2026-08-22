@@ -354,6 +354,20 @@ from testaferro import cpputest
 results = cpputest.parse(log)  # {"ran", "failed", "summary"}
 ```
 
+### What is installed here
+
+Both providers lean on something external that may or may not be installed — reliquary on an emulator backend (QEMU,
+VirtualBox, ...), DOSBox-X on its own binary. `testaferro.discover_backends()` probes for all of them and reports
+each as found or not, with where it was found or why it was not:
+
+```python
+for found in testaferro.discover_backends():
+    print(found.provider, found.backend, found.available, found.detail)
+```
+
+It selects nothing and boots nothing; reliquary's backend names are reported as reliquary spells them, and which one
+a reliquary machine gets is still decided inside the blueprint.
+
 ### A scripted guest interaction
 
 Not every guest-driven test is shaped as a suite of named cases. Sometimes it is a linear script — boot the guest,

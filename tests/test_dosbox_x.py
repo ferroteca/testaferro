@@ -237,6 +237,27 @@ class DiscoveryTests:
 
         assert locations == (r"C:\DOSBox-X\dosbox-x.exe",)
 
+    def test_discovery_reports_the_binary_where_it_was_found(self):
+        with mock.patch.object(binding, "_find_executable",
+                               return_value=r"X:\dosbox-x.exe"):
+            (found,) = binding.discover()
+
+        assert found.provider == "dosbox-x"
+        assert found.backend == "dosbox-x"
+        assert found.available is True
+        assert found.executable == r"X:\dosbox-x.exe"
+        assert r"X:\dosbox-x.exe" in found.detail
+
+    def test_discovery_carries_the_refusal_rather_than_raising_it(self):
+        with mock.patch.object(binding, "_find_executable",
+                               side_effect=FileNotFoundError(
+                                   "dosbox-x was not found on PATH")):
+            (found,) = binding.discover()
+
+        assert found.available is False
+        assert found.executable is None
+        assert found.detail == "dosbox-x was not found on PATH"
+
     def test_the_refusal_names_where_it_looked(self, tmp_path):
         with mock.patch.object(binding.shutil, "which", return_value=None), \
                 mock.patch.object(binding.os.path, "isfile",
