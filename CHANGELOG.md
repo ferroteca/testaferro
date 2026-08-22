@@ -6,6 +6,21 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [Unreleased]
 
+- **The remanence pin moves to `0.0.1a7`** (D4). An additive release
+  on a part of the dependency this seam does not reach: the PC's
+  1.44 MB 3.5-inch drive enrolled as a device family, and the HxC MFM
+  reader taught to read what HxC's writer actually writes. Testaferro
+  declares `mbr-sector-hd` over a qcow2 and never names a flux family,
+  so none of it is reachable from here — including the one fix that
+  touches a shared door, a FAT volume over an FM or MFM recording
+  failing to re-resolve from Python. Every call the at-rest module
+  makes still stands, `Session` and `discover_media` and
+  `load_discovery_as` through `partitions()`, `filesystem()` and the
+  space verbs, so no code changed here. Verified the way a pin move is
+  required to be (AGENTS.md): compileall, the unit tier on the default
+  interpreter and the 3.12 floor, the build with both artifacts'
+  metadata re-read for the new pin, and the full integration tier
+  booting real guests against the new release.
 - **Persistent machines, and the lifecycle CLI** (F2 delivered, D30).
   A declaration naming `persist = <name>` — in `testaferro.ini`, on
   `config()`, `guest_suite()` or `guest_session()`, or as
