@@ -35,7 +35,9 @@ docstring):
 - [src/testaferro/backend.py](src/testaferro/backend.py) — the `Backend`
   seam (`TestId`, `TestOutcome`, `GuestOutputError`, the
   five-operation ABC: `start_guest`, `list_tests`, `run_test`,
-  `run_all`, `stop_guest`).
+  `run_all`, `stop_guest` — plus `run_some(group, names)`, defaulted
+  to one `run_test()` per name so that a prebuilt backend owes only
+  the five; F3, D29).
   **Three spans, three words** (D15): pytest's *session* is the whole
   run; a **guest session** is one guest up, between `start_guest()`
   and `stop_guest()`; a **run** is what `testaferro.start()`/`stop()`
@@ -113,7 +115,14 @@ docstring):
   internal execution × framework composition. Argv crosses it
   untouched: it joins nothing and quotes nothing, because a
   composition that knows neither aspect cannot know what a command
-  line looks like at the far end. It is also **the only place both
+  line looks like at the far end. **A group subset is one exchange
+  where the adapter allows it** (F3, D29): `run_some()` asks for the
+  optional sixth callable `run_some_argv(group, names)` and falls
+  back to one exchange per name without it, and the names are cut to
+  the executing side's `argv_budget` — a DOS program sees at most 125
+  characters of arguments (`placement.ARGUMENT_TAIL_LIMIT`), and
+  reliquary's typed line is tighter still — measured the way the
+  executing side will spend it, still without joining. It is also **the only place both
   halves of an exchange are in hand** — the argv that went out and
   the text that came back — which is why an adapter's refusal becomes
   a `backend.GuestOutputError` here, carrying both, for an entry point
@@ -460,7 +469,9 @@ docstring):
 - [src/testaferro/facade.py](src/testaferro/facade.py) — the pytest facade
   and public entry point: `guest_suite(path_or_backend, ...)` items
   (re-exported as `testaferro.guest_suite`), selection-aware batching
-  (`ResultBroker`), guest-failure replay. A path target is resolved
+  (`ResultBroker`: the whole suite is one `run_all()`, a narrowed
+  selection one `run_some()` per group still holding several, and
+  `run_test()` for a group down to one — F3), guest-failure replay. A path target is resolved
   through the seam above; what the facade adds is the caller's stack
   frame — the call site is both where the `testaferro.ini` search
   starts and where the items report their source.
@@ -475,9 +486,11 @@ The framework adapter stays independent of reliquary: it never imports
 the runner and `ReliquarySuiteBackend` defaults it to CppUTest while keeping
 it a parameter. **P4 is in force over that seam** — the five callables
 an adapter supplies (`list_argv`, `run_all_argv`, `run_one_argv`,
-`parse_list`, `parse_run`), argv crossing as tokens, and no ABC
-built ahead of a second concrete adapter — so a divergence there is
-a bug rather than unbuilt work. Consumers see none of the backend classes: the public
+`parse_list`, `parse_run`), the optional sixth it may
+(`run_some_argv(group, names)`, one group's names because CppUTest's
+filters cross-multiply across groups — D24, D29), argv crossing as
+tokens, and no ABC built ahead of a second concrete adapter — so a
+divergence there is a bug rather than unbuilt work. Consumers see none of the backend classes: the public
 surface is `testaferro.config()` / `testaferro.load_config()` for
 named test environments (including `testaferro.ini`),
 `testaferro.guest_suite()` for `environment=` selection or a

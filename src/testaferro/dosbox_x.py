@@ -388,8 +388,13 @@ class DosboxXSuiteBackend(SuiteBackend):
                  machine_config=None, timeout=None, files=(),
                  location=None, program=None, setup=()):
         exe_path = os.fspath(exe_path)
+        # The argv goes into [autoexec], which DOSBox-X's own shell
+        # reads with a line buffer far wider than COMMAND.COM's — but
+        # the program still sees its arguments through the same DOS
+        # tail, so that is the budget (F3).
         SuiteBackend.__init__(self, exe_path, run=self._run_in_guest,
-                              framework=framework, enumerator=enumerator)
+                              framework=framework, enumerator=enumerator,
+                              argv_budget=placement.ARGUMENT_TAIL_LIMIT)
         declaration = machine_config
         self._timeout = placement.nearest(timeout, declaration,
                                           "timeout", _DEFAULT_TIMEOUT)

@@ -45,6 +45,15 @@ class _BindingFixture:
         for patch in patches:
             patch.stop()
 
+class ArgvBudgetTests(_BindingFixture):
+    def test_the_budget_is_the_dos_argument_tail(self):
+        # [autoexec] is read by DOSBox-X's own shell, whose line is
+        # wide; what bounds the argv is the program's own tail (F3).
+        backend = binding.DosboxXSuiteBackend(str(self.exe))
+
+        assert backend._argv_budget == 125
+
+
 class SuiteDispatchTests(_BindingFixture):
     def test_rejects_a_provably_foreign_executable(self):
         machine = (0x014C).to_bytes(2, "little")

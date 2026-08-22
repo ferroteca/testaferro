@@ -37,30 +37,59 @@ from .resolution import resolve_backend
 
 
 class ResultBroker:
-    """Lazily fetch outcomes for one suite, deciding between one
-    batched run_all() and per-test run_test() calls from how much of
-    the suite pytest actually selected. pytest-free on purpose."""
+    """Lazily fetch outcomes for one suite, deciding from how much of
+    the suite pytest actually selected: the whole suite is one batched
+    run_all(); a narrowed selection is one run_some() per group that
+    still holds several selected tests (F3), and run_test() for a
+    group down to one. pytest-free on purpose.
+
+    Per group and not per selection because that is the shape the
+    framework's filters allow (D24): CppUTest selects the cross product
+    of its group and name filters, so the safe batch is one group's
+    names. Under xdist's `--dist load` a worker holds a scattered
+    slice of a suite, and this is what keeps that slice to a few
+    exchanges rather than one per test.
+    """
 
     def __init__(self, backend, ids):
         self._backend = backend
         self._ids = list(ids)
         self._batch = None
         self._single = {}
+        self._grouped = {}
 
     def outcome(self, test_id, selected_ids):
         if set(selected_ids) == set(self._ids):
             if self._batch is None:
                 self._batch = {TestId(o.group, o.name): o
                                for o in self._backend.run_all()}
-            if test_id not in self._batch:
-                raise LookupError(
-                    f"target did not run test {test_id} "
-                    "(host and target test lists out of sync?)")
-            return self._batch[test_id]
-        if test_id not in self._single:
-            self._single[test_id] = self._backend.run_test(
-                test_id.group, test_id.name)
-        return self._single[test_id]
+            return self._found(test_id, self._batch)
+        if test_id in self._single:
+            return self._single[test_id]
+        group = test_id.group
+        if group not in self._grouped:
+            # The group's selected tests, in the suite's own order, so
+            # the batch runs them the way a full run would.
+            selected = set(selected_ids)
+            names = [i.name for i in self._ids
+                     if i.group == group and i in selected]
+            if len(names) > 1:
+                self._grouped[group] = {
+                    TestId(o.group, o.name): o
+                    for o in self._backend.run_some(group, names)}
+            else:
+                self._single[test_id] = self._backend.run_test(
+                    group, test_id.name)
+                return self._single[test_id]
+        return self._found(test_id, self._grouped[group])
+
+    @staticmethod
+    def _found(test_id, outcomes):
+        if test_id not in outcomes:
+            raise LookupError(
+                f"target did not run test {test_id} "
+                "(host and target test lists out of sync?)")
+        return outcomes[test_id]
 
 
 def guest_suite(target, framework=None, enumerator=None,

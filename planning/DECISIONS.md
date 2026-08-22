@@ -111,6 +111,75 @@ becoming a D-number, and the commit that moves it is the record.
 
 ## Decisions
 
+### D29 — P4 admits an optional sixth adapter callable, and F3 is pledged on it
+
+**Decided** owner, 2026-08-22, by directing F3's pledge and
+delivery. **Supports** U5 (in force) and P4 (in force, amended here).
+Takes the route D24 named and did not take.
+
+**The amendment.** P4 read "`SuiteBackend` calls exactly those
+five." It now reads five required and one optional:
+`run_some_argv(group, names)`, the argv that runs several named
+tests of one group in one exchange. The count was never the
+principle — the principle is that an adapter is argv builders and a
+grammar and nothing else, imports no runner, and never learns how
+its output was obtained — and a sixth builder of the same kind
+changes none of that. What the count guarded against was a seam
+growing by convenience, and the guard holds in the terms of the
+amendment: the sixth is *optional*, so an adapter supplying the five
+is complete and loses only the batching; it is *one group's*, because
+that is the only scope CppUTest's filters keep (D24) and the facade
+can compose group batches out of any selection; and nothing further
+is asked of an adapter that supplies it. A future adapter whose
+framework filters by any other shape still fits — the callable
+states what its own framework can run in one exchange, and the
+composition asks for no more.
+
+**Why a sixth callable and not another shape.** D24 left open "a
+shape that does not need it." None was found that honours P4 and
+D17 together: the composition cannot build a subset argv itself
+without knowing CppUTest's flags, which is the adapter's knowledge
+and nobody else's; and a single `run_one_argv` repeated is what the
+batching exists to replace. The adapter is the only place a
+framework's selection grammar lives, so a selection of several is
+the adapter's to spell.
+
+**The `Backend` ABC gains an operation without gaining an
+obligation.** `run_some(group, names)` is defaulted to one
+`run_test()` per name, which is exactly what the facade did before
+it existed, so a prebuilt backend written to the documented five
+operations is unchanged in behaviour and in what it must implement.
+`SuiteBackend` overrides it to use the adapter's sixth callable when
+there is one.
+
+**The line is the executing side's, and it is short.** A DOS program
+sees at most 125 characters of arguments — the program segment
+prefix's command tail — and COMMAND.COM takes 126 characters of
+typed line, program and all. So a subset is cut to fit: each binding
+hands `SuiteBackend` an `argv_budget` (reliquary's the typed line
+less its program, computed once the location settles; DOSBox-X's the
+tail alone, its `[autoexec]` being read by a wider shell), and the
+composition splits a group's names across as many exchanges as fit,
+measuring the argv the way the executing side will spend it and
+still joining nothing (D17). The budget is a fact about the guest's
+DOS, so the tail constant lives in `placement.py` with the other
+things both DOS bindings do the same way.
+
+**What the facade does with it.** `ResultBroker` batches a narrowed
+selection per group: the whole suite is still one `run_all()`; a
+group with several selected tests is one `run_some()`; a group down
+to one selected test stays `run_test()`. Under xdist's `--dist load`
+a worker holds a scattered slice of a suite, and this is what makes
+that distribution efficient on a single suite rather than one
+exchange per test — the U5 journey's other half, which `loadfile`
+alone served.
+
+**Folded into:** root `ARCHITECTURE.md` (P4), `src/testaferro/backend.py`,
+`cpputest.py`, `suite.py`, `facade.py`, `placement.py`,
+`reliquary.py`, `dosbox_x.py`, `planning/proposed/ARCHITECTURE.md`,
+`planning/proposed/FEATURES.md` (F3 removed), `README.md`,
+`AGENTS.md`.
+
 ### D28 — The DOSBox-X work drive is `D:`, and a document is opened by the provider that declared it
 
 **Decided** owner, 2026-08-21, by directing F21's delivery.

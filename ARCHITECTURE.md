@@ -170,7 +170,14 @@ built and verified.
   framework, and nothing else: `list_argv()`, `run_all_argv()`,
   `run_one_argv(group, name)`, `parse_list()` and `parse_run()` are
   the whole of what one must supply, and `SuiteBackend` calls exactly
-  those five. An adapter imports no runner — the shared result types
+  those five — plus one it *may* supply, `run_some_argv(group,
+  names)`, the argv that runs several named tests of one group at
+  once (D29). The sixth is optional on exactly the terms the five are
+  required: an adapter without it loses nothing but the batching,
+  `SuiteBackend` running a subset one test at a time as it always
+  did, and an adapter with it is not asked for anything further —
+  the subset is one group's because that is the only scope a filter
+  argv can be trusted to keep (D24). An adapter imports no runner — the shared result types
   and nothing further — and never learns how the output it parses was
   obtained, which is what makes it usable on its own against output
   the caller captured some other way (U6). **Argv crosses that seam
@@ -195,8 +202,8 @@ built and verified.
   out, text in, results out. Its natural shape in Python is a module
   of functions, which is what `framework=cpputest` passes, and a base
   class would force it into an object with nothing to construct. The
-  five callables above are the contract, stated here rather than in
-  an inheritance chain. A **conformance kit** is refused on D1's
+  five callables above, and the optional sixth, are the contract,
+  stated here rather than in an inheritance chain. A **conformance kit** is refused on D1's
   ground rather than on that one: a shared suite validating adapters
   that do not exist yet buys no leverage, and anything of the sort is
   derived from the concrete adapters there are when there are two. So

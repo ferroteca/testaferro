@@ -388,3 +388,74 @@ class ParallelTreeTests:
         # came down cleanly enough for pytest to report normally.
         assert "2 failed" in output, output
         assert result.returncode == 1, output
+
+
+@requires_guest
+@requires_suite
+class GroupSubsetTests:
+    """F3's middle operation against a real guest: several tests of
+    one group in one exchange, read back as the same outcomes the
+    whole run reports."""
+
+    def test_a_group_subset_runs_in_one_exchange_and_matches_the_full_run(self):
+        from testaferro import reliquary as binding
+
+        backend = binding.suite_backend(str(SUITE))
+        backend.start_guest()
+        try:
+            ids = backend.list_tests()
+            group = ids[0].group
+            names = [i.name for i in ids if i.group == group]
+            assert len(names) > 1, ids
+            whole = {(o.group, o.name): o.passed for o in backend.run_all()}
+
+            exchanges = []
+            real_run = backend._run
+
+            def counting(exe_path, args):
+                exchanges.append(args)
+                return real_run(exe_path, args)
+
+            backend._run = counting
+            some = backend.run_some(group, names)
+        finally:
+            backend.stop_guest()
+
+        assert [(o.group, o.name) for o in some] == [(group, n) for n in names]
+        assert {(o.group, o.name): o.passed for o in some} == {
+            (group, n): whole[(group, n)] for n in names}
+        # One exchange for the whole group, within the DOS line budget
+        # this suite's names comfortably fit.
+        assert len(exchanges) == 1, exchanges
+        assert exchanges[0][:3] == ("-v", "-sg", group)
+
+
+@requires_guest
+@requires_suite
+@requires_xdist
+class ScatteredSuiteTests:
+    """U5's other distribution, made efficient by F3: `--dist load`
+    scatters one suite's items across workers, and each worker's
+    slice runs in a few group exchanges rather than one per test."""
+
+    def test_one_suite_scattered_over_two_workers_still_reports_whole(self):
+        with tempfile.TemporaryDirectory() as project:
+            root = Path(project)
+            shutil.copy2(SUITE, root / SUITE.name)
+            (root / "testaferro.ini").write_text(
+                "[project-dos]\nplatform = dos\nsuites = *.EXE\n",
+                encoding="utf-8")
+            (root / "pytest.ini").write_text("[pytest]\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "-m", "pytest", "-p", "no:cacheprovider",
+                 "-v", "-n", "2", "--dist", "load"],
+                capture_output=True, text=True, check=False, cwd=str(root))
+            output = result.stdout + result.stderr
+
+        workers = {worker for worker, _ in re.findall(
+            r"\[(gw\d+)\] \[\s*\d+%\] \w+ (\w+\.EXE)::", output)}
+        assert len(workers) == 2, output
+        assert "SUITE.EXE::Guest-Fails" in output, output
+        assert "1 failed" in output, output
+        assert result.returncode == 1, output

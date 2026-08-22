@@ -232,9 +232,15 @@ its own worker, both booting at once. Delivery found one thing the
 proof itself could not, on a machine whose system disk was long
 built: two workers installing it for the first time at the same
 moment staged into one shared partial file, and each build now
-stages into its own. Several drafted entries describe code that
-already exists; that makes their route short, not automatic — the
-pledge is still an act, and delivery still has to be true.
+stages into its own. **F3 then took the route D24 had named and not
+taken**: P4 amended to admit an optional sixth adapter callable
+(D29), F3 pledged on it and delivered in the same change — a
+`run_some()` operation on the seam, defaulted so the escape hatch
+owes nothing new, and a per-group batch in the broker, proven
+against a real guest both directly and under `--dist load`. Several
+drafted entries describe code that already exists; that makes their
+route short, not automatic — the pledge is still an act, and
+delivery still has to be true.
 
 **What did not arm is worth naming, because the bar is what makes
 the root list mean anything.** P3 and P5 each describe the code, and

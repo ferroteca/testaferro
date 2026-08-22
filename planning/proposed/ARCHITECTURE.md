@@ -62,7 +62,10 @@ compose:
 1. **The `Backend` seam** — the five-operation ABC every execution
    path implements, and the public escape hatch: a caller with a
    wholly different execution mechanism passes a prebuilt `Backend`
-   and keeps everything above it (D1).
+   and keeps everything above it (D1). A sixth operation,
+   `run_some(group, names)`, carries a default — one `run_test()` per
+   name — so the five stay the whole of what an implementer owes
+   (D29).
 2. **The provider binding** — one module per provider, holding
    everything about how that provider is asked to build, boot and
    drive what runs a suite. Reliquary lives here, and QEMU does not
@@ -74,7 +77,8 @@ compose:
    one guest unit-test framework, independent of how the output was
    obtained and of who obtained it. This seam is the one specified in
    force: P4, at [root `ARCHITECTURE.md`](../../ARCHITECTURE.md),
-   names the five callables an adapter supplies.
+   names the five callables an adapter supplies and the optional
+   sixth it may (D29).
 
 `SuiteBackend` is the internal composition of an execution path with
 a framework adapter. It is internal on purpose: composing them is
@@ -121,7 +125,8 @@ named here follows that rule.
    either is a change to both.
 4. **The `Backend` ABC** — public because a prebuilt backend is a
    documented escape hatch; its five operations are a contract with
-   callers who implement it.
+   callers who implement it, and `run_some()` is defaulted rather
+   than owed (D29).
 5. **The pytest items Testaferro produces** — the id spelling
    (`Group-Name`, a dash and never a dot, because IDE tree-to-target
    mapping reads dots as hierarchy), the re-homed source location,

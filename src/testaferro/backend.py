@@ -104,6 +104,22 @@ class Backend(ABC):
         cheaper than many individual run_test() calls, however the
         backend chooses to implement that."""
 
+    def run_some(self, group, names) -> "list[TestOutcome]":
+        """Run several tests of one group, in the group's own order
+        of `names`. The middle operation between run_all() and
+        run_test(), used by the facade when a narrowed selection
+        still holds several tests of a group (F3): one exchange with
+        the target where there would otherwise be one per test.
+
+        Not abstract, so a prebuilt backend written to the five
+        operations keeps working unchanged — this default is one
+        run_test() per name, which is exactly what the facade did
+        before the operation existed (D29). A backend for which a
+        subset *is* cheaper overrides it. Raises LookupError if the
+        target did not run one of them.
+        """
+        return [self.run_test(group, name) for name in names]
+
     def stop_guest(self):
         """Tear down cleanly. Must be safe to call after a failed or
         partial start_guest()."""

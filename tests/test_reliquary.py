@@ -391,6 +391,16 @@ class ReliquarySuiteBackendTests(_BindingFixture):
         finally:
             binding.stop()
 
+    def test_the_argv_budget_is_the_typed_line_less_the_program(self):
+        # COMMAND.COM takes 126 characters of line; the program and its
+        # separating space come off that, and the DOS argument tail
+        # (125) caps it from the other side (F3).
+        backend = binding.suite_backend(self.exe, boot_image=self.image)
+        backend._location = "D:\\"
+
+        assert backend._argv_budget() == min(
+            125, 126 - len("D:\\" + os.path.basename(self.exe)) - 1)
+
     def test_the_default_system_is_built_once_and_then_reused(self):
         # `_build_default_image()` performs a real FreeDOS install, so
         # it is stubbed here and belongs to integration — the seam to

@@ -138,6 +138,40 @@ class ResultBrokerTests:
         broker.outcome(ids[1], selected)
         assert backend.calls == [("run_test", "Vring", "Fails")]
 
+    def test_a_narrowed_selection_is_batched_per_group(self):
+        # Several selected tests of one group go out in one exchange;
+        # a second group is a second exchange, because CppUTest's
+        # filters cross-multiply across groups (D24). A lone selected
+        # test keeps the single-test operation.
+        outcomes = [TestOutcome("Vring", "Wraps", True),
+                    TestOutcome("Vring", "Fails", False),
+                    TestOutcome("Vring", "Empties", True),
+                    TestOutcome("Ring", "Alone", True),
+                    TestOutcome("Ring", "Skipped", True)]
+        backend = FakeBackend(outcomes)
+        ids = [TestId(o.group, o.name) for o in outcomes]
+        broker = ResultBroker(backend, ids)
+        selected = [ids[0], ids[1], ids[3]]
+
+        assert broker.outcome(ids[0], selected).passed
+        assert not broker.outcome(ids[1], selected).passed
+        assert broker.outcome(ids[3], selected).passed
+        assert backend.calls == [
+            ("run_some", "Vring", ("Wraps", "Fails")),
+            ("run_test", "Ring", "Alone"),
+        ]
+
+    def test_a_batched_group_missing_one_raises_lookup_error(self):
+        backend = FakeBackend(OUTCOMES[:1])
+        ids = [TestId("Vring", "Wraps"), TestId("Vring", "Gone"),
+               TestId("Vring", "Unselected")]
+        broker = ResultBroker(backend, ids)
+
+        assert broker.outcome(ids[0], ids[:2]).passed
+        with pytest.raises(LookupError, match="Vring.Gone"):
+            broker.outcome(ids[1], ids[:2])
+        assert backend.calls == [("run_some", "Vring", ("Wraps", "Gone"))]
+
     def test_test_id_components_are_preserved(self):
         outcome = TestOutcome("namespace.group", "case", passed=True)
         backend = FakeBackend([outcome])

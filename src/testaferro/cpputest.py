@@ -21,7 +21,9 @@ quoted, and leaves each caller to guess whether to split it back.
 
 Output grammars follow CppUTest v4.0's own source (TestOutput.cpp,
 TestRegistry.cpp): eclipse-style failure locations (the default),
-'-ln' space-separated 'Group.Name' enumeration.
+'-ln' space-separated 'Group.Name' enumeration. The filter argv
+follows it too (CommandLineArguments.cpp, TestFilter.cpp, Utest.cpp):
+see run_some_argv() for why a subset is always one group's.
 """
 
 from __future__ import annotations
@@ -75,6 +77,26 @@ def run_one_argv(group, name):
     """Suite argv that runs exactly one test in parse_run()'s
     format ('-sg'/'-sn' are CppUTest's strict-match filters)."""
     return VERBOSE_ARGS + ("-sg", group, "-sn", name)
+
+
+def run_some_argv(group, names):
+    """Suite argv that runs exactly the named tests of one group, in
+    parse_run()'s format — the optional sixth callable (D29).
+
+    **One group per argv, by CppUTest's own filter model**
+    (`UtestShell::shouldRun`, `UtestShell::match`): a test runs when
+    it matches *any* group filter *and* *any* name filter, each list
+    being an OR. One strict `-sg` therefore scopes every `-sn` that
+    follows to that group and nothing else runs; a second `-sg` would
+    select the cross product of both groups against every name (D24),
+    which is why this takes a group and its names rather than a list
+    of ids. `-st Group.Name` is no escape — it adds to the same two
+    lists (`addGroupDotNameFilter`).
+    """
+    argv = VERBOSE_ARGS + ("-sg", group)
+    for name in names:
+        argv += ("-sn", name)
+    return argv
 
 
 def parse_list(text):

@@ -65,6 +65,11 @@ class FakeBackend(Backend):
                 return outcome
         raise LookupError(f"target did not run test {group}.{name}")
 
+    def run_some(self, group, names):
+        self.calls.append(("run_some", group, tuple(names)))
+        return [o for o in self._outcomes
+                if o.group == group and o.name in names]
+
     def run_all(self):
         self.calls.append(("run_all",))
         return self._outcomes

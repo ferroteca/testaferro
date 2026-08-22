@@ -317,7 +317,9 @@ Because every run gets a private home and a private image copy, suites in separa
 mutable guest state — safe to parallelize. With [pytest-xdist](https://pypi.org/project/pytest-xdist/), run
 `pytest -n auto --dist loadfile`: `loadfile` keeps each test file's items on one worker, so a whole guest suite stays
 together (preserving the one-boot `run_all()` batching) while *different* suites boot their guests concurrently on
-other workers. Plain `--dist load` would scatter a suite's items across workers and degrade it to one boot per test.
+other workers. Plain `--dist load` scatters a suite's items across workers instead, and each worker then runs its
+slice a group at a time — several tests per guest exchange, not one — so a single large suite also gains from more
+workers, at the price of one execution guest per worker.
 
 Guest lifecycle is automatic. Enumeration runs in a short guest session of its own — skipped entirely when a
 host-built twin supplies the list — and the selected tests then share one execution guest, stopped by pytest even when
@@ -327,8 +329,9 @@ Every test in the guest suite becomes its own pytest item, so pytest's selection
 
 - run everything (`pytest`) and the facade batches the whole suite into a single guest run — one execution boot for the
   session;
-- narrow the selection (`pytest -k Wraps`, an explicit node id) and only the selected tests run in the guest,
-  individually.
+- narrow the selection (`pytest -k Wraps`, an explicit node id) and only the selected tests run in the guest —
+  batched a group at a time where several of a group survived, and singly where one did. A DOS program sees at most
+  125 characters of arguments, so a large group batch goes out as several exchanges rather than one.
 
 A failing guest test fails its pytest item with the guest side's original file, line, and assertion message — not a
 traceback into the facade. IDE test integrations work per item too: the generated test function reports the

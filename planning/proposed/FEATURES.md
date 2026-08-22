@@ -70,6 +70,13 @@ turns out not to exist apart, neither does the handle.
   so no work remained in it to carry a number; what U3 itself still
   owes is its own clauses, and it stays drafted here, unowed.
 
+**F3 has left this file too**, the long way round: pledged, withdrawn
+the same day when its batching turned out to need a sixth
+framework-adapter callable P4 did not allow (D24), and pledged again
+once P4 was amended to admit an optional one (D29) — pledged and
+delivered in one change, as F20 and F22 were. Its number is retired
+with it.
+
 A gap in the numbering here is where one of them went.
 
 **F9 and F18 have left this file too**, each pledged alongside its
@@ -97,28 +104,6 @@ Note the tension with **P5**: a machine surviving a session is state
 Testaferro created and did not sweep. Pledging this feature means
 saying exactly what remains, where, and how a user gets rid of it —
 U8 already demands it be enumerable and removable.
-
-## F3 — Intra-suite sharding
-
-Serves **U5**, and the parallelism item with real payoff. A middle
-backend operation between `run_all()` and `run_test()` — "run this
-subset in one boot": CppUTest filter argv can select several tests
-per invocation, so a worker holding part of a suite boots once
-rather than once per test. That makes `--dist load` efficient on a
-single suite (roughly N× wall clock for N workers) and softens
-`-k`-narrowed selections in serial runs too.
-
-Touches `ResultBroker`, the `Backend` seam, and the CppUTest argv
-builders — so it changes an enumerated interface (the `Backend` ABC)
-and takes the argued route regardless of its size.
-
-**Pledged and withdrawn the same day** (D24): CppUTest's own filter
-model makes safe batching possible only through a group-scoped filter
-argv, a sixth callable on the framework-adapter seam that contradicts
-P4's own count — "`SuiteBackend` calls exactly those five." Reconsider
-once P4 is amended to make room for one, or a shape is found that
-does not need it; either is a pledge of its own, not a resumption of
-this one.
 
 ## F5 — A second guest platform binding
 

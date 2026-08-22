@@ -6,6 +6,21 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adh
 
 ## [Unreleased]
 
+- **Intra-suite sharding: a narrowed selection runs a group at a
+  time** (F3 delivered, D29; P4 amended in force). The `Backend` seam
+  gains `run_some(group, names)`, defaulted to one `run_test()` per
+  name so a prebuilt backend owes nothing new; the framework adapter
+  may supply an optional sixth callable, `run_some_argv(group,
+  names)`, which CppUTest's does (`-v -sg Group -sn A -sn B`, one
+  group per argv because CppUTest's filters cross-multiply across
+  groups). `ResultBroker` batches a narrowed selection per group:
+  `pytest -k`, an explicit node-id list, or an xdist `--dist load`
+  slice now costs a few exchanges per worker rather than one per
+  test. A DOS program sees at most 125 characters of arguments, so
+  each binding hands the composition its line budget — reliquary's
+  typed COMMAND.COM line less the program, DOSBox-X's the tail — and
+  a large batch is split to fit. Proven against a real guest directly
+  and under `pytest -n 2 --dist load`.
 - **The reliquary pin moves to `0.1.0a3`** (D4). An additive release
   on the provider's side — the VNC control plane on QEMU, a guest's
   own font as an authored asset and a script's `font` statement — and

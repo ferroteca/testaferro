@@ -28,6 +28,17 @@ import shutil
 # that vocabulary rather than inventing a second one (F4).
 LOCATION_PLACEHOLDER = "location"
 
+# How many characters of arguments a DOS program can ever see. The
+# program segment prefix carries the command tail at offset 80h as a
+# length byte and at most 127 bytes ending in a carriage return, and
+# that tail starts with the separating space — 125 characters of
+# arguments, under whichever shell typed them. This is a fact about
+# the guest's DOS rather than about any provider, which is why it is
+# shared here, and why each binding hands it (or something tighter of
+# its own) to the composition as the budget a subset argv has to fit
+# in (F3, D29).
+ARGUMENT_TAIL_LIMIT = 125
+
 
 def nearest(given, declaration, name, default=None):
     """This call, then the declaration, then the default.

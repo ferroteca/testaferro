@@ -201,13 +201,22 @@ class ArgvTests:
         assert cpputest.run_all_argv() == ("-v",)
         assert (cpputest.run_one_argv("Vring", "Wraps")
                 == ("-v", "-sg", "Vring", "-sn", "Wraps"))
+        # One strict group filter and one strict name filter per
+        # wanted test: CppUTest runs a test when it matches *any*
+        # group filter and *any* name filter, so a single `-sg`
+        # scopes every `-sn` to that group and nothing else runs
+        # (D24, D29).
+        assert (cpputest.run_some_argv("Vring", ["Wraps", "Empties"])
+                == ("-v", "-sg", "Vring", "-sn", "Wraps",
+                    "-sn", "Empties"))
 
     def test_argv_is_tokens_and_not_a_command_line(self):
         """A string is a sequence too, which is what made the flaw
         silent: every caller iterating one gets characters. So say
         what a builder returns, not merely what it equals."""
         for argv in (cpputest.list_argv(), cpputest.run_all_argv(),
-                     cpputest.run_one_argv("Vring", "Wraps")):
+                     cpputest.run_one_argv("Vring", "Wraps"),
+                     cpputest.run_some_argv("Vring", ["Wraps", "Empties"])):
             assert not isinstance(argv, str)
             for token in argv:
                 assert " " not in token

@@ -61,6 +61,9 @@ class ScriptedFramework:
     def run_one_argv(self, group, name):
         return ("--run", f"{group}/{name}")
 
+    def run_some_argv(self, group, names):
+        return ("--run-group", group, *names)
+
     def parse_list(self, text):
         return [TestId(*line.split("/")) for line in text.split()]
 
@@ -125,6 +128,79 @@ class SuiteBackendTests:
             ("SUITE.EXE", ("-v",)),
             ("SUITE.EXE", ("-v", "-sg", "Vring", "-sn", "Wraps")),
         ]
+
+    def test_run_some_runs_a_group_subset_in_one_exchange(self):
+        run = ScriptedRunner({
+            ("-v", "-sg", "Vring", "-sn", "Wraps", "-sn", "Fails"):
+                RUN_ALL_OUTPUT,
+        })
+        backend = SuiteBackend("SUITE.EXE", run=run, framework=cpputest)
+
+        outcomes = backend.run_some("Vring", ["Wraps", "Fails"])
+
+        assert ([(o.group, o.name, o.passed) for o in outcomes]
+                == [("Vring", "Wraps", True), ("Vring", "Fails", False)])
+        assert run.calls == [
+            ("SUITE.EXE", ("-v", "-sg", "Vring", "-sn", "Wraps",
+                           "-sn", "Fails")),
+        ]
+
+    def test_run_some_chunks_to_the_executing_sides_line_budget(self):
+        # A DOS program sees at most 125 characters of arguments, and
+        # only the executing side knows its own line; it hands the
+        # budget over and the composition splits the names to fit,
+        # one group per exchange still, never a name cut in two.
+        run = ScriptedRunner({
+            ("-v", "-sg", "Vring", "-sn", "Wraps", "-sn", "Fails"):
+                RUN_ALL_OUTPUT,
+            ("-v", "-sg", "Vring", "-sn", "Empties"): (
+                "TEST(Vring, Empties) - 0 ms\n"
+                "OK (3 tests, 1 ran, 1 checks, 0 ignored, 2 filtered "
+                "out, 0 ms)\n"),
+        })
+        # "-v -sg Vring -sn Wraps -sn Fails" is 32 characters; adding
+        # " -sn Empties" would make it 44.
+        backend = SuiteBackend("SUITE.EXE", run=run, framework=cpputest,
+                               argv_budget=lambda: 40)
+
+        outcomes = backend.run_some("Vring", ["Wraps", "Fails", "Empties"])
+
+        assert [o.name for o in outcomes] == ["Wraps", "Fails", "Empties"]
+        assert [args for _, args in run.calls] == [
+            ("-v", "-sg", "Vring", "-sn", "Wraps", "-sn", "Fails"),
+            ("-v", "-sg", "Vring", "-sn", "Empties"),
+        ]
+
+    def test_run_some_falls_back_to_one_exchange_per_test(self):
+        # An adapter supplying only the five callables P4 names still
+        # works: the sixth is optional, and without it a subset is
+        # run the way it always was (D29).
+        class FiveCallables(ScriptedFramework):
+            run_some_argv = None
+
+        run = ScriptedRunner({
+            ("--run", "Vring/Wraps"): "PASS Vring/Wraps\n",
+            ("--run", "Vring/Fails"): "FAIL Vring/Fails\n",
+        })
+        backend = SuiteBackend("SUITE.EXE", run=run,
+                               framework=FiveCallables())
+
+        outcomes = backend.run_some("Vring", ["Wraps", "Fails"])
+
+        assert [(o.name, o.passed) for o in outcomes] == [
+            ("Wraps", True), ("Fails", False)]
+        assert [args for _, args in run.calls] == [
+            ("--run", "Vring/Wraps"), ("--run", "Vring/Fails")]
+
+    def test_run_some_raises_when_target_skipped_one(self):
+        run = ScriptedRunner({
+            ("-v", "-sg", "Vring", "-sn", "Wraps", "-sn", "Gone"):
+                RUN_ONE_OUTPUT,
+        })
+        backend = SuiteBackend("SUITE.EXE", run=run, framework=cpputest)
+
+        with pytest.raises(LookupError, match="Vring.Gone"):
+            backend.run_some("Vring", ["Wraps", "Gone"])
 
     def test_run_test_raises_when_target_did_not_run_it(self):
         run = ScriptedRunner(

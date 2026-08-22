@@ -978,11 +978,28 @@ class ReliquarySuiteBackend(_GuestLifecycle, SuiteBackend):
                                  location=location, program=program,
                                  setup=setup)
         SuiteBackend.__init__(self, exe_path, run=self._run_in_guest,
-                              framework=framework, enumerator=enumerator)
+                              framework=framework, enumerator=enumerator,
+                              argv_budget=self._argv_budget)
 
     def _exe_name(self):
         """The suite executable's own name, as the guest will see it."""
         return os.path.basename(self._exe)
+
+    def _argv_budget(self):
+        """Characters of argv one exchange can carry (F3).
+
+        Two limits, the tighter one governing: the program's own
+        argument tail (`placement.ARGUMENT_TAIL_LIMIT`), and the line
+        this binding types at COMMAND.COM, whose input buffer takes
+        126 characters — program, space and arguments together. Only
+        known once the location has settled, which is why the
+        composition asks rather than being told at construction.
+        """
+        command = placement.resolve_program(self._declared_program,
+                                            self.location,
+                                            self._exe_name())
+        return min(placement.ARGUMENT_TAIL_LIMIT,
+                   _DOS_COMMAND_LINE_LIMIT - len(command) - 1)
 
     def _run_in_guest(self, exe_path, args):
         if self._home is None:
@@ -1009,6 +1026,11 @@ class ReliquarySuiteBackend(_GuestLifecycle, SuiteBackend):
 #: reliquary — is what wraps: a longer line lands on the screen as a
 #: full row plus a remainder row, split wherever column 80 fell.
 _DOS_CONSOLE_WIDTH = 80
+
+#: What COMMAND.COM will take as one typed line: a 128-byte buffered
+#: read, 127 characters at most with the carriage return — 126 of
+#: text. This is the line this binding types, program and all.
+_DOS_COMMAND_LINE_LIMIT = 126
 
 
 def _logical_lines(rows):
